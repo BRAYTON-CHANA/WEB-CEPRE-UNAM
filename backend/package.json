@@ -1,0 +1,30 @@
+{
+  "name": "novasport-backend",
+  "version": "1.0.0",
+  "description": "Backend para Novasport - Sistema de gestión deportiva",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest"
+  },
+  "keywords": [
+    "novasport",
+    "backend",
+    "api"
+  ],
+  "author": "Novasport Team",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "sqlite3": "^6.0.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.1"
+  }
+}

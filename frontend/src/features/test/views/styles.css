@@ -1,0 +1,14 @@
+/* Estilos para el módulo CRUD */
+.crud-container {
+  padding: 2rem;
+}
+
+.crud-header {
+  margin-bottom: 2rem;
+}
+
+.crud-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333;
+}

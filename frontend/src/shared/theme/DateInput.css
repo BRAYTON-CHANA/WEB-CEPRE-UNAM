@@ -1,0 +1,23 @@
+/* Estilos personalizados para DateInput */
+
+/* Ocultar el header del calendario (mes y año repetitivos) */
+.custom-datepicker .react-datepicker__header {
+  background-color: transparent;
+  border-bottom: none;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+/* Ocultar el título del mes/año en el header */
+.custom-datepicker .react-datepicker__current-month,
+.custom-datepicker .react-datepicker-year-header {
+  display: none;
+}
+
+/* Ajustar el espaciado de los dropdowns */
+.custom-datepicker .react-datepicker__month-dropdown-container,
+.custom-datepicker .react-datepicker__year-dropdown-container {
+  margin: 5px;
+}
+
+

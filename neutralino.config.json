@@ -1,0 +1,48 @@
+{
+  "applicationId": "js.neutralino.mosaic",
+  "version": "1.0.0",
+  "defaultMode": "window",
+  "port": 0,
+  "url": "/",
+  "documentRoot": "build/",
+  "enableServer": true,
+  "enableNativeAPI": true,
+  "logging": {
+    "enabled": true,
+    "writeToLogFile": true
+  },
+  "nativeAllowList": [
+    "app.*",
+    "os.*",
+    "filesystem.*",
+    "filesystem.readDirectory",
+    "filesystem.writeDirectory",
+    "filesystem.createDirectory",
+    "filesystem.writeFile",
+    "filesystem.readFile",
+    "os.showMessageBox",
+    "os.execCommand",
+    "process.*"
+  ],
+  "modes": {
+    "window": {
+      "title": "MiApp - Aplicación de Escritorio",
+      "width": 1200,
+      "height": 800,
+      "minWidth": 800,
+      "minHeight": 600,
+      "icon": "public/icon.png",
+      "enableInspector": true,
+      "exitProcessOnClose": true,
+      "resizable": true,
+      "fullScreen": false
+    }
+  },
+  "cli": {
+    "binaryName": "miapp-desktop",
+    "resourcesPath": "build",
+    "clientLibrary": "build/neutralino.js",
+    "binaryVersion": "6.3.0",
+    "clientVersion": "6.3.0"
+  }
+}
