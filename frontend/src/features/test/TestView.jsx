@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useCrud } from '../../shared/hooks/useCrud';
+import { API_BASE_URL } from '../../shared/config/api';
 
 const TestView = () => {
   // Estado para conexión
@@ -35,7 +36,7 @@ const TestView = () => {
       console.log('🔍 Probando conexión con backend...');
       
       // Probar endpoint de health check
-      const response = await fetch('http://localhost:3001/api/health');
+      const response = await fetch(`${API_BASE_URL}/health`);
       
       if (response.ok) {
         const data = await response.json();

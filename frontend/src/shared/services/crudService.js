@@ -1,12 +1,6 @@
 import cacheService from './cacheService';
+import { API_BASE_URL } from '../config/api';
 
-// API base URL
-const API_BASE_URL = 'http://localhost:3001/api';
-
-// Detect environment
-const isNeutralino = typeof Neutralino !== 'undefined';
-console.log('[crudService] Environment check:');
-console.log('[crudService] isNeutralino:', isNeutralino);
 console.log('[crudService] API_BASE_URL:', API_BASE_URL);
 
 /**
@@ -62,7 +56,6 @@ class CrudService {
       const url = `${API_BASE_URL}/tables/${tableName}${queryString ? `?${queryString}` : ''}`;
       
       console.log(`[crudService] getTableData: Attempting connection to ${url}`);
-      console.log(`[crudService] Environment: ${isNeutralino ? 'Neutralino (Desktop)' : 'Web'}`);
       
       const response = await fetch(url);
       

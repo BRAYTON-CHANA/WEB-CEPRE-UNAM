@@ -11,6 +11,7 @@ import EstadisticasModal from './components/EstadisticasModal';
 import { useAsignacionHorarioHandlers } from './hooks/useAsignacionHorarioHandlers';
 import { exportHorarioToExcel } from './utils/exportToExcel';
 import functionService from '@/shared/services/functionService';
+import { API_BASE_URL } from '@/shared/config/api';
 
 /**
  * Asignación de Horario por Grupo
@@ -135,7 +136,7 @@ function AsignacionHorarioGrupo() {
       // Recargar eventos del calendario
       if (selectedIdGrupo) {
         const asignacionFilters = JSON.stringify([{ field: 'ID_GRUPO', op: '=', value: selectedIdGrupo }]);
-        const asignacionResponse = await fetch(`http://localhost:3001/api/tables/VW_ASIGNACION_HORARIO?filters=${encodeURIComponent(asignacionFilters)}`);
+        const asignacionResponse = await fetch(`${API_BASE_URL}/tables/VW_ASIGNACION_HORARIO?filters=${encodeURIComponent(asignacionFilters)}`);
         const asignacionData = await asignacionResponse.json();
         setAsignacionHorarioData(asignacionData);
         const { transformToEvents } = await import('./utils/transformers');
@@ -159,7 +160,7 @@ function AsignacionHorarioGrupo() {
       await handleDeleteAsignacion(eventId);
       if (selectedIdGrupo) {
         const asignacionFilters = JSON.stringify([{ field: 'ID_GRUPO', op: '=', value: selectedIdGrupo }]);
-        const asignacionResponse = await fetch(`http://localhost:3001/api/tables/VW_ASIGNACION_HORARIO?filters=${encodeURIComponent(asignacionFilters)}`);
+        const asignacionResponse = await fetch(`${API_BASE_URL}/tables/VW_ASIGNACION_HORARIO?filters=${encodeURIComponent(asignacionFilters)}`);
         const asignacionData = await asignacionResponse.json();
         setAsignacionHorarioData(asignacionData);
         const { transformToEvents } = await import('./utils/transformers');

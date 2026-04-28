@@ -60,7 +60,7 @@ function VistaHorariosConfig() {
     setLoadingFiltered(true);
     try {
       const filters = JSON.stringify([{ field: 'ID_HORARIO', op: '=', value: idHorario }]);
-      const response = await fetch(`http://localhost:3001/api/tables/VW_HORARIO_BLOQUES?filters=${encodeURIComponent(filters)}`);
+      const response = await fetch(`${API_BASE_URL}/tables/VW_HORARIO_BLOQUES?filters=${encodeURIComponent(filters)}`);
       const data = await response.json();
       setFilteredData(data);
       

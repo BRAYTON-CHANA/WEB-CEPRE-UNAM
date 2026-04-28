@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import cacheService from '@/shared/services/cacheService';
+import { API_BASE_URL } from '@/shared/config/api';
 import HorasAcademicasSummary from './ResumenGeneracionModal/HorasAcademicasSummary';
 import AsignacionesTable from './ResumenGeneracionModal/AsignacionesTable';
 import ConflictModal from './ResumenGeneracionModal/ConflictModal';
@@ -37,13 +38,13 @@ const ResumenGeneracionModal = ({ isOpen, onClose, asignaciones = [], warning = 
       
       // Refrescar registry para asegurar que ASIGNACION_HORARIO esté registrada
       try {
-        await fetch('http://localhost:3001/api/registry/refresh', { method: 'POST' });
+        await fetch(`${API_BASE_URL}/registry/refresh`, { method: 'POST' });
       } catch (e) {
         console.warn('No se pudo refrescar el registry:', e.message);
       }
       
       // Obtener asignaciones existentes
-      const response = await fetch('http://localhost:3001/api/tables/VW_ASIGNACION_HORARIO');
+      const response = await fetch(`${API_BASE_URL}/tables/VW_ASIGNACION_HORARIO`);
       const data = await response.json();
       
       if (!data?.data?.records) {
@@ -105,7 +106,7 @@ const ResumenGeneracionModal = ({ isOpen, onClose, asignaciones = [], warning = 
       
       // Refrescar registry para asegurar que ASIGNACION_HORARIO esté registrada
       try {
-        await fetch('http://localhost:3001/api/registry/refresh', { method: 'POST' });
+        await fetch(`${API_BASE_URL}/registry/refresh`, { method: 'POST' });
       } catch (e) {
         console.warn('No se pudo refrescar el registry:', e.message);
       }
@@ -113,7 +114,7 @@ const ResumenGeneracionModal = ({ isOpen, onClose, asignaciones = [], warning = 
       if (overwrite && conflictos.length > 0) {
         // Eliminar asignaciones conflictivas
         for (const conflicto of conflictos) {
-          await fetch(`http://localhost:3001/api/tables/ASIGNACION_HORARIO/${conflicto.existente.ID_ASIGNACION_HORARIO}`, {
+          await fetch(`${API_BASE_URL}/tables/ASIGNACION_HORARIO/${conflicto.existente.ID_ASIGNACION_HORARIO}`, {
             method: 'DELETE'
           });
         }
@@ -122,7 +123,7 @@ const ResumenGeneracionModal = ({ isOpen, onClose, asignaciones = [], warning = 
       // Insertar nuevas asignaciones - mismo formato que el horario normal
       const results = [];
       for (const asignacion of payloadBD) {
-        const response = await fetch('http://localhost:3001/api/tables/ASIGNACION_HORARIO', {
+        const response = await fetch(`${API_BASE_URL}/tables/ASIGNACION_HORARIO`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

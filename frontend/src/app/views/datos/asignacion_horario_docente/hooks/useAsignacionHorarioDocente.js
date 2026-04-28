@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { transformToCustomBlocks, transformToEventsDocente } from '../utils/transformers';
-
-const API_BASE = 'http://localhost:3001/api';
+import { API_BASE_URL as API_BASE } from '@/shared/config/api';
 
 /**
  * Hook para cargar el horario visual por docente.

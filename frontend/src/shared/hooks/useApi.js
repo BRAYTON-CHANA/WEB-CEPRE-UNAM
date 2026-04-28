@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
+import { API_BASE_URL } from '../config/api';
 
 /**
  * Hook genérico para operaciones CRUD con API REST
  * Se conecta a los endpoints básicos generados por Table.js
  * 
- * @param {string} baseUrl - URL base de la API (ej: 'http://localhost:3001/api/tabla-crud-basico')
+ * @param {string} baseUrl - URL base de la API (ej: `${API_BASE_URL}/tabla-crud-basico`)
  * @param {Object} options - Opciones adicionales
  * @returns {Object} - Estado y funciones CRUD
  */
@@ -291,6 +292,6 @@ export const useApi = (baseUrl, options = {}) => {
  * @returns {Object} - Estado y funciones CRUD
  */
 export const useTableApi = (tableName, options = {}) => {
-  const baseUrl = `http://localhost:3001/api/${tableName}`;
+  const baseUrl = `${API_BASE_URL}/${tableName}`;
   return useApi(baseUrl, options);
 };

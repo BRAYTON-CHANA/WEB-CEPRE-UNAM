@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { transformToCustomBlocks, transformToEvents } from '../utils/transformers';
 import cacheService from '@/shared/services/cacheService';
+import { API_BASE_URL } from '@/shared/config/api';
 
 /**
  * Custom hook para manejar las operaciones de asignación de horario
@@ -41,7 +42,7 @@ export const useAsignacionHorarioHandlers = (
     try {
       // Paso 1: Obtener ID_HORARIO del turno
       const turnoFilters = JSON.stringify([{ field: 'ID_TURNO', op: '=', value: idTurno }]);
-      const turnoResponse = await fetch(`http://localhost:3001/api/tables/TURNOS?filters=${encodeURIComponent(turnoFilters)}`);
+      const turnoResponse = await fetch(`${API_BASE_URL}/tables/TURNOS?filters=${encodeURIComponent(turnoFilters)}`);
       const turnoData = await turnoResponse.json();
 
       if (!turnoData?.data?.records || turnoData.data.records.length === 0) {
@@ -55,7 +56,7 @@ export const useAsignacionHorarioHandlers = (
 
       // Paso 2: Obtener bloques del horario
       const bloquesFilters = JSON.stringify([{ field: 'ID_HORARIO', op: '=', value: idHorario }]);
-      const bloquesResponse = await fetch(`http://localhost:3001/api/tables/VW_HORARIO_BLOQUES?filters=${encodeURIComponent(bloquesFilters)}`);
+      const bloquesResponse = await fetch(`${API_BASE_URL}/tables/VW_HORARIO_BLOQUES?filters=${encodeURIComponent(bloquesFilters)}`);
       const bloquesData = await bloquesResponse.json();
 
       // Transformar bloques
@@ -78,7 +79,7 @@ export const useAsignacionHorarioHandlers = (
       // Paso 3: Obtener datos de VW_ASIGNACION_HORARIO filtrado por grupo
       try {
         const asignacionFilters = JSON.stringify([{ field: 'ID_GRUPO', op: '=', value: idGrupo }]);
-        const asignacionResponse = await fetch(`http://localhost:3001/api/tables/VW_ASIGNACION_HORARIO?filters=${encodeURIComponent(asignacionFilters)}`);
+        const asignacionResponse = await fetch(`${API_BASE_URL}/tables/VW_ASIGNACION_HORARIO?filters=${encodeURIComponent(asignacionFilters)}`);
         const asignacionData = await asignacionResponse.json();
         setAsignacionHorarioData(asignacionData);
         console.log('Datos de VW_ASIGNACION_HORARIO:', asignacionData);
@@ -115,7 +116,7 @@ export const useAsignacionHorarioHandlers = (
     if (!idGrupo) return;
     try {
       const filters = JSON.stringify([{ field: 'ID_GRUPO', op: '=', value: idGrupo }]);
-      const response = await fetch(`http://localhost:3001/api/tables/VW_GRUPOS?filters=${encodeURIComponent(filters)}`);
+      const response = await fetch(`${API_BASE_URL}/tables/VW_GRUPOS?filters=${encodeURIComponent(filters)}`);
       const data = await response.json();
       const record = data?.data?.records?.[0];
       if (!record) {
@@ -190,7 +191,7 @@ export const useAsignacionHorarioHandlers = (
     try {
       // Obtener todos los bloques del horario con horas calculadas
       const bloquesFilters = JSON.stringify([{ field: 'ID_HORARIO', op: '=', value: idHorario }]);
-      const bloquesResponse = await fetch(`http://localhost:3001/api/tables/VW_HORARIO_BLOQUES?filters=${encodeURIComponent(bloquesFilters)}`);
+      const bloquesResponse = await fetch(`${API_BASE_URL}/tables/VW_HORARIO_BLOQUES?filters=${encodeURIComponent(bloquesFilters)}`);
       const bloquesData = await bloquesResponse.json();
 
       if (!bloquesData?.data?.records) {
@@ -213,7 +214,7 @@ export const useAsignacionHorarioHandlers = (
       let nombreCurso = 'Curso no encontrado';
       try {
         const cursoFilters = JSON.stringify([{ field: 'ID_GRUPO_PLAN_CURSO', op: '=', value: selectedCurso }]);
-        const cursoResponse = await fetch(`http://localhost:3001/api/tables/VW_GRUPO_PLAN_CURSO?filters=${encodeURIComponent(cursoFilters)}`);
+        const cursoResponse = await fetch(`${API_BASE_URL}/tables/VW_GRUPO_PLAN_CURSO?filters=${encodeURIComponent(cursoFilters)}`);
         const cursoData = await cursoResponse.json();
         if (cursoData?.data?.records?.length > 0) {
           nombreCurso = cursoData.data.records[0].NOMBRE_CURSO || 'Curso sin nombre';
@@ -265,7 +266,7 @@ export const useAsignacionHorarioHandlers = (
     try {
       const results = [];
       for (const asignacion of asignaciones) {
-        const response = await fetch('http://localhost:3001/api/tables/ASIGNACION_HORARIO', {
+        const response = await fetch(`${API_BASE_URL}/tables/ASIGNACION_HORARIO`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -304,7 +305,7 @@ export const useAsignacionHorarioHandlers = (
     const asignacionId = parseInt(match[1]);
 
     try {
-      const response = await fetch(`http://localhost:3001/api/tables/ASIGNACION_HORARIO/${asignacionId}`, {
+      const response = await fetch(`${API_BASE_URL}/tables/ASIGNACION_HORARIO/${asignacionId}`, {
         method: 'DELETE'
       });
       if (!response.ok) {
@@ -327,7 +328,7 @@ export const useAsignacionHorarioHandlers = (
 
     try {
       const filters = JSON.stringify([{ field: 'ID_GRUPO', op: '=', value: idGrupo }]);
-      const response = await fetch(`http://localhost:3001/api/tables/VW_ASIGNACION_HORARIO?filters=${encodeURIComponent(filters)}`);
+      const response = await fetch(`${API_BASE_URL}/tables/VW_ASIGNACION_HORARIO?filters=${encodeURIComponent(filters)}`);
       const data = await response.json();
 
       if (!data?.data?.records || data.data.records.length === 0) {
@@ -339,7 +340,7 @@ export const useAsignacionHorarioHandlers = (
       let deletedCount = 0;
 
       for (const id of asignacionIds) {
-        const deleteResponse = await fetch(`http://localhost:3001/api/tables/ASIGNACION_HORARIO/${id}`, {
+        const deleteResponse = await fetch(`${API_BASE_URL}/tables/ASIGNACION_HORARIO/${id}`, {
           method: 'DELETE'
         });
         if (deleteResponse.ok) {
