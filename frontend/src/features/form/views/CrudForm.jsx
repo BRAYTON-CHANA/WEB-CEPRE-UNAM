@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Form from './Form';
 import { useCrudForm } from '../hooks/useCrudForm';
 import { validateFieldsAgainstSchema, buildPayload } from '../utils/schemaValidator';
@@ -34,7 +34,12 @@ const CrudForm = ({
   className = '',
 
   // Debug
-  showWarnings = false
+  showWarnings = false,
+  showVisualDebugs = false,
+
+  // Confirmación modal
+  confirmSubmit = false,
+  confirmConfig = {}
 }) => {
   const [fieldErrors, setFieldErrors] = useState([]);
   const [submitAttempted, setSubmitAttempted] = useState(false);
@@ -49,13 +54,21 @@ const CrudForm = ({
     submit
   } = useCrudForm(tableName, mode, recordId);
 
-  // Preparar initialValues para modo edit
-  const initialValues = mode === 'edit' && record
-    ? fields.reduce((acc, field) => {
-        acc[field.name] = record[field.name] || '';
-        return acc;
-      }, {})
-    : {};
+  // Memoizar initialValues para evitar re-renders en cascada
+  const initialValues = useMemo(() => {
+    return mode === 'edit' && record
+      ? fields.reduce((acc, field) => {
+          const value = record[field.name];
+          // Preservar 0 y false como valores válidos, solo usar '' para null/undefined
+          acc[field.name] = value !== null && value !== undefined ? value : '';
+          return acc;
+        }, {})
+      : fields.reduce((acc, field) => {
+          // Usar defaultValue si existe, sino valor vacío según el tipo
+          acc[field.name] = field.defaultValue !== undefined ? field.defaultValue : '';
+          return acc;
+        }, {});
+  }, [mode, record, fields]);
 
   // Resetear errores cuando cambia el schema
   useEffect(() => {
@@ -68,12 +81,10 @@ const CrudForm = ({
    * Manejar submit del formulario
    */
   const handleSubmit = async (formData) => {
-    //console.log('[CrudForm.jsx] handleSubmit llamado con formData:', formData);
     setSubmitAttempted(true);
     setFieldErrors([]);
 
     // Validar que tenemos schema
-    //console.log('[CrudForm.jsx] Schema disponible:', schema);
     if (!schema) {
       const error = 'No se pudo cargar el schema de la tabla';
       console.error('[CrudForm.jsx]', error);
@@ -83,11 +94,7 @@ const CrudForm = ({
     }
 
     // Validar campos del form contra el schema
-    //console.log('[CrudForm.jsx] Validando campos contra schema...');
-    //console.log('[CrudForm.jsx] Campos del formulario:', fields.map(f => f.name));
-    //console.log('[CrudForm.jsx] Campos del schema:', Object.keys(schema));
     const mismatches = validateFieldsAgainstSchema(formData, schema, fields, tableName);
-    //console.log('[CrudForm.jsx] Mismatches encontrados:', mismatches);
 
     if (mismatches.length > 0) {
       setFieldErrors(mismatches);
@@ -95,15 +102,12 @@ const CrudForm = ({
       return;
     }
 
-    // Construir payload (filtrar campos que no están en schema y excluir PK)
-    const payload = buildPayload(formData, schema, primaryKey);
-    //console.log('[CrudForm.jsx] Payload construido:', payload);
+    // Construir payload (filtrar campos que no están en schema, excluir PK y campos ignoreField)
+    const payload = buildPayload(formData, schema, primaryKey, fields);
 
     try {
       // Enviar al backend
-      //console.log('[CrudForm.jsx] Enviando al backend...');
       const result = await submit(payload, recordId);
-      //console.log('[CrudForm.jsx] Éxito:', result);
 
       // Éxito
       onSuccess?.(result);
@@ -139,6 +143,7 @@ const CrudForm = ({
   };
 
   // Renderizar estado de carga
+  console.log('[CrudForm] Render check:', { isInitialized, loading, crudError, hasSchema: !!schema, hasRecord: !!record });
   if (!isInitialized && loading) {
     return (
       <div className="p-8 text-center">
@@ -165,18 +170,20 @@ const CrudForm = ({
 
   return (
     <div className={className}>
-      {/* Info del modo */}
-      <div className="mb-4 flex items-center justify-between">
-        <span className={`
-          inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-          ${mode === 'create' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}
-        `}>
-          {mode === 'create' ? 'Modo: Crear' : `Modo: Editar${recordId ? ` (ID: ${recordId})` : ''}`}
-        </span>
-        <span className="text-xs text-gray-500">
-          Tabla: {tableName}
-        </span>
-      </div>
+      {/* Info del modo - solo si showVisualDebugs es true */}
+      {showVisualDebugs && (
+        <div className="mb-4 flex items-center justify-between">
+          <span className={`
+            inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+            ${mode === 'create' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}
+          `}>
+            {mode === 'create' ? 'Modo: Crear' : `Modo: Editar${recordId ? ` (ID: ${recordId})` : ''}`}
+          </span>
+          <span className="text-xs text-gray-500">
+            Tabla: {tableName}
+          </span>
+        </div>
+      )}
 
       {/* Errores de validación de campos */}
       {renderFieldErrors()}
@@ -193,10 +200,13 @@ const CrudForm = ({
         multiStep={multiStep}
         onPageChange={onPageChange}
         showWarnings={showWarnings}
+        showVisualDebugs={showVisualDebugs}
+        confirmSubmit={confirmSubmit}
+        confirmConfig={confirmConfig}
       />
 
-      {/* Debug: Schema cargado (solo en desarrollo) */}
-      {process.env.NODE_ENV === 'development' && schema && (
+      {/* Debug: Schema cargado (solo en desarrollo y si showVisualDebugs es true) */}
+      {process.env.NODE_ENV === 'development' && showVisualDebugs && schema && (
         <details className="mt-4 text-xs">
           <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
             Debug: Schema cargado

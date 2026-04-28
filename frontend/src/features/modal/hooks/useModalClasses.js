@@ -18,7 +18,10 @@ export const useModalClasses = ({
   className,
   headerClassName,
   bodyClassName,
-  footerClassName
+  footerClassName,
+  widthClass,
+  headerGradient,
+  headerPattern
 }) => {
   const overlayClasses = useMemo(() => 
     buildOverlayClasses({
@@ -40,9 +43,10 @@ export const useModalClasses = ({
       customSize,
       animation,
       fullscreenOnMobile,
-      className
+      className,
+      widthClass
     }), 
-    [backgroundColor, border, shadow, size, customSize, animation, fullscreenOnMobile, className]
+    [backgroundColor, border, shadow, size, customSize, animation, fullscreenOnMobile, className, widthClass]
   );
 
   const headerClasses = useMemo(() => 
@@ -60,11 +64,21 @@ export const useModalClasses = ({
     [footerClassName]
   );
 
+  const headerGradientClasses = useMemo(() => {
+    return headerGradient ? headerGradient : '';
+  }, [headerGradient]);
+
+  const headerPatternClasses = useMemo(() => {
+    return headerPattern ? headerPattern : '';
+  }, [headerPattern]);
+
   return {
     overlayClasses,
     modalClasses,
     headerClasses,
     bodyClasses,
-    footerClasses
+    footerClasses,
+    headerGradientClasses,
+    headerPatternClasses
   };
 };

@@ -79,6 +79,40 @@ function Modules() {
                     </div>
                   </div>
                 </Link>
+
+                <Link to="/modules/test-function" className="block">
+                  <div className="card p-6 hover:shadow-lg transition-shadow cursor-pointer">
+                    <div className="mb-4">
+                      <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
+                        <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-semibold text-gray-800 mb-2">Test Functions</h3>
+                      <p className="text-gray-600 mb-4">
+                        Herramienta para probar y depurar funciones SQL del backend con parámetros dinámicos.
+                      </p>
+                      <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded">Debug</span>
+                    </div>
+                  </div>
+                </Link>
+
+                <Link to="/modules/test-schedule" className="block">
+                  <div className="card p-6 hover:shadow-lg transition-shadow cursor-pointer">
+                    <div className="mb-4">
+                      <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+                        <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-semibold text-gray-800 mb-2">Test Schedule</h3>
+                      <p className="text-gray-600 mb-4">
+                        Prueba del calendario de horarios y programación de sesiones.
+                      </p>
+                      <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-1 rounded">Schedule</span>
+                    </div>
+                  </div>
+                </Link>
               </div>
             </section>
 

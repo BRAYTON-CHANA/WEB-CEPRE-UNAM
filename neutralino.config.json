@@ -26,20 +26,21 @@
   ],
   "modes": {
     "window": {
-      "title": "MiApp - Aplicación de Escritorio",
+      "title": "CEPRE- Manejo Horarios",
       "width": 1200,
       "height": 800,
       "minWidth": 800,
       "minHeight": 600,
-      "icon": "public/icon.png",
       "enableInspector": true,
-      "exitProcessOnClose": true,
+      "exitProcessOnClose": false,
       "resizable": true,
-      "fullScreen": false
+      "fullScreen": false,
+      "zoom": 0.75
+
     }
   },
   "cli": {
-    "binaryName": "miapp-desktop",
+    "binaryName": "CepreHorarios",
     "resourcesPath": "build",
     "clientLibrary": "build/neutralino.js",
     "binaryVersion": "6.3.0",

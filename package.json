@@ -3,46 +3,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "release": "rd /s /q dist .neutralino release 2>nul & vite build && copy backend\\src\\index.js build\\backend-server.js && copy backend\\package.json build\\ && cd build && npm install && cd .. && neu update && neu build && copy build\\package.json dist\\miapp-desktop\\ && xcopy build\\node_modules dist\\miapp-desktop\\node_modules /E /I /Y && xcopy backend\\src dist\\miapp-desktop\\src /E /I /Y && move dist\\miapp-desktop\\backend-server.js dist\\miapp-desktop\\src\\index.js",
-    "release-windows": "if exist dist rd /s /q dist & if exist .neutralino rd /s /q .neutralino & if exist release rd /s /q release & vite build && copy backend\\src\\index.js build\\backend-server.js && copy backend\\package.json build\\ && cd build && npm install && cd .. && neu update && neu build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@headlessui/react": "^2.2.9",
-    "@radix-ui/react-popover": "^1.1.2",
-    "@tailwindcss/forms": "^0.5.7",
-    "@types/leaflet": "^1.9.21",
-    "chart.js": "^4.5.1",
-    "chartjs-adapter-moment": "^1.0.1",
-    "clsx": "^2.1.1",
-    "date-fns": "^4.1.0",
-    "exceljs": "^4.4.0",
-    "html2canvas": "^1.4.1",
-    "jspdf": "^3.0.3",
-    "leaflet": "^1.9.4",
-    "moment": "^2.29.4",
-    "react": "^19.0.0",
-    "react-chartjs-2": "^5.3.0",
-    "react-datepicker": "^8.10.0",
-    "react-datetime": "^3.3.1",
-    "react-day-picker": "^9.4.1",
-    "react-dom": "^19.0.0",
-    "react-leaflet": "^5.0.0",
-    "react-phone-input-2": "^2.15.1",
-    "react-router-dom": "^7.13.1",
-    "react-time-picker": "^8.0.2",
-    "react-transition-group": "^4.4.5",
-    "tailwind-merge": "^2.5.5",
-    "xlsx": "^0.18.5"
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "release": "cd frontend && npm run build && cd .. && copy backend\\src\\index.js build\\backend-server.js && copy backend\\package.json build\\ && cd build && npm install && cd .. && cmd /c \"set NODE_TLS_REJECT_UNAUTHORIZED=0 && neu update\" && neu build && copy build\\package.json dist\\CepreHorarios\\ && copy build\\neutralino.js dist\\CepreHorarios\\ && xcopy build\\node_modules dist\\CepreHorarios\\node_modules /E /I /Y && xcopy backend\\src dist\\CepreHorarios\\src /E /I /Y && copy build\\backend-server.js dist\\CepreHorarios\\backend-server.js && move dist\\CepreHorarios\\backend-server.js dist\\CepreHorarios\\src\\index.js && xcopy resources\\node dist\\CepreHorarios\\node /E /I /Y",
+    "release-windows": "cd frontend && npm run build && cd .. && copy backend\\src\\index.js build\\backend-server.js && copy backend\\package.json build\\ && cd build && npm install && cd .. && neu update && neu build",
+    "preview": "cd frontend && npm run preview"
   },
   "devDependencies": {
-    "@neutralinojs/neu": "^11.6.0",
-    "@tailwindcss/postcss": "^4.0.0",
-    "@vitejs/plugin-react": "^4.2.1",
-    "postcss": "^8.4.32",
-    "tailwindcss": "^4.0.0",
-    "vite": "^6.0.3"
+    "@neutralinojs/neu": "^11.6.0"
   }
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import crudService from '@/shared/services/crudService';
+import cacheService from '@/shared/services/cacheService';
 
 /**
  * Hook para manejar formularios conectados a backend CRUD
@@ -31,16 +32,23 @@ export const useCrudForm = (tableName, mode = 'create', recordId = null) => {
    * Cargar datos de un registro específico (modo edit)
    */
   const loadRecord = useCallback(async (id) => {
-    if (!id || mode !== 'edit') return null;
+    console.log(`[useCrudForm] loadRecord called:`, { id, mode, tableName });
+    if (!id || mode !== 'edit') {
+      console.log(`[useCrudForm] loadRecord skipped: no id or not edit mode`);
+      return null;
+    }
 
     try {
       setError(null);
       setLoading(true);
+      console.log(`[useCrudForm] Fetching record ${id} from ${tableName}`);
       const response = await crudService.getRecordById(tableName, id);
       const recordData = response.data?.record || response.data;
+      console.log(`[useCrudForm] Record loaded:`, recordData);
       setRecord(recordData);
       return recordData;
     } catch (err) {
+      console.error(`[useCrudForm] Error loading record:`, err);
       setError(`Error cargando registro: ${err.message}`);
       throw err;
     } finally {
@@ -53,11 +61,10 @@ export const useCrudForm = (tableName, mode = 'create', recordId = null) => {
    */
   const createRecord = useCallback(async (data) => {
     try {
-      console.log('[useCrudForm] createRecord iniciado');
       setError(null);
       setLoading(true);
       const result = await crudService.createRecord(tableName, data);
-      console.log('[useCrudForm] createRecord éxito:', result);
+      // crudService ya invalida el cache (cacheService.invalidateAll)
       return result;
     } catch (err) {
       console.error('[useCrudForm] createRecord error:', err);
@@ -76,6 +83,7 @@ export const useCrudForm = (tableName, mode = 'create', recordId = null) => {
       setError(null);
       setLoading(true);
       const result = await crudService.updateRecord(tableName, id, data);
+      // crudService ya invalida el cache (cacheService.invalidateAll)
       return result;
     } catch (err) {
       setError(`Error actualizando registro: ${err.message}`);

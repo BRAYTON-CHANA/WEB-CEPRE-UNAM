@@ -29,6 +29,11 @@ export const validateFieldsAgainstSchema = (formData, schema, formFields, tableN
   formFields.forEach(field => {
     const fieldName = field.name;
     
+    // Ignorar campos marcados con ignoreField
+    if (field.ignoreField) {
+      return;
+    }
+    
     // Verificar que el campo exista en el schema
     if (!schemaFields.includes(fieldName)) {
       console.warn(`[schemaValidator] Campo "${fieldName}" NO existe en el schema`);
@@ -47,13 +52,14 @@ export const validateFieldsAgainstSchema = (formData, schema, formFields, tableN
 
 /**
  * Construye el payload para enviar al backend
- * Filtra solo campos que existen en el schema y excluye el primary key
+ * Filtra solo campos que existen en el schema, excluye el primary key y campos ignoreField
  * @param {Object} formData - Datos del formulario
  * @param {Object} schema - Schema de la tabla
  * @param {string} primaryKey - Nombre del campo primary key
+ * @param {Array} formFields - Array de definiciones de campos del form (para detectar ignoreField)
  * @returns {Object} - Payload filtrado y limpio
  */
-export const buildPayload = (formData, schema, primaryKey) => {
+export const buildPayload = (formData, schema, primaryKey, formFields = []) => {
   const payload = {};
   
   //console.log('[schemaValidator] Construyendo payload...');
@@ -69,6 +75,15 @@ export const buildPayload = (formData, schema, primaryKey) => {
   const schemaFields = Object.keys(schema);
   
   Object.keys(formData).forEach(key => {
+    // Buscar configuración del campo
+    const fieldConfig = formFields.find(f => f.name === key);
+    
+    // Si el campo tiene ignoreField, no incluir en payload
+    if (fieldConfig?.ignoreField) {
+      console.log(`[schemaValidator] Campo "${key}" tiene ignoreField, excluido`);
+      return;
+    }
+    
     // Solo incluir campos que existen en schema
     if (schemaFields.includes(key) && key !== primaryKey) {
       const value = formData[key];

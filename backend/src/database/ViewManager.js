@@ -43,6 +43,14 @@ class ViewManager {
       const filePath = path.join(this.viewsPath, filename);
       const sql = await fs.readFile(filePath, 'utf8');
 
+      // Extraer nombre de la view del SQL
+      const viewNameMatch = sql.match(/CREATE\s+(OR\s+REPLACE\s+)?VIEW\s+(\w+)/i);
+      if (viewNameMatch) {
+        const viewName = viewNameMatch[2];
+        // Eliminar view si existe (para recrear)
+        await this.dbManager.run(`DROP VIEW IF EXISTS ${viewName}`);
+      }
+
       // Ejecutar el SQL completo del view
       await this.dbManager.run(sql);
 

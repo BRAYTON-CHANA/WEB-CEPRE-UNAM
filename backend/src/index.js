@@ -33,6 +33,30 @@ app.get('/api/health', (req, res) => {
 });
 
 // Rutas de la API
+console.log('🔧 [DEBUG] About to load genericFunctions router...');
+try {
+  const functionsRouter = require('./routes/genericFunctions');
+  console.log('🔧 [DEBUG] genericFunctions router loaded, type:', typeof functionsRouter);
+  console.log('🔧 [DEBUG] genericFunctions has stack:', functionsRouter.stack ? functionsRouter.stack.length : 'NO STACK');
+  app.use('/api/functions', functionsRouter);
+  console.log('🔧 [DEBUG] /api/functions route registered successfully');
+} catch (err) {
+  console.error('❌ [DEBUG] Error loading genericFunctions router:', err.message);
+  console.error('❌ [DEBUG] Stack:', err.stack);
+}
+
+// Endpoint para shutdown del backend (llamado por la app desktop al cerrar)
+// IMPORTANTE: debe estar ANTES de genericCrud porque ese router tiene un catch-all 404
+app.post('/api/shutdown', (req, res) => {
+  console.log('🛑 [shutdown] Recibida petición de cierre desde frontend');
+  res.json({ success: true, message: 'Shutting down...' });
+  // Dar tiempo a que se envíe la respuesta antes de matar el proceso
+  setTimeout(() => {
+    console.log('🛑 [shutdown] Cerrando proceso ahora');
+    process.exit(0);
+  }, 100);
+});
+
 app.use('/api', require('./routes/genericCrud')); // Rutas genéricas escalables
 
 // Endpoint para información del sistema de esquemas
@@ -122,7 +146,41 @@ async function startServer() {
     // 4. Iniciar servidor
     const server = app.listen(PORT, () => {
       console.log(`🚀 Servidor backend corriendo en puerto ${PORT}`);
-      console.log(`📡 API disponible en: http://localhost:${PORT}`);
+      console.log(`🌐 Servidor ejecutándose en http://localhost:${PORT}`);
+      console.log(`� Base de datos: ${DatabaseManager.dbPath}`);
+      
+      // Debug: List all registered routes
+      console.log('\n📋 [DEBUG] === ALL REGISTERED ROUTES ===');
+      function listRoutes(app, pathPrefix = '') {
+        const routes = [];
+        if (!app._router || !app._router.stack) {
+          console.log('  No routes found');
+          return routes;
+        }
+        
+        app._router.stack.forEach((layer) => {
+          if (layer.route) {
+            const methods = Object.keys(layer.route.methods).join(',').toUpperCase();
+            routes.push(`${methods} ${pathPrefix}${layer.route.path}`);
+          } else if (layer.name === 'router' && layer.handle && layer.handle.stack) {
+            const routerPath = layer.regexp 
+              ? layer.regexp.toString().replace('\\/?(?=\\/|$)', '').replace(/\\\//g, '/').replace('^', '').replace('\/?$', '')
+              : '';
+            layer.handle.stack.forEach((handler) => {
+              if (handler.route) {
+                const methods = Object.keys(handler.route.methods).join(',').toUpperCase();
+                const fullPath = (pathPrefix + routerPath + handler.route.path).replace(/\/+/g, '/');
+                routes.push(`${methods} ${fullPath}`);
+              }
+            });
+          }
+        });
+        return routes;
+      }
+      
+      const allRoutes = listRoutes(app);
+      allRoutes.forEach(route => console.log(`  ${route}`));
+      console.log(`📋 [DEBUG] Total routes: ${allRoutes.length}\n`);
       console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
       console.log(`🗄️  Schema info: http://localhost:${PORT}/api/system/schema-info`);
       console.log('✅ Sistema listo con persistencia SQLite y auto-detección de esquemas');

@@ -1,0 +1,46 @@
+-- =============================================
+-- VISTA: VW_PLAN_ACADEMICO_CURSOS
+-- Muestra planes académicos con cursos-área completos (cabecera + detalle)
+-- =============================================
+
+CREATE VIEW IF NOT EXISTS VW_PLAN_ACADEMICO_CURSOS AS
+SELECT 
+  pac.ID_PLAN_ACADEMICO_CURSO,
+  pac.HORAS_ACADEMICAS_TOTALES,
+  pac.ACTIVO AS ACTIVO_PLAN_CURSO,
+  
+  -- Datos del Plan (cabecera)
+  pa.ID_PLAN,
+  pa.ACTIVO AS ACTIVO_PLAN,
+  pa.DESCRIPCION,
+  -- Datos del Período
+  p.ID_PERIODO,
+  p.CODIGO_PERIODO,
+  p.FECHA_INICIO AS FECHA_INICIO_PERIODO,
+  p.FECHA_FIN AS FECHA_FIN_PERIODO,
+  p.ESTADO AS ESTADO_PERIODO,
+  p.ACTIVO AS ACTIVO_PERIODO,
+  
+  -- Datos del Área
+  a.ID_AREA,
+  a.NOMBRE_AREA,
+  a.ACTIVO AS ACTIVO_AREA,
+  
+  -- Datos del Curso-Área
+  ca.ID_CURSO_AREA,
+  ca.CODIGO_UNICO,
+  ca.ACTIVO AS ACTIVO_CURSO_AREA,
+  
+  -- Datos del Curso
+  c.ID_CURSO,
+  c.CODIGO_COMPARTIDO,
+  c.NOMBRE_CURSO,
+  c.EJE_TEMATICO,
+  c.ACTIVO AS ACTIVO_CURSO
+
+FROM PLAN_ACADEMICO_CURSOS pac
+INNER JOIN PLAN_ACADEMICO pa ON pac.ID_PLAN_ACADEMICO = pa.ID_PLAN
+INNER JOIN PERIODOS p ON pa.ID_PERIODO = p.ID_PERIODO
+INNER JOIN AREAS a ON pa.ID_AREA = a.ID_AREA
+INNER JOIN CURSO_AREA ca ON pac.ID_CURSO_AREA = ca.ID_CURSO_AREA
+INNER JOIN CURSOS c ON ca.ID_CURSO = c.ID_CURSO;

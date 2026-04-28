@@ -1,157 +1,54 @@
 @import "tailwindcss";
 
-/* Variables CSS globales */
+/* Importar módulos CSS - Estilos reutilizables organizados por categoría */
+@import "./components/buttons.css";    /* Estilos de botones: primary, secondary, outline, etc. */
+@import "./components/cards.css";       /* Estilos de tarjetas: card, header, body, footer */
+@import "./components/forms.css";       /* Estilos de formularios: inputs, labels, groups */
+@import "./components/navigation.css";  /* Estilos de navegación: links, nav items */
+@import "./utilities/typography.css";  /* Utilidades de texto: gradient, shadow, truncate */
+@import "./utilities/layout.css";       /* Utilidades de layout: container, grid, flex */
+@import "./utilities/visual.css";       /* Utilidades visuales: gradients, backdrop, shadows */
+@import "./animations/fade.css";        /* Animaciones de fade: fadeIn, fadeInUp */
+@import "./animations/slide.css";       /* Animaciones de slide: slideIn, slideInRight */
+
+/* Variables CSS globales personalizadas del tema */
 :root {
-  --color-primary: #3b82f6;
-  --color-secondary: #64748b;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --color-info: #06b6d4;
+  /* Colores del tema personalizados */
+  --color-primary: #2D366F;       /* Color primario para acciones principales */
+  --color-secondary: #57C7C2;     /* Color secundario para acentos */
+  --color-success: #10b981;       /* Color para estados exitosos */
+  --color-warning: #f59e0b;       /* Color para advertencias */
+  --color-error: #ef4444;         /* Color para errores */
   
-  --font-primary: 'Inter', system-ui, -apple-system, sans-serif;
+  /* Colores específicos de componentes */
+  --color-sidebar-bg: #ffff;    /* Fondo de sidebar */
+  --color-sidebar-text: #000000;  /* Texto de sidebar */
+  --color-sidebar-muted: #000000; /* Texto deshabilitado sidebar */
+  --color-sidebar-accent: #000000; /* Acento sidebar */
   
+  /* Colores para inputs de fecha/hora */
+  --color-input-bg: #ffffff;
+  --color-input-border: #d1d5db;
+  --color-input-border-focus: #9ca3af;
+  --color-input-text: #374151;
+  --color-input-hover: #f3f4f6;
+  --color-input-disabled: #f3f4f6;
+  --color-input-disabled-text: #6b7280;
+  
+  /* Sombras personalizadas */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-  
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
 }
 
-/* Estilos base */
+/* Estilos base específicos del tema (no duplicar Tailwind) */
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: smooth;  /* Desplazamiento suave al navegar */
 }
 
 body {
-  margin: 0;
-  font-family: var(--font-primary);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-/* Componentes personalizados */
-.btn {
-  @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
-}
-
-.btn-primary {
-  @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 shadow-sm;
-}
-
-.btn-secondary {
-  @apply bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500;
-}
-
-.btn-outline {
-  @apply border border-gray-300 bg-transparent text-gray-700 hover:bg-gray-50 focus:ring-gray-500;
-}
-
-/* Cards */
-.card {
-  @apply bg-white rounded-lg shadow-md border border-gray-200;
-}
-
-.card-header {
-  @apply px-6 py-4 border-b border-gray-200;
-}
-
-.card-body {
-  @apply px-6 py-4;
-}
-
-.card-footer {
-  @apply px-6 py-4 border-t border-gray-200 bg-gray-50;
-}
-
-/* Formularios */
-.form-input {
-  @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
-}
-
-.form-label {
-  @apply block text-sm font-medium text-gray-700 mb-1;
-}
-
-/* Navegación */
-.nav-link {
-  @apply text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium;
-}
-
-.nav-link-active {
-  @apply text-blue-600 font-semibold;
-}
-
-/* Layout */
-.container {
-  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
-}
-
-.section {
-  @apply py-12 lg:py-16;
-}
-
-/* Utilidades */
-.text-gradient {
-  @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
-}
-
-.bg-gradient-primary {
-  @apply bg-gradient-to-r from-blue-600 to-purple-600;
-}
-
-/* Utilidades personalizadas */
-.text-shadow {
-  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.backdrop-blur-xs {
-  backdrop-filter: blur(2px);
-}
-
-/* Animaciones */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.5s ease-out;
-}
-
-.animate-slideIn {
-  animation: slideIn 0.3s ease-out;
-}
-
-/* Responsive helpers */
-@media (max-width: 640px) {
-  .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
+  background-color: white;  /* Fondo blanco por defecto */
+  color: black;             /* Texto negro por defecto */
 }
 
 /* Dark mode support */

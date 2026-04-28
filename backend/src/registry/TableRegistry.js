@@ -25,22 +25,57 @@ class TableRegistry {
       // Obtener todas las tablas de la base de datos
       const allTables = await DatabaseManager.getAllTables();
       
+      // Obtener lista de views también
+      const allViews = await DatabaseManager.getAllViews?.() || [];
+      
+      // Combinar tablas y views
+      const allItems = [...new Set([...allTables, ...allViews])];
+      
       // Filtrar y registrar solo las tablas permitidas
-      for (const tableName of allTables) {
+      for (const tableName of allItems) {
+        const isView = allViews.includes(tableName);
         const validation = await DynamicModel.validateTable(tableName);
         
-        console.log(`[REGISTRY] Validando tabla ${tableName}:`, validation);
+        // Log especial para views problemáticas
+        if (tableName.includes('VW_AULAS_DISPONIBLES')) {
+          console.log(`[REGISTRY DEBUG] ${tableName}:`, {
+            isView,
+            valid: validation.valid,
+            error: validation.error,
+            hasSchema: !!validation.schema,
+            schemaFields: validation.schema ? Object.keys(validation.schema) : null
+          });
+        }
+        
+        console.log(`[REGISTRY] Validando ${isView ? 'view' : 'tabla'} ${tableName}:`, validation.valid ? '✅' : `❌ ${validation.error}`);
         
         if (validation.valid) {
           this.tables.set(tableName, {
             name: tableName,
             schema: validation.schema,
             registeredAt: new Date().toISOString(),
-            accessible: true
+            accessible: true,
+            type: allViews.includes(tableName) ? 'view' : 'table'
           });
           
-          console.log(`✅ Tabla registrada: ${tableName}`);
+          console.log(`✅ ${allViews.includes(tableName) ? 'View' : 'Tabla'} registrada: ${tableName}`);
         } else {
+          // Para views, intentar registro básico si existe en la BD
+          if (allViews.includes(tableName)) {
+            const schema = await DatabaseManager.getTableSchema(tableName);
+            if (schema && Object.keys(schema).length > 0) {
+              this.tables.set(tableName, {
+                name: tableName,
+                schema: schema,
+                registeredAt: new Date().toISOString(),
+                accessible: true,
+                type: 'view',
+                readOnly: true
+              });
+              console.log(`✅ View registrada (modo básico): ${tableName}`);
+              continue;
+            }
+          }
           console.warn(`⚠️ Tabla omitida: ${tableName} - ${validation.error}`);
         }
       }

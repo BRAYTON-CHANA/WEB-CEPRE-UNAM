@@ -14,6 +14,7 @@ import CrudFooter from './CrudFooter';
  * @param {Object} tableActions - Acciones para la tabla
  * @param {number} refreshTrigger - Trigger para refresh
  * @param {Object} tableComponentParameters - Props para el componente Table
+ * @param {Object} menuFilters - Configuración de filtros dinámicos
  */
 function CrudLayout({ 
   tableName, 
@@ -22,7 +23,8 @@ function CrudLayout({
   footerProps = {},
   tableActions = {},
   refreshTrigger = 0,
-  tableComponentParameters = {}
+  tableComponentParameters = {},
+  menuFilters = null  // ← NUEVO
 }) {
   return (
     <>
@@ -36,6 +38,7 @@ function CrudLayout({
         tableActions={tableActions}
         refreshTrigger={refreshTrigger}
         tableComponentParameters={tableComponentParameters}
+        menuFilters={menuFilters}  // ← PASAR a CrudTable
       />
       
       {/* Footer del CRUD - abajo de la tabla */}

@@ -10,15 +10,19 @@ export const useFormState = (initialValues = {}) => {
   const [touched, setTouched] = useState({});
 
   /**
-   * Actualiza el valor de un campo
+   * Actualiza el valor de un campo - solo si el valor realmente cambió
    * @param {string} fieldName - Nombre del campo
    * @param {*} value - Nuevo valor
    */
   const setFieldValue = useCallback((fieldName, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [fieldName]: value
-    }));
+    setFormData((prev) => {
+      // Solo actualizar si el valor realmente cambió
+      if (prev[fieldName] === value) return prev;
+      return {
+        ...prev,
+        [fieldName]: value
+      };
+    });
   }, []);
 
   /**

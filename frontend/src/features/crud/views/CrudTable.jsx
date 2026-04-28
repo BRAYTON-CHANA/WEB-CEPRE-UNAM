@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTableData } from '../hooks/useTableData';
+import { useMenuFilters } from '../hooks/useMenuFilters';
 import TableParametersExample from '../components/TableParametersExample';
+import MenuFilters from '../components/MenuFilters';
 import Table from '@/features/table/views/Table';
 
 /**
@@ -13,19 +15,30 @@ function CrudTable({
   tableActions = {},
   refreshTrigger = 0,  // Prop para forzar refresh automático
   // Props agrupados para el componente Table
-  tableComponentParameters = {}
+  tableComponentParameters = {},
+  // Prop para mostrar/ocultar botón de recargar
+  showRefreshButton = false,
+  // NUEVO: Configuración de filtros dinámicos (MenuFilters)
+  menuFilters = null
 }) {
   const { schema, records, loading, error, refresh } = useTableData(tableName);
+  
+  // Hook para manejar filtros del menú
+  const { filters: menuFilterValues, applyFilters } = useMenuFilters([]);
 
   // Key para forzar recreación del Table cuando se recargan datos
   const [tableKey, setTableKey] = useState(0);
   const lastLoadingRef = useRef(loading);
+  const initialLoadDoneRef = useRef(false); // ← Nuevo: trackear primera carga
 
   // Detectar cuando termina una carga y forzar recreación del Table
   useEffect(() => {
     if (lastLoadingRef.current === true && loading === false) {
-      // Carga terminada, incrementar key para recrear Table
-      setTableKey(prev => prev + 1);
+      // Saltear el primer reset (carga inicial), tomar solo los siguientes
+      if (initialLoadDoneRef.current) {
+        setTableKey(prev => prev + 1);
+      }
+      initialLoadDoneRef.current = true;
     }
     lastLoadingRef.current = loading;
   }, [loading]);
@@ -65,8 +78,14 @@ function CrudTable({
     onPageChange = null
   } = tableComponentParameters;
 
+  // Combinar fixatedFilters de tableComponentParameters con filtros del menú
+  const combinedFixatedFilters = [
+    ...(tableComponentParameters.fixatedFilters || []),
+    ...menuFilterValues
+  ];
+
   return (
-    <main className="container mx-auto px-4 py-8">
+    <main className="container mx-auto px-4 py-0">
       {/* Título - Oculto por mientras */}
       {false && (
         <h1 className="text-2xl font-bold mb-4">Tabla: {tableName || 'No especificada'}</h1>
@@ -106,25 +125,37 @@ function CrudTable({
         </div>
       )}
 
+      {/* MenuFilters - Filtros dinámicos con UI */}
+      {menuFilters?.enabled && (
+        <MenuFilters
+          config={menuFilters}
+          schema={schema}
+          onApply={applyFilters}
+        />
+      )}
+
       {/* Refresh button */}
-      <button
-        onClick={refresh}
-        disabled={loading}
-        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-      >
-        Recargar
-      </button>
+      {showRefreshButton && (
+        <button
+          onClick={refresh}
+          disabled={loading}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+        >
+          Recargar
+        </button>
+      )}
 
       {/* Ejemplo de parámetros para el componente Table - Oculto por mientras */}
       {false && <TableParametersExample records={records} />}
 
       {/* Tabla usando el componente Table */}
-      {headers.length > 0 && records.length > 0 && (
+      {headers.length > 0 && (
         <div className="mt-8">
           <Table
             key={tableKey}  // Cambia cuando loading termina, fuerza recreación
             headers={headers}
             data={records}
+            fixatedFilters={combinedFixatedFilters}  // ← PASAR filtros combinados
             actions={tableActions}
             loading={loading}
             showCount={showCount}

@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import '../../theme/components/SidebarMenu.css'
 
 /**
  * SidebarMenu - Componente general de menú lateral personalizable

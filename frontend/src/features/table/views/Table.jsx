@@ -27,6 +27,9 @@ const Table = ({
   data, 
   actions,
   
+  // Props opcionales - Filtros fijos
+  fixatedFilters = null,  // Array de {column, op, value}
+  
   // Props opcionales - Visual y Presentación
   showCount = TABLE_DEFAULTS.showCount,
   emptyMessage = TABLE_DEFAULTS.emptyMessage,
@@ -78,8 +81,9 @@ const Table = ({
   const { activeFilters, handleFilterChange, clearAllFilters, hasActiveFilters, initializeColumnFilters, resetColumnInitialization } = useTableFilters(filterable);
 
   // Hooks específicos del componente
-  const { processedData } = useTableData({
+  const { preFilteredData, processedData } = useTableData({
     data,
+    fixatedFilters,
     sortable,
     sortConfig,
     filterable,
@@ -111,21 +115,10 @@ const Table = ({
     pagination
   });
 
-  // Console log para debug de datos que llegan al Table (solo en desarrollo y cuando hay cambios reales)
-  if (process.env.NODE_ENV === 'development' && (data.length !== lastDataRef.current || headers.length !== lastHeadersRef.current)) {
-    console.log(`🔍 Table actualizada:`, {
-      dataLength: data.length,
-      headersCount: headers.length,
-      loading: loading,
-      sampleData: data.slice(0, 2).map(row => ({
-        id: row.id,
-        name: row.name,
-        department: row.department
-      }))
-    });
+  // Track data changes
+  if (data.length !== lastDataRef.current || headers.length !== lastHeadersRef.current) {
     lastDataRef.current = data.length;
     lastHeadersRef.current = headers.length;
-    // Resetear el ref de headers logged para mostrar nuevos logs si los datos cambian
     headersLoggedRef.current = false;
   }
 
@@ -158,8 +151,8 @@ const Table = ({
     dataSignatureRef.current = newSignature;
   }, [data.length, headers]);
   // Renderizado de celda
-  const renderCellWrapper = (row, header, rowIndex) => {
-    return renderCell(row[header], rowIndex, header);
+  const renderCellWrapper = (row, header, rowIndex, columnType) => {
+    return renderCell(row[header], rowIndex, header, columnType);
   };
 
   // Renderizado de contenido expandible
@@ -171,41 +164,21 @@ const Table = ({
   
   // Memoizar procesamiento de headers para evitar ciclos de renderizado
   const processedHeaders = React.useMemo(() => {
-    // Solo procesar si hay datos Y headers válidos
+    // Calculate processed headers with all needed metadata
     if (!data.length > 0 || !headers.length > 0) {
       return [];
     }
     
     return headers.map((header, index) => {
       const { title, type } = processHeader(header);
-      const columnDataType = header.type || getDataType(data, title);
-      const columnUniqueValues = getContextualUniqueValues(data, activeFilters, title);
-      const columnOriginalValues = getOriginalUniqueValues(data, title);
+      const columnDataType = header.type || getDataType(preFilteredData, title);
+      // ← CAMBIO CRÍTICO: Usar preFilteredData para calcular uniqueValues
+      // Así el menú de filtros solo muestra valores que pasaron fixatedFilters
+      const columnUniqueValues = getContextualUniqueValues(preFilteredData, activeFilters, title);
+      const columnOriginalValues = getOriginalUniqueValues(preFilteredData, title);
       
-      // Console log para debug de headers y tipos (solo en desarrollo y una sola vez)
-      if (process.env.NODE_ENV === 'development' && index === 0 && !headersLoggedRef.current) {
-        const allHeadersInfo = headers.map((h, i) => {
-          const processed = processHeader(h);
-          const dataType = h.type || getDataType(data, processed.title);
-          const uniqueVals = getContextualUniqueValues(data, activeFilters, processed.title);
-          return {
-            index: i,
-            title: processed.title,
-            type: processed.type,
-            detectedType: dataType,
-            tipoUsado: h.type ? `PREDEFINIDO (${h.type})` : `AUTODETECTADO (${dataType})`,
-            uniqueValuesCount: uniqueVals.length
-          };
-        });
-        
-        console.log(`🔍 Headers procesados (${headers.length} totales):`, allHeadersInfo);
-        console.log(`📊 Resumen de datos:`, {
-          totalRows: data.length,
-          totalColumns: headers.length,
-          hasFilters: Object.keys(activeFilters).length > 0,
-          activeFiltersCount: Object.values(activeFilters).filter(v => v && v.length > 0).length
-        });
-        
+      // Track headers logged (solo una vez)
+      if (index === 0 && !headersLoggedRef.current) {
         headersLoggedRef.current = true;
       }
       
@@ -218,7 +191,7 @@ const Table = ({
         index
       };
     });
-  }, [headers.length, data.length, activeFilters]);
+  }, [headers.length, data.length, activeFilters, preFilteredData]);
 
   // Función para verificar si hay acciones de fila que mostrar
   const hasRowActions = () => {
@@ -367,10 +340,11 @@ const Table = ({
                     
                     {/* Datos */}
                     {headers.map((header, colIndex) => {
-                      const { title } = processHeader(header);
+                      const { title, type } = processHeader(header);
+                      const columnDataType = header.type || getDataType(data, title);
                       return (
                         <td key={colIndex} className={`${getCellClasses()} ${cellClassName}`}>
-                          {renderCellWrapper(row, title, rowIndex)}
+                          {renderCellWrapper(row, title, rowIndex, columnDataType)}
                         </td>
                       );
                     })}

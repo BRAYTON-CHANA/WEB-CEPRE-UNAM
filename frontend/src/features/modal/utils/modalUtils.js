@@ -18,8 +18,11 @@ export const buildOverlayClasses = ({
   animation,
   fullscreenOnMobile
 }) => {
-  // Si overlayColor incluye clases personalizadas (como backdrop-blur), usarla directamente
-  const overlayClass = overlayColor.includes(' ') ? overlayColor : MODAL_OVERLAYS[overlayColor];
+  // Obtener clase de overlay
+  const overlayClass = MODAL_OVERLAYS[overlayColor] || MODAL_OVERLAYS.black;
+  
+  // Si es blur overlay, no aplicar opacity adicional (ya incluye bg-black/30)
+  const isBlurOverlay = overlayColor === 'blur';
   
   // Usar position absoluto en lugar de flex para mejor control del centrado
   const positionClasses = {
@@ -31,7 +34,7 @@ export const buildOverlayClasses = ({
   return `
     fixed inset-0 
     ${overlayClass}
-    ${overlayColor.includes(' ') ? '' : MODAL_OPACITIES[overlayOpacity]}
+    ${isBlurOverlay ? '' : MODAL_OPACITIES[overlayOpacity]}
     flex ${positionClasses[position]}
     z-50 p-4
     ${animation ? 'transition-opacity duration-300' : ''}
@@ -50,7 +53,8 @@ export const buildModalClasses = ({
   customSize,
   animation,
   fullscreenOnMobile,
-  className
+  className,
+  widthClass = 'w-auto'
 }) => {
   const modalSize = customSize || MODAL_SIZES[size];
   
@@ -58,7 +62,7 @@ export const buildModalClasses = ({
     ${MODAL_BACKGROUNDS[backgroundColor]}
     ${MODAL_BORDERS[border]}
     ${MODAL_SHADOWS[shadow]}
-    w-full ${modalSize}
+    ${widthClass} ${modalSize}
     ${fullscreenOnMobile ? 'md:mx-4 mx-2' : 'mx-auto'}
     ${animation ? 'transition-all duration-300 transform' : ''}
     ${className}
@@ -71,7 +75,7 @@ export const buildModalClasses = ({
 export const buildSectionClasses = (type, customClassName = '') => {
   const baseClasses = {
     header: 'flex items-center justify-between p-6 border-b border-gray-200',
-    body: 'p-6',
+    body: 'p-6 max-h-[80vh] overflow-y-auto',
     footer: 'flex items-center justify-end gap-3 p-6 border-t border-gray-200'
   };
   

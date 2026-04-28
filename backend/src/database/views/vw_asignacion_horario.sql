@@ -1,0 +1,203 @@
+-- =============================================
+-- VISTA: VW_ASIGNACION_HORARIO
+-- Muestra asignaciones de horarios con datos completos
+-- =============================================
+
+CREATE VIEW IF NOT EXISTS VW_ASIGNACION_HORARIO AS
+SELECT 
+  -- Datos de ASIGNACION_HORARIO
+  ah.ID_ASIGNACION_HORARIO,
+  ah.FECHA,
+  
+  -- Datos de GRUPO_PLAN_CURSO
+  gpc.ID_GRUPO_PLAN_CURSO,
+  gpc.ACTIVO AS ACTIVO_GRUPO_PLAN_CURSO,
+  
+  -- Datos del GRUPO
+  g.ID_GRUPO,
+  g.CODIGO_GRUPO,
+  g.NOMBRE_GRUPO,
+  g.DENOMINACION_AULA,
+  g.CAPACIDAD_MAXIMA,
+  g.ACTIVO AS ACTIVO_GRUPO,
+  
+  -- Datos del Área (del grupo)
+  ga.ID_AREA AS ID_AREA_GRUPO,
+  ga.NOMBRE_AREA AS NOMBRE_AREA_GRUPO,
+  
+  -- Datos del Aula
+  au.ID_AULA,
+  au.NOMBRE_AULA,
+  au.UBICACION AS UBICACION_AULA,
+  au.TIPO AS TIPO_AULA,
+  
+  -- Datos de la Sede
+  s.ID_SEDE,
+  s.NOMBRE_SEDE,
+  
+  -- Datos del Período (del grupo)
+  gp.ID_PERIODO AS ID_PERIODO_GRUPO,
+  gp.CODIGO_PERIODO AS CODIGO_PERIODO_GRUPO,
+  
+  -- Datos del Turno
+  t.ID_TURNO,
+  t.NOMBRE_TURNO,
+  t.DESCRIPCION AS DESCRIPCION_TURNO,
+  
+  -- Datos del PLAN_ACADEMICO_CURSOS
+  pac.ID_PLAN_ACADEMICO_CURSO,
+  pac.HORAS_ACADEMICAS_TOTALES,
+  pac.ACTIVO AS ACTIVO_PLAN_ACADEMICO_CURSO,
+  
+  -- Datos del CURSO_AREA
+  ca.ID_CURSO_AREA,
+  ca.CODIGO_UNICO,
+  
+  -- Datos del CURSO
+  c.ID_CURSO,
+  c.CODIGO_COMPARTIDO,
+  c.NOMBRE_CURSO,
+  c.EJE_TEMATICO,
+  
+  -- Datos del Área (del curso)
+  caa.ID_AREA AS ID_AREA_CURSO,
+  caa.NOMBRE_AREA AS NOMBRE_AREA_CURSO,
+  
+  -- Datos del PLAN_ACADEMICO
+  pa.ID_PLAN,
+  pa.DESCRIPCION AS DESCRIPCION_PLAN,
+  pa.ACTIVO AS ACTIVO_PLAN,
+  
+  -- Datos del Período (del plan)
+  pp.ID_PERIODO AS ID_PERIODO_PLAN,
+  pp.CODIGO_PERIODO AS CODIGO_PERIODO_PLAN,
+  pp.FECHA_INICIO AS FECHA_INICIO_PLAN,
+  pp.FECHA_FIN AS FECHA_FIN_PLAN,
+  pp.ESTADO AS ESTADO_PLAN,
+  
+  -- Datos del DOCENTE_PERIODO
+  dper.ID_DOCENTE_PERIODO,
+  dper.IDENTIFICADOR_DOCENTE,
+  dper.ID_SEDE AS ID_SEDE_DOCENTE,
+  dper.ID_CURSO AS ID_CURSO_DOCENTE,
+  dper.PAGO_POR_HORA,
+  
+  -- Datos del DOCENTE
+  d.ID_DOCENTE,
+  COALESCE(d.DNI, 'No asignado') AS DNI,
+  COALESCE(d.APELLIDOS, 'No asignado') AS APELLIDOS,
+  COALESCE(d.NOMBRES, 'No asignado') AS NOMBRES,
+  d.EMAIL,
+  COALESCE(d.APELLIDOS || ', ' || d.NOMBRES, 'No asignado') AS NOMBRE_COMPLETO_DOCENTE,
+  
+  -- Datos del HORARIO_BLOQUE
+  hb.ID_BLOQUE,
+  hb.ORDEN,
+  hb.DURACION,
+  hb.TIPO_BLOQUE,
+  hb.ETIQUETA,
+  
+  -- Datos del HORARIO
+  h.ID_HORARIO,
+  h.NOMBRE_HORARIO,
+  h.HORA_INICIO_JORNADA,
+  h.HORA_FIN_JORNADA,
+  
+  -- Calcular duración acumulada de bloques anteriores
+  (
+    SELECT COALESCE(SUM(b2.DURACION), 0)
+    FROM HORARIO_BLOQUES b2
+    WHERE b2.ID_HORARIO = hb.ID_HORARIO
+      AND b2.ORDEN < hb.ORDEN
+  ) AS DURACION_ACUMULADA_ANTERIOR,
+  
+  -- Calcular hora inicio del bloque (en minutos desde medianoche)
+  (
+    SELECT (
+      CAST(SUBSTR(h.HORA_INICIO_JORNADA, 1, 2) AS INTEGER) * 60 +
+      CAST(SUBSTR(h.HORA_INICIO_JORNADA, 4, 2) AS INTEGER)
+    ) + COALESCE(
+      (SELECT SUM(b2.DURACION)
+       FROM HORARIO_BLOQUES b2
+       WHERE b2.ID_HORARIO = hb.ID_HORARIO
+         AND b2.ORDEN < hb.ORDEN),
+      0
+    )
+  ) AS HORA_INICIO_MINUTOS,
+  
+  -- Calcular hora fin del bloque (en minutos desde medianoche)
+  (
+    SELECT (
+      CAST(SUBSTR(h.HORA_INICIO_JORNADA, 1, 2) AS INTEGER) * 60 +
+      CAST(SUBSTR(h.HORA_INICIO_JORNADA, 4, 2) AS INTEGER)
+    ) + COALESCE(
+      (SELECT SUM(b2.DURACION)
+       FROM HORARIO_BLOQUES b2
+       WHERE b2.ID_HORARIO = hb.ID_HORARIO
+         AND b2.ORDEN < hb.ORDEN),
+      0
+    ) + hb.DURACION
+  ) AS HORA_FIN_MINUTOS,
+  
+  -- Hora inicio formateada HH:MM
+  (
+    SELECT 
+      printf('%02d:%02d', 
+        (CAST(SUBSTR(h.HORA_INICIO_JORNADA, 1, 2) AS INTEGER) * 60 +
+         CAST(SUBSTR(h.HORA_INICIO_JORNADA, 4, 2) AS INTEGER) +
+         COALESCE((SELECT SUM(b2.DURACION)
+                   FROM HORARIO_BLOQUES b2
+                   WHERE b2.ID_HORARIO = hb.ID_HORARIO
+                     AND b2.ORDEN < hb.ORDEN), 0)
+        ) / 60,
+        (CAST(SUBSTR(h.HORA_INICIO_JORNADA, 1, 2) AS INTEGER) * 60 +
+         CAST(SUBSTR(h.HORA_INICIO_JORNADA, 4, 2) AS INTEGER) +
+         COALESCE((SELECT SUM(b2.DURACION)
+                   FROM HORARIO_BLOQUES b2
+                   WHERE b2.ID_HORARIO = hb.ID_HORARIO
+                     AND b2.ORDEN < hb.ORDEN), 0)
+        ) % 60
+      )
+  ) AS HORA_INICIO_CALCULADA,
+  
+  -- Hora fin formateada HH:MM
+  (
+    SELECT 
+      printf('%02d:%02d', 
+        (CAST(SUBSTR(h.HORA_INICIO_JORNADA, 1, 2) AS INTEGER) * 60 +
+         CAST(SUBSTR(h.HORA_INICIO_JORNADA, 4, 2) AS INTEGER) +
+         COALESCE((SELECT SUM(b2.DURACION)
+                   FROM HORARIO_BLOQUES b2
+                   WHERE b2.ID_HORARIO = hb.ID_HORARIO
+                     AND b2.ORDEN < hb.ORDEN), 0) +
+         hb.DURACION
+        ) / 60,
+        (CAST(SUBSTR(h.HORA_INICIO_JORNADA, 1, 2) AS INTEGER) * 60 +
+         CAST(SUBSTR(h.HORA_INICIO_JORNADA, 4, 2) AS INTEGER) +
+         COALESCE((SELECT SUM(b2.DURACION)
+                   FROM HORARIO_BLOQUES b2
+                   WHERE b2.ID_HORARIO = hb.ID_HORARIO
+                     AND b2.ORDEN < hb.ORDEN), 0) +
+         hb.DURACION
+        ) % 60
+      )
+  ) AS HORA_FIN_CALCULADA
+
+FROM ASIGNACION_HORARIO ah
+INNER JOIN GRUPO_PLAN_CURSO gpc ON ah.ID_GRUPO_PLAN_CURSO = gpc.ID_GRUPO_PLAN_CURSO
+INNER JOIN GRUPOS g ON gpc.ID_GRUPO = g.ID_GRUPO
+INNER JOIN AREAS ga ON g.ID_AREA = ga.ID_AREA
+INNER JOIN AULAS au ON g.ID_AULA = au.ID_AULA
+INNER JOIN SEDES s ON au.ID_SEDE = s.ID_SEDE
+INNER JOIN PERIODOS gp ON g.ID_PERIODO = gp.ID_PERIODO
+INNER JOIN TURNOS t ON g.ID_TURNO = t.ID_TURNO
+INNER JOIN PLAN_ACADEMICO_CURSOS pac ON gpc.ID_PLAN_ACADEMICO_CURSO = pac.ID_PLAN_ACADEMICO_CURSO
+INNER JOIN CURSO_AREA ca ON pac.ID_CURSO_AREA = ca.ID_CURSO_AREA
+INNER JOIN CURSOS c ON ca.ID_CURSO = c.ID_CURSO
+INNER JOIN AREAS caa ON ca.ID_AREA = caa.ID_AREA
+INNER JOIN PLAN_ACADEMICO pa ON pac.ID_PLAN_ACADEMICO = pa.ID_PLAN
+INNER JOIN PERIODOS pp ON pa.ID_PERIODO = pp.ID_PERIODO
+LEFT JOIN DOCENTE_PERIODO dper ON gpc.ID_DOCENTE_PERIODO = dper.ID_DOCENTE_PERIODO
+LEFT JOIN DOCENTES d ON dper.ID_DOCENTE = d.ID_DOCENTE
+INNER JOIN HORARIO_BLOQUES hb ON ah.ID_HORARIO_BLOQUE = hb.ID_BLOQUE
+INNER JOIN HORARIOS h ON hb.ID_HORARIO = h.ID_HORARIO;

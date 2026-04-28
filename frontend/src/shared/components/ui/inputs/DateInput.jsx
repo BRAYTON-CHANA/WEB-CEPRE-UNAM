@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import "../../../theme/DateInput.css";
+import "@/shared/theme/components/DateInput.css";
 import es from 'date-fns/locale/es';
 import BaseInput from './BaseInput';
 
@@ -27,51 +27,97 @@ const DateInput = ({
   // Pasar todas las demás props al BaseInput
   ...baseInputProps 
 }) => {
+  // Helper para crear fecha local sin problemas de zona horaria
+  const createLocalDate = (year, month, day) => {
+    // Crear fecha usando componentes locales (mes es 0-indexed)
+    const date = new Date(year, month - 1, day);
+    return date;
+  };
+
   // Validar y convertir el valor inicial a fecha
   const parseInitialDate = (value) => {
     if (!value) return null;
     
-    // Intentar crear una fecha válida
-    const date = new Date(value);
+    let year, month, day;
     
-    // Verificar que sea una fecha válida
-    if (isNaN(date.getTime()) || date.getTime() === 0) {
+    // Si el valor está en formato DD/MM/YYYY
+    if (typeof value === 'string' && value.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+      [day, month, year] = value.split('/').map(Number);
+    } 
+    // Si el valor está en formato YYYY-MM-DD
+    else if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      [year, month, day] = value.split('-').map(Number);
+    }
+    // Intentar parsear como fecha
+    else {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        year = date.getFullYear();
+        month = date.getMonth() + 1;
+        day = date.getDate();
+      }
+    }
+    
+    if (!year || !month || !day) {
       return null;
     }
     
-    return date;
+    return createLocalDate(year, month, day);
   };
 
   const [selectedDate, setSelectedDate] = useState(
     parseInitialDate(baseInputProps.value)
   );
 
+  // Actualizar fecha cuando el valor cambia externamente (ej: al editar registro)
+  useEffect(() => {
+    const newDate = parseInitialDate(baseInputProps.value);
+    setSelectedDate(newDate);
+  }, [baseInputProps.value]);
+
+  // Helper para convertir Date a string DD/MM/YYYY
+  const dateToString = (date) => {
+    if (!date || isNaN(date.getTime())) return '';
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   // Validar fecha
   const validateDate = (value) => {
     if (!value) return '';
     
-    const date = new Date(value);
+    const date = parseInitialDate(value);
     
     // Verificar que sea una fecha válida
-    if (isNaN(date.getTime())) {
+    if (!date || isNaN(date.getTime())) {
       return 'Fecha inválida';
     }
     
+    // Crear fechas de comparación en hora local
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     // Verificar rango de fechas
     if (minDate && date < minDate) {
-      return `Debe ser posterior a ${minDate.toLocaleDateString(locale)}`;
+      return `Debe ser posterior a ${dateToString(minDate)}`;
     }
     
     if (maxDate && date > maxDate) {
-      return `Debe ser anterior a ${maxDate.toLocaleDateString(locale)}`;
+      return `Debe ser anterior a ${dateToString(maxDate)}`;
     }
     
-    if (disablePast && date < new Date().setHours(0,0,0,0)) {
+    if (disablePast && date < today) {
       return 'No se permiten fechas pasadas';
     }
     
-    if (disableFuture && date > new Date().setHours(23,59,59,59)) {
-      return 'No se permiten fechas futuras';
+    if (disableFuture) {
+      const endOfToday = new Date();
+      endOfToday.setHours(23, 59, 59, 999);
+      if (date > endOfToday) {
+        return 'No se permiten fechas futuras';
+      }
     }
     
     return '';
@@ -81,13 +127,9 @@ const DateInput = ({
   const handleDateChange = (date) => {
     setSelectedDate(date);
     
-    // Formatear fecha para el valor del input
-    if (date) {
-      const formattedDate = date.toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      });
+    // Formatear fecha para el valor del input (DD/MM/YYYY)
+    if (date && !isNaN(date.getTime())) {
+      const formattedDate = dateToString(date);
       baseInputProps.onChange(baseInputProps.name, formattedDate);
     } else {
       baseInputProps.onChange(baseInputProps.name, '');
@@ -116,15 +158,9 @@ const DateInput = ({
     }
   };
 
-  // Formatear fecha para mostrar
+  // Formatear fecha para mostrar (usa dateToString para evitar problemas de zona horaria)
   const formatDate = (date) => {
-    if (!date) return '';
-    
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
+    return dateToString(date);
   };
 
   // Calcular fechas mínimas y máximas
@@ -185,7 +221,9 @@ const DateInput = ({
           yearDropdownItemNumber={100}
           customInput={<CustomInput />}
           calendarClassName="border border-gray-300 rounded-lg shadow-xl custom-datepicker"
-          popperClassName="z-30"
+          popperClassName="z-[60]"
+          portalId="date-picker-portal"
+          withPortal
           popperPlacement="right-start"
           wrapperClassName="w-full"
           showPopperArrow={false}
@@ -216,18 +254,6 @@ const DateInput = ({
         )}
       </div>
 
-      {/* Información de fecha seleccionada */}
-      {selectedDate && (
-        <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-600">
-          <div className="flex justify-between">
-            <span>Fecha seleccionada:</span>
-            <span className="font-medium">{formatDate(selectedDate)}</span>
-          </div>
-          <div className="mt-1">
-            <span>Día de semana: {selectedDate.toLocaleDateString('es-ES', { weekday: 'long' })}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

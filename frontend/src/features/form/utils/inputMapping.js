@@ -7,6 +7,10 @@ import DateInput from '@/shared/components/ui/inputs/DateInput';
 import TimeInput from '@/shared/components/ui/inputs/TimeInput';
 import DateTimeInput from '@/shared/components/ui/inputs/DateTimeInput';
 import SelectInput from '@/shared/components/ui/inputs/SelectInput';
+import UniqueSelectInput from '@/shared/components/ui/inputs/UniqueSelectInput';
+import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
+import FunctionSelectInput from '@/shared/components/ui/inputs/FunctionSelectInput';
+import CascadeSearchInput from '@/shared/components/ui/inputs/CascadeSearchInput';
 import TextAreaInput from '@/shared/components/ui/inputs/TextAreaInput';
 import FileInput from '@/shared/components/ui/inputs/FileInput';
 import CheckboxInput from '@/shared/components/ui/inputs/CheckboxInput';
@@ -42,6 +46,10 @@ export const INPUT_COMPONENTS = {
   // Inputs de selección
   select: SelectInput,
   dropdown: SelectInput,  // Alias para select
+  'unique-select': UniqueSelectInput,  // Valores únicos de columna
+  'reference-select': ReferenceSelectInput,  // Referencias FK con display legible
+  'function-select': FunctionSelectInput,  // Funciones SQL parametrizadas
+  'cascade-search': CascadeSearchInput,  // Búsqueda en cascada con múltiples selects
 
   // Inputs de archivo
   file: FileInput,

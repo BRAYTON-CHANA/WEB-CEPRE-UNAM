@@ -27,7 +27,8 @@ export const MODAL_OVERLAYS = {
   gray: 'bg-gray-500',
   blue: 'bg-blue-500',
   red: 'bg-red-500',
-  green: 'bg-green-500'
+  green: 'bg-green-500',
+  blur: 'bg-black/30 backdrop-blur-sm'
 };
 
 // Opacidades
@@ -77,12 +78,29 @@ export const MODAL_SHADOWS = {
   inner: 'shadow-inner'
 };
 
+// Gradientes para header
+export const MODAL_HEADER_GRADIENTS = {
+  emerald: 'bg-gradient-to-r from-emerald-600 to-teal-700',
+  indigo: 'bg-gradient-to-r from-indigo-600 to-purple-700',
+  blue: 'bg-gradient-to-r from-blue-600 to-cyan-700',
+  rose: 'bg-gradient-to-r from-rose-600 to-pink-700',
+  amber: 'bg-gradient-to-r from-amber-500 to-orange-600',
+  slate: 'bg-gradient-to-r from-slate-600 to-gray-700'
+};
+
+// Patrones decorativos para header
+export const MODAL_PATTERNS = {
+  dots: 'bg-[radial-gradient(circle,rgba(255,255,255,0.2)_1px,transparent_1px)] [background-size:16px_16px]',
+  lines: 'bg-[linear-gradient(45deg,rgba(255,255,255,0.1)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.1)_50%,rgba(255,255,255,0.1)_75%,transparent_75%,transparent)] [background-size:20px_20px]',
+  grid: 'bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] [background-size:20px_20px]'
+};
+
 // Valores por defecto
 export const MODAL_DEFAULTS = {
   size: 'md',
   position: 'center',
-  overlayColor: 'black',
-  overlayOpacity: 50,
+  overlayColor: 'blur',
+  overlayOpacity: 30,
   backgroundColor: 'white',
   border: 'lg',
   shadow: 'xl',

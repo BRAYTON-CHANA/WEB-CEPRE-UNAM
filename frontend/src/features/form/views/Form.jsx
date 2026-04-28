@@ -1,11 +1,13 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useFormState } from '../hooks/useFormState';
 import { useFormValidation } from '../hooks/useFormValidation';
 import { useMultiStepForm } from '../hooks/useMultiStepForm';
 import { organizeFields, getFieldNamesByPage } from '../utils/layoutEngine';
+import { evaluateHidden } from '../utils/conditionEvaluator';
 import FormField from '../components/FormField';
 import FormSection from '../components/FormSection';
 import MultiStepNavigator from '../components/MultiStepNavigator';
+import FormConfirmModal from '../components/FormConfirmModal';
 
 /**
  * Componente Form reutilizable y refactorizado
@@ -45,7 +47,12 @@ const Form = ({
   size = 'medium',
   
   // Props de debug
-  showWarnings = false
+  showWarnings = false,
+  showVisualDebugs = false,
+
+  // Props de confirmación modal
+  confirmSubmit = false,
+  confirmConfig = {}
 }) => {
   // Organizar campos según layout - memoizado para evitar re-ejecución innecesaria
   const organizedLayout = useMemo(() => 
@@ -69,7 +76,7 @@ const Form = ({
     validateForm,
     validatePage,
     clearError
-  } = useFormValidation(validation);
+  } = useFormValidation(validation, fields);
 
   // Hook de navegación multi-step
   const {
@@ -95,20 +102,57 @@ const Form = ({
     ? organizedLayout.pages.find(p => p.number === currentPage) 
     : organizedLayout.pages[0];
 
-  /**
-   * Maneja cambios en los campos
-   */
-  const handleChange = (fieldName, value) => {
-    setFieldValue(fieldName, value);
-    clearError(fieldName);
-  };
+  // Estado para modal de confirmación
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [pendingSubmitData, setPendingSubmitData] = useState(null);
 
   /**
-   * Maneja blur para validación
+   * Prepara los datos del formulario para envío
+   * Aplica hiddenValue/defaultValue a campos ocultos
    */
-  const handleBlur = (fieldName) => {
+  const prepareSubmitData = useCallback(() => {
+    const submitData = { ...formData };
+
+    fields.forEach(field => {
+      // Si el campo tiene ignoreField=true, eliminarlo del submit y saltar
+      if (field.ignoreField) {
+        delete submitData[field.name];
+        return;
+      }
+
+      // Usar evaluateHidden si existe hidden, de lo contrario visible por defecto
+      const isHidden = field.hidden ? evaluateHidden(field.hidden, formData) : false;
+
+      // Si el campo está oculto, aplicar hiddenValue o defaultValue o vacío
+      if (isHidden) {
+        if (field.hiddenValue !== undefined) {
+          submitData[field.name] = field.hiddenValue;
+        } else if (field.defaultValue !== undefined) {
+          submitData[field.name] = field.defaultValue;
+        } else {
+          submitData[field.name] = '';
+        }
+      }
+    });
+
+    return submitData;
+  }, [formData, fields]);
+
+  /**
+   * Maneja cambios en los campos - memoizado para estabilidad
+   */
+  const handleChange = useCallback((fieldName, value) => {
+    setFieldValue(fieldName, value);
+    clearError(fieldName);
+  }, [setFieldValue, clearError]);
+
+  /**
+   * Maneja blur para validación - memoizado para estabilidad
+   */
+  const handleBlur = useCallback((fieldName) => {
     setFieldTouched(fieldName);
-  };
+  }, [setFieldTouched]);
 
   /**
    * Maneja avance a siguiente página (solo multi-step)
@@ -159,36 +203,64 @@ const Form = ({
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (isMultiStep) {
-      // En multi-step, validar TODO el formulario al final
-      const allFieldNames = fields.map(f => f.name);
-      setAllTouched(allFieldNames);
-      
-      const isValid = validateForm(formData);
-      
-      if (isValid) {
-        onSubmit(formData);
+    const validateAndPrepare = () => {
+      console.log('[Form.jsx] handleSubmit - formData:', formData);
+      console.log('[Form.jsx] handleSubmit - validation type:', typeof validation);
+      if (isMultiStep) {
+        const allFieldNames = fields.map(f => f.name);
+        setAllTouched(allFieldNames);
+        return validateForm(formData);
+      } else {
+        const fieldNames = fields.map((field) => field.name);
+        setAllTouched(fieldNames);
+        return validateForm(formData);
+      }
+    };
+
+    const isValid = validateAndPrepare();
+
+    if (isValid) {
+      const submitData = prepareSubmitData();
+      if (confirmSubmit) {
+        setPendingSubmitData(submitData);
+        setIsConfirmModalOpen(true);
+      } else {
+        onSubmit(submitData);
       }
     } else {
-      // Single page - comportamiento original
-      const fieldNames = fields.map((field) => field.name);
-      setAllTouched(fieldNames);
-
-      const isValid = validateForm(formData);
-
-      if (isValid) {
-        onSubmit(formData);
-      }
+      setSubmitAttempted(true);
     }
   };
 
   /**
-   * Renderiza un campo individual
+   * Confirma el submit desde el modal
    */
-  const renderField = (field) => {
+  const handleConfirmSubmit = () => {
+    setIsConfirmModalOpen(false);
+    if (pendingSubmitData) {
+      const submitData = prepareSubmitData();
+      onSubmit(submitData);
+      setPendingSubmitData(null);
+    }
+  };
+
+  /**
+   * Cancela el submit desde el modal
+   */
+  const handleCancelSubmit = () => {
+    setIsConfirmModalOpen(false);
+    setPendingSubmitData(null);
+  };
+
+  /**
+   * Renderiza un campo individual - usa useCallback para estabilidad
+   */
+  const renderField = useCallback((field) => {
     const { name } = field;
     const value = formData[name];
-    const error = touched[name] ? errors[name] : '';
+    const error = (touched[name] || submitAttempted) ? errors[name] : '';
+    // Solo pasa formData si el campo tiene hidden, blocked, o referenceSelfTable/Filter (necesita evaluar condiciones/templates)
+    const conditionalFormData = (field.hidden || field.blocked || field.referenceSelfTable || field.referenceSelfFilter) ? formData : undefined;
 
     return (
       <FormField
@@ -197,11 +269,13 @@ const Form = ({
         value={value}
         error={error}
         touched={touched[name]}
-        onChange={(fieldName, newValue) => handleChange(fieldName, newValue)}
-        onBlur={() => handleBlur(name)}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        showVisualDebugs={showVisualDebugs}
+        formData={conditionalFormData}
       />
     );
-  };
+  }, [formData, touched, submitAttempted, errors, handleChange, handleBlur, showVisualDebugs]);
 
   /**
    * Renderiza una sección con sus campos
@@ -301,13 +375,23 @@ const Form = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className={className} noValidate>
-      {/* Contenido de la página (campos) */}
-      {renderPageContent()}
-      
-      {/* Navegación multi-step o botón submit */}
-      {isMultiStep ? renderMultiStepNavigation() : renderSinglePageSubmit()}
-    </form>
+    <>
+      <form onSubmit={handleSubmit} className={className} noValidate>
+        {/* Contenido de la página (campos) */}
+        {renderPageContent()}
+        
+        {/* Navegación multi-step o botón submit */}
+        {isMultiStep ? renderMultiStepNavigation() : renderSinglePageSubmit()}
+      </form>
+
+      {/* Modal de confirmación */}
+      <FormConfirmModal
+        isOpen={isConfirmModalOpen}
+        onConfirm={handleConfirmSubmit}
+        onCancel={handleCancelSubmit}
+        config={confirmConfig}
+      />
+    </>
   );
 };
 

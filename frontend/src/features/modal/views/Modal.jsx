@@ -20,6 +20,8 @@ const Modal = ({
   backgroundColor = MODAL_DEFAULTS.backgroundColor,
   border = MODAL_DEFAULTS.border,
   shadow = MODAL_DEFAULTS.shadow,
+  headerGradient = null,
+  headerPattern = null,
   
   // Comportamiento
   closeOnOutsideClick = MODAL_DEFAULTS.closeOnOutsideClick,
@@ -42,6 +44,7 @@ const Modal = ({
   animation = MODAL_DEFAULTS.animation,
   fullscreenOnMobile = MODAL_DEFAULTS.fullscreenOnMobile,
   className = '',
+  widthClass = 'w-auto',
   
   // Accesibilidad
   ariaLabel = null,
@@ -63,7 +66,7 @@ const Modal = ({
   });
 
   // Hook de clases CSS
-  const { overlayClasses, modalClasses, headerClasses, bodyClasses, footerClasses } = useModalClasses({
+  const { overlayClasses, modalClasses, headerClasses, bodyClasses, footerClasses, headerGradientClasses, headerPatternClasses } = useModalClasses({
     overlayColor,
     overlayOpacity,
     position,
@@ -77,7 +80,10 @@ const Modal = ({
     className,
     headerClassName,
     bodyClassName,
-    footerClassName
+    footerClassName,
+    widthClass,
+    headerGradient,
+    headerPattern
   });
 
   // Manejo de clic fuera
@@ -105,7 +111,7 @@ const Modal = ({
       >
         {/* Header */}
         {showHeader && (
-          <div className={headerClasses}>
+          <div className={`${headerClasses} ${headerGradientClasses} ${headerPatternClasses}`}>
             <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
             {showCloseButton && (
               <ModalCloseButton 

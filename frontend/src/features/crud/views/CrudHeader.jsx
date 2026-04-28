@@ -16,11 +16,11 @@ function CrudHeader({
   actions = [] 
 }) {
   return (
-    <div className="mb-6">
-      <div className="container mx-auto px-4 py-6">
+    <div>
+      <div className="container mx-auto px-4 py-0 mt-6">
         <div className="flex items-center justify-between">
           {/* Título y descripción - Izquierda */}
-          <div className="ml-4">
+          <div className="ml-1">
             <h1 className={`text-2xl font-bold text-gray-900 mb-1 ${titleClassName || ''}`}>
               {headerTitle}
             </h1>

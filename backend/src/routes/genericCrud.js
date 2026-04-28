@@ -127,6 +127,12 @@ router.get('/tables/:tableName/search', validateTable, sanitizeInput, GenericCru
 router.get('/tables/:tableName/stats', validateTable, GenericCrudController.getStats.bind(GenericCrudController));
 router.post('/tables/:tableName', validateTable, sanitizeInput, GenericCrudController.create.bind(GenericCrudController));
 
+// Ruta para obtener datos seleccionados de una tabla (campos específicos)
+router.get('/tables/:tableName/select', validateTable, sanitizeInput, GenericCrudController.getSelectData.bind(GenericCrudController));
+
+// Ruta para obtener valores únicos de una columna (DEBE ir antes de /:tableName/:id)
+router.get('/tables/:tableName/unique', validateTable, sanitizeInput, GenericCrudController.getUniqueValues.bind(GenericCrudController));
+
 // Rutas con parámetros (van al final)
 router.get('/tables/:tableName/:id', validateTable, sanitizeInput, GenericCrudController.getById.bind(GenericCrudController));
 router.put('/tables/:tableName/:id', validateTable, sanitizeInput, GenericCrudController.update.bind(GenericCrudController));

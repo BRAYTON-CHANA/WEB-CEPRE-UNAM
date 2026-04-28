@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import TimePicker from 'react-time-picker';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import BaseInput from './BaseInput';
 
 /**
@@ -22,6 +22,14 @@ const TimeInput = ({
   const [selectedTime, setSelectedTime] = useState(
     baseInputProps.value ? baseInputProps.value : null
   );
+  const [tempTime, setTempTime] = useState(selectedTime); // Estado temporal para el modal
+
+  // Sincronizar tempTime cuando se abre el modal
+  useEffect(() => {
+    if (isPickerOpen) {
+      setTempTime(selectedTime);
+    }
+  }, [isPickerOpen, selectedTime]);
 
   // Convertir string de tiempo a Date
   const timeToDate = (timeString) => {
@@ -100,11 +108,12 @@ const TimeInput = ({
     return seconds;
   };
 
-  // Parsear tiempo actual
+  // Parsear tiempo actual (usa tempTime cuando el modal está abierto)
   const parseCurrentTime = () => {
-    if (!selectedTime) return { hour: '00', minute: '00', second: '00' };
+    const timeToParse = isPickerOpen ? tempTime : selectedTime;
+    if (!timeToParse) return { hour: '00', minute: '00', second: '00' };
     
-    const [hours, minutes, seconds] = selectedTime.split(':');
+    const [hours, minutes, seconds] = timeToParse.split(':');
     return {
       hour: hours || '00',
       minute: minutes || '00',
@@ -112,7 +121,7 @@ const TimeInput = ({
     };
   };
 
-  // Manejar selección de hora/minuto/segundo
+  // Manejar selección de hora/minuto/segundo (actualiza tempTime, NO cierra modal)
   const handleTimeSelect = (type, value) => {
     const time = parseCurrentTime();
     let newTime = '';
@@ -125,8 +134,19 @@ const TimeInput = ({
       newTime = `${time.hour}:${time.minute}:${value}`;
     }
     
-    setSelectedTime(newTime);
-    baseInputProps.onChange(baseInputProps.name, newTime);
+    setTempTime(newTime); // Solo actualiza el tiempo temporal
+  };
+
+  // Aceptar y cerrar modal
+  const handleAccept = () => {
+    setSelectedTime(tempTime);
+    baseInputProps.onChange(baseInputProps.name, tempTime);
+    setIsPickerOpen(false);
+  };
+
+  // Cerrar sin guardar
+  const handleClose = () => {
+    setIsPickerOpen(false);
   };
 
   // Parsear tiempo actual para react-time-picker
@@ -159,6 +179,7 @@ const TimeInput = ({
     ...baseInputProps.validation,
     custom: validateTime
   };
+
 
   // Formatear hora para mostrar
   const formatTime = (timeString) => {
@@ -207,68 +228,87 @@ const TimeInput = ({
         />
       </div>
 
-      {/* Selector de tiempo personalizado */}
-      {showClock && isPickerOpen && (
-        <div className="absolute top-full right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-xl z-30 p-4 min-w-[280px]">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-lg font-semibold text-gray-800">Seleccionar hora</h3>
-            <button
-              type="button"
-              onClick={() => setIsPickerOpen(false)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+      {/* Selector de tiempo personalizado - Modal con createPortal */}
+      {showClock && isPickerOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop con blur */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+            onClick={handleClose}
+          />
           
-          <div className="flex gap-3">
-            {/* Selector de horas */}
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Hora</label>
-              <select
-                value={parseCurrentTime().hour}
-                onChange={(e) => handleTimeSelect('hour', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          {/* Modal */}
+          <div className="relative bg-white border border-gray-300 rounded-lg shadow-2xl p-4 min-w-[280px] z-10 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-semibold text-gray-800">Seleccionar hora</h3>
+              <button
+                type="button"
+                onClick={handleClose}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
               >
-                {generateHours().map(hour => (
-                  <option key={hour} value={hour}>{hour}</option>
-                ))}
-              </select>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
             
-            {/* Selector de minutos */}
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Minuto</label>
-              <select
-                value={parseCurrentTime().minute}
-                onChange={(e) => handleTimeSelect('minute', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                {generateMinutes().map(minute => (
-                  <option key={minute} value={minute}>{minute}</option>
-                ))}
-              </select>
-            </div>
-            
-            {/* Selector de segundos (opcional) */}
-            {showSeconds && (
+            <div className="flex gap-3 mb-4">
+              {/* Selector de horas */}
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Segundo</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hora</label>
                 <select
-                  value={parseCurrentTime().second}
-                  onChange={(e) => handleTimeSelect('second', e.target.value)}
+                  value={parseCurrentTime().hour}
+                  onChange={(e) => handleTimeSelect('hour', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  {generateSeconds().map(second => (
-                    <option key={second} value={second}>{second}</option>
+                  {generateHours().map(hour => (
+                    <option key={hour} value={hour}>{hour}</option>
                   ))}
                 </select>
               </div>
-            )}
+              
+              {/* Selector de minutos */}
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Minuto</label>
+                <select
+                  value={parseCurrentTime().minute}
+                  onChange={(e) => handleTimeSelect('minute', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  {generateMinutes().map(minute => (
+                    <option key={minute} value={minute}>{minute}</option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Selector de segundos (opcional) */}
+              {showSeconds && (
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Segundo</label>
+                  <select
+                    value={parseCurrentTime().second}
+                    onChange={(e) => handleTimeSelect('second', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {generateSeconds().map(second => (
+                      <option key={second} value={second}>{second}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+            
+            {/* Botón Aceptar */}
+            <button
+              type="button"
+              onClick={handleAccept}
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+            >
+              Aceptar
+            </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Indicadores de rango */}
@@ -280,16 +320,6 @@ const TimeInput = ({
           <span>Máximo: {formatTime(maxTime)}</span>
         )}
       </div>
-
-      {/* Información de hora seleccionada */}
-      {selectedTime && (
-        <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-600">
-          <div className="flex justify-between">
-            <span>Hora seleccionada:</span>
-            <span className="font-medium">{formatTime(selectedTime)}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

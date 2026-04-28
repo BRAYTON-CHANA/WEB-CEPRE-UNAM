@@ -154,6 +154,15 @@ function TestTable() {
           console.log('Enviar email a:', row);
           alert(`Enviar email a ${row.name} (${row.email})`);
         }
+      },
+      {
+        icon: 'download',
+        label: 'Descargar reporte',
+        className: 'text-orange-600 hover:bg-orange-100',
+        onClick: (row, index) => {
+          console.log('Descargar reporte de:', row);
+          alert(`Generando reporte de ${row.name}...\n\nReporte descargado: ${row.name.replace(/\s+/g, '_')}_reporte.pdf`);
+        }
       }
     ]
   };
@@ -172,7 +181,7 @@ function TestTable() {
             <li>✅ Selección múltiple de filas</li>
             <li>✅ Paginación configurable</li>
             <li>✅ Acciones CRUD personalizadas</li>
-            <li>✅ Acciones custom por fila</li>
+            <li>✅ Acciones custom por fila (Ver, Email, Descargar)</li>
             <li>✅ Variants visuales (striped, hover, bordered)</li>
           </ul>
         </div>

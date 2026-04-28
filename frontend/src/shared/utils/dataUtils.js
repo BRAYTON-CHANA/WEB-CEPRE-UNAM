@@ -111,15 +111,18 @@ export const processHeader = (header) => {
  */
 export const getUniqueValues = (data, header) => {
   const values = new Set();
+  let hasNull = false;
   
   data.forEach(row => {
     const value = row[header];
-    if (value !== null && value !== undefined) {
+    if (value === null || value === undefined) {
+      hasNull = true;
+    } else {
       values.add(value);
     }
   });
   
-  return Array.from(values).sort((a, b) => {
+  const result = Array.from(values).sort((a, b) => {
     // Ordenamiento por tipo
     if (typeof a === 'number' && typeof b === 'number') {
       return a - b;
@@ -129,6 +132,13 @@ export const getUniqueValues = (data, header) => {
     }
     return String(a).localeCompare(String(b));
   });
+  
+  // Agregar null al inicio si existe
+  if (hasNull) {
+    result.unshift(null);
+  }
+  
+  return result;
 };
 
 /**

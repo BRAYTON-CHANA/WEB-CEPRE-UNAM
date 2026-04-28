@@ -25,6 +25,26 @@ const FilterMenu = ({
     return filters;
   }, [activeFilters, header]);
 
+  // Helper para obtener label de valor (maneja null/undefined)
+  const getValueLabel = (value) => {
+    if (value === null || value === undefined) return '(vacío)';
+    return String(value);
+  };
+
+  // Helper para verificar si un valor está seleccionado (maneja null)
+  const isValueSelected = (value) => {
+    return currentFilters.some(filter => 
+      (filter === value) || (filter === null && value === null)
+    );
+  };
+
+  // DEBUG: Ver qué valores llegan al filtro
+  useEffect(() => {
+    console.log(`[FilterMenu:${header}] uniqueValues:`, uniqueValues);
+    console.log(`[FilterMenu:${header}] dataType:`, dataType);
+    console.log(`[FilterMenu:${header}] activeFilters:`, activeFilters);
+  }, [header, uniqueValues, dataType, activeFilters]);
+
   // Determinar estado de "seleccionar todo"
   useEffect(() => {
     const filteredValues = uniqueValues.filter(value => 
@@ -48,7 +68,7 @@ const FilterMenu = ({
   }, [currentFilters, uniqueValues, searchTerm, intentionallyDeselected]);
 
   const filteredValues = uniqueValues.filter(value => 
-    String(value).toLowerCase().includes(searchTerm.toLowerCase())
+    getValueLabel(value).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSelectAll = () => {
@@ -144,12 +164,12 @@ const FilterMenu = ({
               <div className="flex items-center">
                 <input
                   type="checkbox"
-                  checked={currentFilters.includes(value)}
+                  checked={isValueSelected(value)}
                   onChange={() => handleToggleValue(value)}
                   className="mr-2 rounded border-gray-300 text-blue-600"
                 />
                 <span className="text-sm text-gray-700 flex-1">
-                  {String(value)}
+                  {getValueLabel(value)}
                 </span>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import BaseInput from './BaseInput';
 
 /**
@@ -22,6 +22,12 @@ const SelectInput = ({
   optionDescription = 'description',
   optionIcon = 'icon',
   optionDisabled = 'disabled',
+
+  // Props del botón de interacción (reemplaza rightAction)
+  interactButton = false,
+  interactButtonText = '',
+  interactButtonClassName = '',
+  interactButtonOnClick = null,
   
   // Pasar todas las demás props (excepto type)
   ...baseInputProps 
@@ -30,6 +36,41 @@ const SelectInput = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [selectedOptions, setSelectedOptions] = useState([]);
+  const isUserChange = useRef(false);
+  const dropdownRef = useRef(null);
+
+  // Sincronizar valor inicial/default desde props (solo cuando no es cambio del usuario)
+  React.useEffect(() => {
+    if (isUserChange.current) {
+      isUserChange.current = false;
+      return;
+    }
+
+    const propValue = baseInputProps.value;
+    if (propValue === undefined || propValue === null || propValue === '') {
+      // Guard: evitar setState si ya está vacío
+      setSelectedOptions(prev => (prev.length === 0 ? prev : []));
+      return;
+    }
+
+    if (multiSelect) {
+      const values = Array.isArray(propValue) ? propValue : [propValue];
+      const selected = options.filter(opt => values.some(v => String(opt[optionValue]) === String(v)));
+      setSelectedOptions(prev => {
+        const prevKey = prev.map(o => String(o[optionValue])).join(',');
+        const newKey = selected.map(o => String(o[optionValue])).join(',');
+        return prevKey === newKey ? prev : selected;
+      });
+    } else {
+      const selected = options.find(opt => String(opt[optionValue]) === String(propValue));
+      const next = selected ? [selected] : [];
+      setSelectedOptions(prev => {
+        const prevV = prev[0] ? String(prev[0][optionValue]) : '';
+        const newV = next[0] ? String(next[0][optionValue]) : '';
+        return prevV === newV ? prev : next;
+      });
+    }
+  }, [baseInputProps.value, options, optionValue, multiSelect]);
 
   // Filtrar opciones según búsqueda
   const filteredOptions = React.useMemo(() => {
@@ -44,34 +85,32 @@ const SelectInput = ({
     });
   }, [options, searchTerm, optionLabel, optionDescription]);
 
-  // Sincronizar cambios con el padre
+  // Sincronizar cambios con el padre (solo cuando es cambio del usuario)
   React.useEffect(() => {
-    if (baseInputProps.onChange) {
-      if (multiSelect) {
-        const values = selectedOptions.map(opt => opt[optionValue]);
-        console.log('🎯 SelectInput multi-select onChange:', baseInputProps.name, values);
-        baseInputProps.onChange(baseInputProps.name, values);
-      } else {
-        const value = selectedOptions[0] ? selectedOptions[0][optionValue] : '';
-        console.log('🎯 SelectInput single-select onChange:', baseInputProps.name, value);
-        baseInputProps.onChange(baseInputProps.name, value);
-      }
+    if (!baseInputProps.onChange || !isUserChange.current) return;
+    
+    if (multiSelect) {
+      const values = selectedOptions.map(opt => opt[optionValue]);
+      baseInputProps.onChange(baseInputProps.name, values);
+    } else {
+      const value = selectedOptions[0] ? selectedOptions[0][optionValue] : '';
+      baseInputProps.onChange(baseInputProps.name, value);
     }
-  }, [selectedOptions, optionValue, baseInputProps.name]); // Removido baseInputProps.onChange de las dependencias
+  }, [selectedOptions, optionValue, baseInputProps.name]);
 
   // Manejar selección
   const handleSelect = (option) => {
-    console.log('🎯 SelectInput handleSelect:', option);
+    isUserChange.current = true;
     
     if (multiSelect) {
       const isSelected = selectedOptions.some(selected => 
-        selected[optionValue] === option[optionValue]
+        String(selected[optionValue]) === String(option[optionValue])
       );
       
       if (isSelected) {
         // Deseleccionar si ya está seleccionado
         setSelectedOptions(selectedOptions.filter(selected => 
-          selected[optionValue] !== option[optionValue]
+          String(selected[optionValue]) !== String(option[optionValue])
         ));
       } else {
         // Seleccionar nuevo
@@ -79,7 +118,6 @@ const SelectInput = ({
       }
     } else {
       // Selección simple
-      console.log('🎯 SelectInput selección simple:', option[optionValue]);
       setSelectedOptions([option]);
       setIsOpen(false);
     }
@@ -89,10 +127,11 @@ const SelectInput = ({
   };
 
   // Limpiar selección
-  const handleClear = () => {
+  const handleClear = (e) => {
+    e.stopPropagation();
+    isUserChange.current = true;
     setSelectedOptions([]);
     setSearchTerm('');
-    baseInputProps.onChange(baseInputProps.name, multiSelect ? [] : '');
   };
 
   // Manejar teclado
@@ -150,7 +189,7 @@ const SelectInput = ({
   // Renderizar cada opción
   const renderOption = (option, index) => {
     const isSelected = selectedOptions.some(selected => 
-      selected[optionValue] === option[optionValue]
+      String(selected[optionValue]) === String(option[optionValue])
     );
     const isHighlighted = index === highlightedIndex;
     const isDisabled = option[optionDisabled];
@@ -191,7 +230,7 @@ const SelectInput = ({
         
         {isSelected && (
           <svg className="w-4 h-4 ml-auto" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 00-1.414 1.414l4 4a1 1 0 001.414 0l8-8a1 1 0 010-1.414z" clipRule="evenodd" />
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
         )}
       </div>
@@ -234,8 +273,25 @@ const SelectInput = ({
     custom: validateSelection
   };
 
+  // Click outside to close
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       {/* Input oculto para el valor */}
       <BaseInput
         {...baseInputProps}
@@ -245,25 +301,27 @@ const SelectInput = ({
         readOnly
       />
 
-      {/* Contenedor del select */}
-      <div 
-        className={`
-          relative w-full border border-gray-300 rounded-md shadow-sm
-          ${isOpen ? 'ring-2 ring-blue-500 border-blue-500' : 'hover:border-gray-400'}
-          ${baseInputProps.disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white cursor-pointer'}
-          transition-colors duration-200
-        `}
-        onClick={() => !baseInputProps.disabled && setIsOpen(!isOpen)}
-        onKeyDown={handleKeyDown}
-        tabIndex={baseInputProps.disabled ? -1 : 0}
-        role="combobox"
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-      >
-        {/* Placeholder o valor seleccionado */}
-        <div className="flex items-center px-3 py-2">
+      {/* Contenedor del select + botón de acción */}
+      <div className="flex gap-2">
+        {/* Contenedor del select */}
+        <div 
+          className={`
+            relative flex-1 border border-gray-300 rounded-md shadow-sm
+            ${isOpen ? 'ring-2 ring-blue-500 border-blue-500' : 'hover:border-gray-400'}
+            ${baseInputProps.disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white cursor-pointer'}
+            transition-colors duration-200
+          `}
+          onClick={() => !baseInputProps.disabled && setIsOpen(!isOpen)}
+          onKeyDown={handleKeyDown}
+          tabIndex={baseInputProps.disabled ? -1 : 0}
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-haspopup="listbox"
+        >
+          {/* Placeholder o valor seleccionado */}
+          <div className="flex items-center px-3 py-2">
           {selectedOptions.length === 0 ? (
-            <span className="text-gray-500">
+            <span className="text-gray-800">
               {baseInputProps.placeholder || 'Selecciona una opción'}
             </span>
           ) : multiSelect ? (
@@ -271,13 +329,15 @@ const SelectInput = ({
               {selectedOptions.length} opciones seleccionadas
             </span>
           ) : (
-            <div className="flex items-center">
+            <div className="flex items-center"> 
               {selectedOptions[0][optionIcon] && (
                 <span className="mr-2">{selectedOptions[0][optionIcon]}</span>
               )}
-              <span>{selectedOptions[0][optionLabel]}</span>
+              <span className="text-gray-800">{selectedOptions[0][optionLabel]}</span>
             </div>
           )}
+
+          
         </div>
 
         {/* Flecha del dropdown */}
@@ -311,18 +371,31 @@ const SelectInput = ({
             aria-label="Limpiar selección"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 10.586 4.293a1 1 0 001.414 0L4.293 4.293z" clipRule="evenodd" />
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
+          </button>
+        )}
+
+  
+      </div>
+        {/* Botón de interacción (opcional) */}
+        {interactButton && (
+          <button
+            type="button"
+            onClick={interactButtonOnClick}
+            className={`px-3 py-2 border border-gray-300 rounded hover:bg-gray-100 flex-shrink-0 ${interactButtonClassName}`}
+          >
+            {interactButtonText}
           </button>
         )}
       </div>
 
-      {/* Tags de selección múltiple */}
-      {renderSelectedTags()}
+    {/* Tags de selección múltiple */}
+    {renderSelectedTags()}
 
       {/* Dropdown de opciones */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-1">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-[100]">
           {/* Campo de búsqueda */}
           {searchable && (
             <div className="p-3 border-b border-gray-200">

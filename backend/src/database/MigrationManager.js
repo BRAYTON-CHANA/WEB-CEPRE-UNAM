@@ -22,8 +22,15 @@ class MigrationManager {
       throw new Error('DatabaseManager no ha sido inyectado. Llama a MigrationManager.setDatabaseManager() primero.');
     }
     
+    try {
+      // Primero intentar DROP para asegurar esquema correcto (SQLite Cloud puede tener tablas preexistentes)
+      await this.dbManager.run(`DROP TABLE IF EXISTS ${this.migrationsTable}`);
+    } catch (err) {
+      // Ignorar error si tabla no existe
+    }
+    
     const sql = `
-      CREATE TABLE IF NOT EXISTS ${this.migrationsTable} (
+      CREATE TABLE ${this.migrationsTable} (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         filename TEXT NOT NULL UNIQUE,
         executed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -78,8 +85,24 @@ class MigrationManager {
       const statements = this.parseSqlStatements(sql);
 
       // Ejecutar cada statement
-      for (const statement of statements) {
-        await this.dbManager.run(statement);
+      console.log(`\n📄 ${filename} - Ejecutando ${statements.length} sentencias:`);
+      for (let i = 0; i < statements.length; i++) {
+        const statement = statements[i];
+        const firstLine = statement.split('\n')[0].trim();
+        const operation = firstLine.substring(0, 50);
+        console.log(`  ${i + 1}/${statements.length}: ${operation}...`);
+        try {
+          await this.dbManager.run(statement);
+          console.log(`     ✅ OK`);
+        } catch (err) {
+          // Ignorar errores de UNIQUE constraint en INSERT (datos ya existen)
+          if (statement.trim().toUpperCase().startsWith('INSERT') && err.message.includes('UNIQUE')) {
+            console.log(`     ⚠️ SKIP: Dato ya existe`);
+          } else {
+            console.log(`     ❌ ERROR: ${err.message}`);
+            throw err;
+          }
+        }
       }
 
       // Registrar migración como ejecutada

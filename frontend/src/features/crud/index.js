@@ -7,6 +7,8 @@ export { default as CrudFooter } from './views/CrudFooter';
 
 // Componentes
 export { default as TableParametersExample } from './components/TableParametersExample';
+export { default as MenuFilters } from './components/MenuFilters';
 
 // Hooks
 export { useTableData } from './hooks/useTableData';
+export { useMenuFilters } from './hooks/useMenuFilters';

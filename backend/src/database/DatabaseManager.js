@@ -1,56 +1,104 @@
-const sqlite3 = require('sqlite3').verbose();
+const initSqlJs = require('sql.js'); // LOCAL - sql.js portable
+const { Database } = require('@sqlitecloud/drivers'); // SQLite Cloud SDK
 const path = require('path');
+const fs = require('fs');
 const MigrationManager = require('./MigrationManager');
 const ViewManager = require('./ViewManager');
+const FunctionManager = require('./FunctionManager');
+const TriggerManager = require('./TriggerManager');
 
 class DatabaseManager {
-  // Ruta autocontenida - misma carpeta que la aplicación
+  // === CONFIGURACIÓN ===
+  static DB_MODE = 'local'; // 'local' o 'online'
+  
+  // === LOCAL SQLITE (sql.js) ===
   static dbPath = (() => {
     const path = require('path');
-    
-    // En producción (Neutralino), usar la carpeta resources/datos
     if (process.env.NL_PORT || process.platform === 'neutralino') {
       return path.join(process.resourcesPath || '.', 'datos', 'database.sqlite');
     }
-    
-    // En desarrollo, usar carpeta local
     return path.join(__dirname, '../../data', 'database.sqlite');
   })();
   static db = null;
-  static schemaCache = new Map(); // Cache para esquemas detectados
+  static SQL = null; // Instancia de sql.js
+  
+  // === SQLITE CLOUD ===
+  static connectionString = ''; // llenar
+  static cloudDb = null;
+  static schemaCache = new Map();
 
   /**
-   * Conectar a la base de datos SQLite
+   * Conectar a BD (local o cloud según DB_MODE)
    */
-  static connect() {
+  static async connect() {
+    if (this.DB_MODE === 'online') {
+      return await this.connectCloud();
+    } else {
+      return this.connectLocal();
+    }
+  }
+  
+  /**
+   * Conectar a SQLite Cloud
+   */
+  static async connectCloud() {
+    if (!this.cloudDb) {
+      try {
+        this.cloudDb = new Database(this.connectionString);
+        console.log('✅ Conectado a SQLite Cloud exitosamente');
+        console.log('📍 Connection:', this.connectionString);
+        MigrationManager.setDatabaseManager(this);
+        ViewManager.setDatabaseManager(this);
+        FunctionManager.setDatabaseManager(this);
+        TriggerManager.setDatabaseManager(this);
+      } catch (err) {
+        console.error('❌ Error conectando a SQLite Cloud:', err.message);
+        throw err;
+      }
+    }
+    return this.cloudDb;
+  }
+  
+  /**
+   * Conectar a SQLite local (sql.js)
+   */
+  static async connectLocal() {
     if (!this.db) {
-      // Asegurar que el directorio exista
-      const fs = require('fs');
       const dbDir = path.dirname(this.dbPath);
       if (!fs.existsSync(dbDir)) {
         fs.mkdirSync(dbDir, { recursive: true });
         console.log(`📁 Directorio creado: ${dbDir}`);
       }
-      
-      this.db = new sqlite3.Database(this.dbPath, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
-        if (err) {
-          console.error('❌ Error conectando a SQLite:', err.message);
-          console.error('❌ Ruta de la base de datos:', this.dbPath);
-        } else {
-          console.log('✅ Conectado a SQLite exitosamente');
-          console.log('📍 Base de datos en:', this.dbPath);
-          // Habilitar claves foráneas después de conectar
-          setTimeout(() => {
-            if (this.db) {
-              this.db.run('PRAGMA foreign_keys = ON');
-            }
-          }, 100);
-          
-          // Inyectar dependencia en MigrationManager y ViewManager (DatabaseManager es el "mayor")
-          MigrationManager.setDatabaseManager(this);
-          ViewManager.setDatabaseManager(this);
+      try {
+        // Inicializar sql.js
+        if (!this.SQL) {
+          this.SQL = await initSqlJs();
         }
-      });
+        
+        // Cargar BD si existe, crear nueva si no
+        if (fs.existsSync(this.dbPath)) {
+          const fileBuffer = fs.readFileSync(this.dbPath);
+          this.db = new this.SQL.Database(fileBuffer);
+          console.log('✅ BD local cargada desde archivo');
+        } else {
+          this.db = new this.SQL.Database();
+          console.log('✅ Nueva BD local creada');
+        }
+        
+        console.log('📍 Base de datos en:', this.dbPath);
+        
+        // Habilitar foreign keys
+        this.db.run('PRAGMA foreign_keys = ON');
+        
+        MigrationManager.setDatabaseManager(this);
+        ViewManager.setDatabaseManager(this);
+        FunctionManager.setDatabaseManager(this);
+        TriggerManager.setDatabaseManager(this);
+      } catch (err) {
+        console.error('❌ Error conectando a SQLite local:', err.message);
+        console.error('❌ Ruta de la base de datos:', this.dbPath);
+        throw err;
+      }
     }
     return this.db;
   }
@@ -58,88 +106,156 @@ class DatabaseManager {
   /**
    * Cerrar conexión
    */
-  static close() {
-    if (this.db) {
-      this.db.close((err) => {
-        if (err) {
+  static async close() {
+    if (this.DB_MODE === 'online') {
+      if (this.cloudDb) {
+        try {
+          await this.cloudDb.close();
+          console.log('✅ Conexión SQLite Cloud cerrada');
+        } catch (err) {
           console.error('❌ Error cerrando conexión:', err.message);
-        } else {
-          console.log('✅ Conexión a SQLite cerrada');
         }
-      });
-      this.db = null;
+        this.cloudDb = null;
+      }
+    } else {
+      if (this.db) {
+        try {
+          await this.saveDatabase();
+          this.db.close();
+          console.log('✅ Conexión SQLite local cerrada');
+        } catch (err) {
+          console.error('❌ Error cerrando conexión:', err.message);
+        }
+        this.db = null;
+      }
+    }
+  }
+  
+  /**
+   * Guardar BD local a archivo
+   */
+  static async saveDatabase() {
+    if (this.db && this.DB_MODE === 'local') {
+      const data = this.db.export();
+      const buffer = Buffer.from(data);
+      fs.writeFileSync(this.dbPath, buffer);
     }
   }
 
   /**
-   * Ejecutar una consulta que no devuelve resultados (INSERT, UPDATE, DELETE)
+   * Ejecutar INSERT/UPDATE/DELETE
    */
-  static run(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      const db = this.connect();
-      db.run(sql, params, function(err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve({ 
-            id: this.lastID, 
-            changes: this.changes 
-          });
+  static async run(sql, params = []) {
+    if (this.DB_MODE === 'online') {
+      try {
+        const db = await this.connect();
+        const convertedParams = params.map(param => {
+          if (typeof param === 'boolean') return param ? 1 : 0;
+          return param;
+        });
+        const result = await db.sql(sql, convertedParams);
+        return { id: result[0]?.id || null, changes: result[0]?.changes || 0 };
+      } catch (err) { throw err; }
+    } else {
+      try {
+        const db = await this.connectLocal();
+        const convertedParams = params.map(param => {
+          if (typeof param === 'boolean') return param ? 1 : 0;
+          return param;
+        });
+        db.run(sql, convertedParams);
+        const changes = db.getRowsModified();
+        // Obtener lastInsertRowid solo para INSERTs
+        let lastId = null;
+        if (/^\s*INSERT/i.test(sql)) {
+          const idStmt = db.prepare('SELECT last_insert_rowid() AS id');
+          if (idStmt.step()) {
+            lastId = idStmt.getAsObject().id;
+          }
+          idStmt.free();
         }
-      });
-    });
+        await this.saveDatabase();
+        return { id: lastId, changes };
+      } catch (err) { throw err; }
+    }
   }
 
   /**
-   * Obtener un solo registro
+   * Obtener un registro
    */
-  static get(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      const db = this.connect();
-      db.get(sql, params, (err, row) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(row);
+  static async get(sql, params = []) {
+    if (this.DB_MODE === 'online') {
+      try {
+        const db = await this.connect();
+        const result = await db.sql(sql, params);
+        return result[0] || null;
+      } catch (err) { throw err; }
+    } else {
+      try {
+        const db = await this.connectLocal();
+        const convertedParams = params.map(param => {
+          if (typeof param === 'boolean') return param ? 1 : 0;
+          return param;
+        });
+        const stmt = db.prepare(sql);
+        stmt.bind(convertedParams);
+        if (stmt.step()) {
+          const result = stmt.getAsObject();
+          stmt.free();
+          return result;
         }
-      });
-    });
+        stmt.free();
+        return null;
+      } catch (err) { throw err; }
+    }
   }
 
   /**
    * Obtener múltiples registros
    */
-  static all(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      const db = this.connect();
-      db.all(sql, params, (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows);
+  static async all(sql, params = []) {
+    if (this.DB_MODE === 'online') {
+      try {
+        const db = await this.connect();
+        return await db.sql(sql, params);
+      } catch (err) { throw err; }
+    } else {
+      try {
+        const db = await this.connectLocal();
+        const convertedParams = params.map(param => {
+          if (typeof param === 'boolean') return param ? 1 : 0;
+          return param;
+        });
+        const stmt = db.prepare(sql);
+        stmt.bind(convertedParams);
+        const results = [];
+        while (stmt.step()) {
+          results.push(stmt.getAsObject());
         }
-      });
-    });
+        stmt.free();
+        return results;
+      } catch (err) { throw err; }
+    }
   }
 
   /**
-   * Inicializar base de datos y ejecutar migraciones
+   * Inicializar base de datos
    */
   static async init() {
     try {
       console.log('🔄 Inicializando base de datos...');
       
-      // Conectar primero (esto inyectará la dependencia)
-      this.connect();
-      
-      // Pequeña espera para asegurar que la inyección se complete
+      await this.connect();
       await new Promise(resolve => setTimeout(resolve, 200));
       
-      // Ejecutar migraciones pendientes
-      await MigrationManager.runMigrations();
-      
-      // Ejecutar views después de las migraciones (para que las tablas existan)
-      await ViewManager.runViews();
+      // Solo ejecutar migrations en modo local
+      if (this.DB_MODE === 'local') {
+        await MigrationManager.runMigrations();
+        await ViewManager.runViews();
+        await TriggerManager.runTriggers();
+      } else {
+        console.log('🌐 Modo online: omitiendo migraciones (BD ya configurada)');
+      }
       
       console.log('✅ Base de datos inicializada correctamente');
     } catch (error) {
@@ -181,17 +297,14 @@ class DatabaseManager {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backupPath = path.join(__dirname, `../../database_backup_${timestamp}.sqlite`);
     
-    return new Promise((resolve, reject) => {
-      const db = this.connect();
-      db.backup(backupPath, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          console.log(`✅ Backup creado en: ${backupPath}`);
-          resolve(backupPath);
-        }
-      });
-    });
+    try {
+      await this.saveDatabase();
+      fs.copyFileSync(this.dbPath, backupPath);
+      console.log(`✅ Backup creado en: ${backupPath}`);
+      return backupPath;
+    } catch (err) {
+      throw err;
+    }
   }
 
   /**
@@ -199,6 +312,13 @@ class DatabaseManager {
    */
   static async getMigrationStatus() {
     return await MigrationManager.getStatus();
+  }
+
+  /**
+   * Ejecutar todos los triggers
+   */
+  static async runTriggers() {
+    return await TriggerManager.runTriggers();
   }
 
   /**
@@ -226,7 +346,7 @@ class DatabaseManager {
       // Guardar en cache
       this.schemaCache.set(tableName, schema);
       
-      console.log(`🔍 Esquema detectado para ${tableName}:`, Object.keys(schema));
+      // console.log(`🔍 Esquema detectado para ${tableName}:`, Object.keys(schema));
       return schema;
     } catch (error) {
       console.error(`Error obteniendo esquema de ${tableName}:`, error);
@@ -266,7 +386,7 @@ class DatabaseManager {
       };
     }
     
-    console.log(`🔍 Schema completo para tabla:`, schema);
+    // console.log(`🔍 Schema completo para tabla:`, schema);
     return schema;
   }
 
@@ -356,10 +476,25 @@ class DatabaseManager {
     try {
       const sql = "SELECT name, type FROM sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%'";
       const items = await this.all(sql);
-      console.log('📊 Tablas y views detectadas:', items.map(i => `${i.name}(${i.type})`).join(', '));
+      // console.log('📊 Tablas y views detectadas:', items.map(i => `${i.name}(${i.type})`).join(', '));
       return items.map(item => item.name);
     } catch (error) {
       console.error('Error obteniendo lista de tablas:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Obtener solo las views de la base de datos
+   * @returns {Array} - Lista de nombres de views
+   */
+  static async getAllViews() {
+    try {
+      const sql = "SELECT name FROM sqlite_master WHERE type = 'view' AND name NOT LIKE 'sqlite_%'";
+      const items = await this.all(sql);
+      return items.map(item => item.name);
+    } catch (error) {
+      console.error('Error obteniendo lista de views:', error);
       return [];
     }
   }
@@ -369,7 +504,7 @@ class DatabaseManager {
    * @returns {Object} - Esquemas detectados
    */
   static async updateAllSchemas() {
-    console.log('🔄 Actualizando esquemas de todas las tablas...');
+    // console.log('🔄 Actualizando esquemas de todas las tablas...');
     
     const tables = await this.getAllTables();
     const schemas = {};
@@ -381,7 +516,7 @@ class DatabaseManager {
       }
     }
     
-    console.log(`✅ Esquemas actualizados: ${Object.keys(schemas).length} tablas`);
+    // console.log(`✅ Esquemas actualizados: ${Object.keys(schemas).length} tablas`);
     return schemas;
   }
 
@@ -390,7 +525,7 @@ class DatabaseManager {
    */
   static clearSchemaCache() {
     this.schemaCache.clear();
-    console.log('🧹 Cache de esquemas limpiado');
+    // console.log('🧹 Cache de esquemas limpiado');
   }
 
   /**
@@ -407,4 +542,6 @@ class DatabaseManager {
   }
 }
 
+// Exportar DatabaseManager y FunctionManager para uso en otros módulos
 module.exports = DatabaseManager;
+module.exports.FunctionManager = FunctionManager;

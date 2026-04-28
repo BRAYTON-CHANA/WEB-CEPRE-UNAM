@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef, useMemo, useCallback } from 'react';
 import { getInputComponent } from '../utils/inputMapping';
+import { evaluateHidden, evaluateBlocked } from '../utils/conditionEvaluator';
 
 /**
  * Componente para renderizar un campo de formulario individual
@@ -11,7 +12,9 @@ const FormField = ({
   error,
   touched,
   onChange,
-  onBlur
+  onBlur,
+  showVisualDebugs = false,
+  formData = {}
 }) => {
   const {
     name,
@@ -20,14 +23,43 @@ const FormField = ({
     placeholder,
     required,
     disabled = false,
-    showTypeIndicator = true
+    showTypeIndicator,
+    hidden,
+    blocked,
+    hiddenValue
   } = field;
+
+  // Evaluar si el campo debe ocultarse (renombrado de condition a hidden)
+  const isHidden = evaluateHidden(hidden, formData);
+
+  // Si el campo está oculto, no renderizar nada
+  if (isHidden) {
+    return null;
+  }
+
+  // Evaluar si el campo debe bloquearse
+  const { isBlocked, shouldClear } = evaluateBlocked(blocked, formData);
+
+  // Efecto para manejar clearOnBlock
+  const hasClearedRef = useRef(false);
+  useEffect(() => {
+    if (shouldClear && !hasClearedRef.current && value !== '' && value !== null && value !== undefined) {
+      onChange(name, '');  // Llamar directamente con (fieldName, value)
+      hasClearedRef.current = true;
+    } else if (!isBlocked) {
+      hasClearedRef.current = false;
+    }
+  }, [shouldClear, isBlocked, value, name, onChange]);
+
+  // Determinar si mostrar el indicador de tipo
+  // showTypeIndicator en el field tiene prioridad, si no está definido, usa showVisualDebugs
+  const shouldShowTypeIndicator = showTypeIndicator !== undefined ? showTypeIndicator : showVisualDebugs;
 
   // Obtener el componente de input correspondiente
   const InputComponent = getInputComponent(type);
 
-  // Props comunes para todos los inputs
-  const commonProps = {
+  // Memoizar props comunes para evitar re-renders
+  const commonProps = useMemo(() => ({
     name,
     value: value !== undefined && value !== null ? value : '',
     onChange,
@@ -35,13 +67,21 @@ const FormField = ({
     label,
     placeholder,
     required,
-    disabled,
+    disabled: disabled || isBlocked,
     error,
     touched: touched || false
-  };
+  }), [name, value, onChange, onBlur, label, placeholder, required, disabled, isBlocked, error, touched]);
 
-  // Props específicos según el tipo de input
-  const getSpecificProps = () => {
+  // Memoizar props adicionales para evitar re-renders innecesarios
+  const conditionalProps = useMemo(() => ({
+    blocked: field.blocked,
+    hidden: field.hidden,
+    formData: formData
+  }), [field.blocked, field.hidden, formData]);
+
+  
+  // Callback para generar props específicos según el tipo
+  const getSpecificPropsCallback = useCallback(() => {
     switch (type) {
       case 'text':
         return {
@@ -114,6 +154,54 @@ const FormField = ({
           searchable: field.searchable,
           multiSelect: field.multiSelect,
           allowClear: field.allowClear
+        };
+
+      case 'unique-select':
+        return {
+          tableName: field.tableName,
+          columnName: field.columnName,
+          searchable: field.searchable,
+          allowCreate: field.allowCreate,
+          createTitle: field.createTitle
+        };
+
+      case 'reference-select':
+        return {
+          referenceTable: field.referenceTable,
+          referenceField: field.referenceField,
+          referenceLabelField: field.referenceLabelField,
+          referenceQuery: field.referenceQuery,
+          referenceDescriptionField: field.referenceDescriptionField,
+          referenceFilters: field.referenceFilters,
+          referenceSelf: field.referenceSelf,
+          referenceSelfFilter: field.referenceSelfFilter,
+          referenceSelfTable: field.referenceSelfTable,        // ← NUEVO
+          referenceSelfValueColumn: field.referenceSelfValueColumn, // ← NUEVO
+          referenceOriginalValue: field.referenceOriginalValue,
+          blocked: field.blocked,
+          placeholder: field.placeholder,
+          searchable: field.searchable
+        };
+
+      case 'function-select':
+        return {
+          functionName: field.functionName,
+          functionParams: field.functionParams,
+          optionalParams: field.optionalParams,
+          valueField: field.valueField,
+          labelField: field.labelField,
+          descriptionField: field.descriptionField,
+          statusField: field.statusField,
+          searchable: field.searchable,
+          placeholder: field.placeholder,
+          clearable: field.clearable
+        };
+
+      case 'cascade-search':
+        return {
+          searchFields: field.searchFields,
+          resultField: field.resultField,
+          placeholder: field.placeholder
         };
 
       case 'textarea':
@@ -192,17 +280,21 @@ const FormField = ({
       default:
         return {};
     }
-  };
+  }, [type, field]);  // Dependencies: type and field object
 
-  // Combinar props comunes con específicos
-  const inputProps = {
+  // Memoizar props específicas para evitar re-renders
+  const specificProps = useMemo(() => getSpecificPropsCallback(), [getSpecificPropsCallback]);
+
+  // Combinar props comunes con específicos (memoizado)
+  const inputProps = useMemo(() => ({
     ...commonProps,
-    ...getSpecificProps()
-  };
+    ...specificProps,
+    ...conditionalProps
+  }), [commonProps, specificProps, conditionalProps]);
 
   return (
     <div className="relative">
-      {showTypeIndicator && (
+      {shouldShowTypeIndicator && (
         <div className="mb-1">
           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
             {type}
@@ -214,4 +306,19 @@ const FormField = ({
   );
 };
 
-export default FormField;
+// Memoize FormField to prevent unnecessary re-renders
+const MemoizedFormField = React.memo(FormField, (prevProps, nextProps) => {
+  // Only re-render if these props actually changed
+  return (
+    prevProps.value === nextProps.value &&
+    prevProps.error === nextProps.error &&
+    prevProps.touched === nextProps.touched &&
+    prevProps.showVisualDebugs === nextProps.showVisualDebugs &&
+    prevProps.onChange === nextProps.onChange &&
+    prevProps.onBlur === nextProps.onBlur &&
+    // For formData, do shallow comparison
+    prevProps.formData === nextProps.formData
+  );
+});
+
+export default MemoizedFormField;
