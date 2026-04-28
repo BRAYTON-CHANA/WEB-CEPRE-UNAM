@@ -12,7 +12,8 @@ resources/
 .env
 .env.local
 .env.*.local
-
+.agents
+.windsurf
 # Database files (base de datos local)
 backend/database.sqlite
 backend/database.sqlite-journal
