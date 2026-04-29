@@ -1,7 +1,6 @@
 import React from 'react';
 import { Crud } from '@/features/crud';
-import Layout from '@/shared/components/layout/Layout';
-import ConfigSidebar from '../ConfigSidebar';
+import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
 
 /**
  * Configuración de AREAS
@@ -132,24 +131,19 @@ function AreasConfig() {
   };
 
   return (
-    <Layout>
-      <div className="flex">
-        <ConfigSidebar />
-        <div className="flex-1">
-          <Crud
-            tableConfig={tableConfig}
-            formConfig={formConfig}
-            tableComponentParameters={tableComponentParameters}
-            modalConfig={modalConfig}
-            headerProps={headerProps}
-            footerProps={footerProps}
-            actions={actions}
-            onSuccess={handleSuccess}
-            onError={handleError}
-          />
-        </div>
-      </div>
-    </Layout>
+    <LayoutWithSidebar>
+      <Crud
+        tableConfig={tableConfig}
+        formConfig={formConfig}
+        tableComponentParameters={tableComponentParameters}
+        modalConfig={modalConfig}
+        headerProps={headerProps}
+        footerProps={footerProps}
+        actions={actions}
+        onSuccess={handleSuccess}
+        onError={handleError}
+      />
+    </LayoutWithSidebar>
   );
 }
 

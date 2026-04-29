@@ -41,6 +41,7 @@ const Form = ({
   
   // Callbacks (nuevo)
   onPageChange = null,
+  onReferenceSelectLoadComplete = null,
   
   // Props de estilo
   variant = 'default',
@@ -273,6 +274,7 @@ const Form = ({
         onBlur={handleBlur}
         showVisualDebugs={showVisualDebugs}
         formData={conditionalFormData}
+        onReferenceSelectLoadComplete={onReferenceSelectLoadComplete}
       />
     );
   }, [formData, touched, submitAttempted, errors, handleChange, handleBlur, showVisualDebugs]);

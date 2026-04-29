@@ -3,7 +3,7 @@ import CrudLayout from './CrudLayout';
 import { Modal } from '@/features/modal';
 import { CrudForm } from '@/features/form';
 import FormConfirmModal from '@/features/form/components/FormConfirmModal';
-import crudService from '@/shared/services/crudService';
+import { db } from '@/shared/api';
 import cacheService from '@/shared/services/cacheService';
 
 /**
@@ -98,11 +98,9 @@ function Crud({
     setDeleteLoading(true);
 
     try {
-      // ← CAMBIO: Usar formTableName (tabla real) en lugar de crudTableName (vista)
-      // para operaciones de eliminación
       const deleteTableName = formTableName || crudTableName;
-      await crudService.deleteRecord(deleteTableName, recordId);
-      // crudService ya invalida el cache (cacheService.invalidateAll)
+      await db.delete(deleteTableName, recordId, boundColumn);
+      cacheService.invalidateAll();
 
       setRefreshTrigger(prev => prev + 1);
       

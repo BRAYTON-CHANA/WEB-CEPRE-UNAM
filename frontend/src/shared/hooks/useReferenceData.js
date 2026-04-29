@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import crudService from '@/shared/services/crudService';
+import { db } from '@/shared/api';
 import cacheService from '@/shared/services/cacheService';
 
 // Cache simple por sesión con clave compuesta para evitar colisiones
@@ -175,7 +175,7 @@ export const useReferenceData = (config) => {
     setLoading(true);
     
     // Crear la promesa y guardarla en pendingRequests
-    const promise = crudService.getReferenceData(loadConfig.tableName, loadConfig.neededFields, loadConfig.filters);
+    const promise = db.select(loadConfig.tableName, loadConfig.filters, loadConfig.neededFields);
     pendingRequests.set(loadConfig.cacheKey, promise);
     
     try {
@@ -289,12 +289,7 @@ export const useReferenceData = (config) => {
         //console.log(`[useReferenceData] 🔍 Filtros SELF enviados a API:`, JSON.stringify(selfFilter, null, 2));
         //console.log(`[useReferenceData] 🔍 Tabla: ${tableName}, Campos: ${neededFields.join(',')}`);
         
-        const response = await crudService.getTableData(tableName, {
-          fields: neededFields,
-          filters: selfFilter,
-          page: 1,
-          pageSize: 1
-        });
+        const data = await db.select(tableName, selfFilter, neededFields);
         
         // ← DEBUG: Mostrar respuesta completa
         //console.log(`[useReferenceData] 📦 Respuesta de API:`, response.data);
@@ -340,14 +335,9 @@ export const useReferenceData = (config) => {
       console.log(`[useReferenceData] Cargando registro ORIGINAL: ${valueField}=${referenceOriginalValue}`);
       
       try {
-        const response = await crudService.getTableData(tableName, {
-          fields: neededFields,
-          filters: [{ field: valueField, op: '=', value: referenceOriginalValue }],
-          page: 1,
-          pageSize: 1
-        });
+        const data = await db.select(tableName, { [valueField]: referenceOriginalValue }, neededFields);
         
-        const records = response.data?.records || response.data || [];
+        const records = data || [];
         const originalData = records[0];
         
         if (originalData) {

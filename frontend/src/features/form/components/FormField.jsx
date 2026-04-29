@@ -14,7 +14,8 @@ const FormField = ({
   onChange,
   onBlur,
   showVisualDebugs = false,
-  formData = {}
+  formData = {},
+  onReferenceSelectLoadComplete = null
 }) => {
   const {
     name,
@@ -289,8 +290,9 @@ const FormField = ({
   const inputProps = useMemo(() => ({
     ...commonProps,
     ...specificProps,
-    ...conditionalProps
-  }), [commonProps, specificProps, conditionalProps]);
+    ...conditionalProps,
+    ...(type === 'reference-select' && onReferenceSelectLoadComplete ? { onReferenceSelectLoadComplete } : {})
+  }), [commonProps, specificProps, conditionalProps, type, onReferenceSelectLoadComplete]);
 
   return (
     <div className="relative">

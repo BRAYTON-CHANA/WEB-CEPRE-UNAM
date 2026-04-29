@@ -52,14 +52,15 @@ export const validateFieldsAgainstSchema = (formData, schema, formFields, tableN
 
 /**
  * Construye el payload para enviar al backend
- * Filtra solo campos que existen en el schema, excluye el primary key y campos ignoreField
+ * Filtra campos que no están en schema, excluye PK y campos con ignoreField
  * @param {Object} formData - Datos del formulario
  * @param {Object} schema - Schema de la tabla
  * @param {string} primaryKey - Nombre del campo primary key
- * @param {Array} formFields - Array de definiciones de campos del form (para detectar ignoreField)
- * @returns {Object} - Payload filtrado y limpio
+ * @param {Array} formFields - Array de definiciones de campos del form
+ * @param {Object} originalRecord - Registro original (para modo edit)
+ * @returns {Object} - Payload filtrado
  */
-export const buildPayload = (formData, schema, primaryKey, formFields = []) => {
+export const buildPayload = (formData, schema, primaryKey, formFields, originalRecord = null) => {
   const payload = {};
   
   //console.log('[schemaValidator] Construyendo payload...');
@@ -80,28 +81,30 @@ export const buildPayload = (formData, schema, primaryKey, formFields = []) => {
     
     // Si el campo tiene ignoreField, no incluir en payload
     if (fieldConfig?.ignoreField) {
-      console.log(`[schemaValidator] Campo "${key}" tiene ignoreField, excluido`);
       return;
     }
     
     // Solo incluir campos que existen en schema
     if (schemaFields.includes(key) && key !== primaryKey) {
       const value = formData[key];
+      const originalValue = originalRecord ? originalRecord[key] : null;
       
       // No incluir campos undefined o null (a menos que sea explícito)
       if (value !== undefined) {
+        // Excluir campos vacíos que no son required
+        const isRequired = fieldConfig?.required || fieldConfig?.validation?.required?.value;
+        
+        if (value === '' && !isRequired) {
+          // En modo edit, si el valor original no era null/vacío, enviar null para vaciar el campo
+          if (originalRecord && originalValue !== null && originalValue !== '') {
+            payload[key] = null;
+          }
+          // En modo create o si el valor original ya era null/vacío, no incluir el campo
+          return;
+        }
         payload[key] = value;
-        console.log(`[schemaValidator] Campo "${key}" incluido en payload:`, value);
-      } else {
-        console.log(`[schemaValidator] Campo "${key}" es undefined, excluido`);
       }
     } else {
-      if (!schemaFields.includes(key)) {
-        console.log(`[schemaValidator] Campo "${key}" NO está en schema, excluido`);
-      }
-      if (key === primaryKey) {
-        console.log(`[schemaValidator] Campo "${key}" es primaryKey, excluido`);
-      }
     }
   });
   

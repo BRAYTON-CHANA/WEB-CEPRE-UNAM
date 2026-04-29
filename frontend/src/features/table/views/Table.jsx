@@ -6,7 +6,7 @@ import CreateButton from '../components/CreateButton';
 import SelectionInfo from '../components/SelectionInfo';
 import SmartColumn from '../components/SmartColumn';
 import TableLoading from '../components/TableLoading';
-import { useTableSort, useTableSelection, useTableExpansion, useTableFilters, useTableData, useTableStyles, useTablePagination } from '../hooks';
+import { useTableSort, useTableSelection, useTableExpansion, useTableFilters, useTableData, useTableStyles, useTablePagination, useTableGrouping } from '../hooks';
 import { getDataType, processHeader, getUniqueValues } from '../../../shared/utils/dataUtils';
 import { getContextualUniqueValues, getOriginalUniqueValues } from '../utils/dataUtils';
 import { renderCell } from '../../../shared/utils/cellRenderer.jsx';
@@ -42,6 +42,7 @@ const Table = ({
   sortable = TABLE_DEFAULTS.sortable,
   selectable = TABLE_DEFAULTS.selectable,
   expandable = TABLE_DEFAULTS.expandable,
+  groupable = TABLE_DEFAULTS.groupable,
   filterable = TABLE_DEFAULTS.filterable,
   pagination = TABLE_DEFAULTS.pagination,
   
@@ -89,6 +90,8 @@ const Table = ({
     filterable,
     activeFilters
   });
+  
+  const { groupedData, handleGroupExpand, isGroupExpanded } = useTableGrouping(groupable, processedData);
   
   const { getTableClasses, getHeaderClasses, getRowClasses, getContainerClasses, getCellClasses, getInteractiveClasses } = useTableStyles({
     variant,
@@ -295,87 +298,230 @@ const Table = ({
         </thead>
         
         <tbody className="divide-y divide-gray-200">
-          {paginatedData(processedData).length === 0 ? (
-            <tr>
-              <td 
-                colSpan={calculateColumnSpan(headers.length, showCount, selectable, expandable, hasRowActions())}
-                className="px-6 py-4 text-center text-gray-500"
-              >
-                {emptyMessage}
-              </td>
-            </tr>
-          ) : (
-            paginatedData(processedData).map((row, rowIndex) => {
-              const actualIndex = data.indexOf(row);
-              const isRowExpanded = isExpanded(actualIndex);
-              const isSelected = selectedRows.has(actualIndex);
+          {groupable?.active && groupedData ? (
+            // Modo agrupado
+            groupedData.map((group, groupIndex) => {
+              const isGroupExpandedState = isGroupExpanded(group.key);
               
               return (
-                <React.Fragment key={rowIndex}>
+                <React.Fragment key={group.key}>
+                  {/* Fila de grupo */}
                   <tr 
-                    className={getRowClasses(rowIndex, isRowExpanded)}
-                    onClick={() => onRowClick && onRowClick(row, actualIndex)}
+                    className={`${groupable.className || 'bg-white text-black font-semibold'} cursor-pointer hover:bg-gray-50`}
+                    onClick={() => handleGroupExpand(group.key)}
                   >
-                    {/* Columna inteligente: conteo o expansión */}
-                    <SmartColumn
-                      showCount={showCount}
-                      expandable={expandable}
-                      actualIndex={actualIndex}
-                      isExpanded={isRowExpanded}
-                      onExpand={handleExpand}
-                      cellClassName={cellClassName}
-                    />
+                    {/* Columna de conteo/expansión */}
+                    <td className={`px-6 py-3 whitespace-nowrap text-sm ${cellClassName}`}>
+                      <div className="flex items-center">
+                        {/* Botón expandir grupo */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleGroupExpand(group.key);
+                          }}
+                          className="p-1 rounded hover:bg-gray-100 transition-colors mr-2"
+                          title={isGroupExpandedState ? "Contraer grupo" : "Expandir grupo"}
+                        >
+                          <svg 
+                            className={`w-4 h-4 text-gray-600 transition-transform ${isGroupExpandedState ? 'rotate-180' : ''}`} 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        {/* Valor del grupo + conteo */}
+                        <span>
+                          {group.value} ({group.count})
+                        </span>
+                      </div>
+                    </td>
                     
-                    {/* Selección */}
+                    {/* Columna de selección */}
                     {selectable && (
-                      <td className={`${getCellClasses()} ${cellClassName}`}>
+                      <td className={`px-6 py-3 whitespace-nowrap text-sm ${cellClassName}`}>
                         <input
                           type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => handleSelect(actualIndex, e.target.checked)}
+                          checked={group.indices.every(idx => selectedRows.has(idx))}
+                          onChange={(e) => {
+                            group.indices.forEach(idx => handleSelect(idx, e.target.checked));
+                          }}
                           className={`${TABLE_CLASSES.checkbox} ${getInteractiveClasses()}`}
                         />
                       </td>
                     )}
                     
-                    {/* Datos */}
-                    {headers.map((header, colIndex) => {
-                      const { title, type } = processHeader(header);
-                      const columnDataType = header.type || getDataType(data, title);
-                      return (
-                        <td key={colIndex} className={`${getCellClasses()} ${cellClassName}`}>
-                          {renderCellWrapper(row, title, rowIndex, columnDataType)}
-                        </td>
-                      );
-                    })}
+                    {/* Columnas vacías para alinear con headers */}
+                    {headers.map((_, colIndex) => (
+                      <td key={colIndex} className={`px-6 py-3 whitespace-nowrap text-sm ${cellClassName}`}></td>
+                    ))}
                     
-                    {/* Acciones */}
+                    {/* Columna de acciones */}
                     {hasRowActions() && (
-                      <td className={`${getCellClasses()} ${cellClassName}`}>
-                        <TableActions
-                          actions={actions}
-                          row={row}
-                          rowIndex={actualIndex}
-                          cellClassName={cellClassName}
-                        />
-                      </td>
+                      <td className={`px-6 py-3 whitespace-nowrap text-sm ${cellClassName}`}></td>
                     )}
                   </tr>
                   
-                  {/* Contenido expandible */}
-                  {isRowExpanded && (
-                    <tr>
-                      <td 
-                        colSpan={calculateColumnSpan(headers.length, showCount, selectable, expandable, hasRowActions())}
-                        className="p-0"
-                      >
-                        {renderExpandedContentWrapper(row)}
-                      </td>
-                    </tr>
-                  )}
+                  {/* Filas de datos del grupo (cuando expandido) */}
+                  {isGroupExpandedState && group.rows.map((row, rowIndex) => {
+                    const actualIndex = data.indexOf(row);
+                    const isRowExpanded = isExpanded(actualIndex);
+                    const isSelected = selectedRows.has(actualIndex);
+                    
+                    return (
+                      <React.Fragment key={`${group.key}-${rowIndex}`}>
+                        <tr 
+                          className={getRowClasses(rowIndex, isRowExpanded)}
+                          onClick={() => onRowClick && onRowClick(row, actualIndex)}
+                        >
+                          {/* Columna inteligente: conteo o expansión */}
+                          <SmartColumn
+                            showCount={showCount}
+                            expandable={expandable}
+                            actualIndex={actualIndex}
+                            isExpanded={isRowExpanded}
+                            onExpand={handleExpand}
+                            cellClassName={cellClassName}
+                          />
+                          
+                          {/* Selección */}
+                          {selectable && (
+                            <td className={`${getCellClasses()} ${cellClassName}`}>
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => handleSelect(actualIndex, e.target.checked)}
+                                className={`${TABLE_CLASSES.checkbox} ${getInteractiveClasses()}`}
+                              />
+                            </td>
+                          )}
+                          
+                          {/* Datos */}
+                          {headers.map((header, colIndex) => {
+                            const { title, type } = processHeader(header);
+                            const columnDataType = header.type || getDataType(data, title);
+                            return (
+                              <td key={colIndex} className={`${getCellClasses()} ${cellClassName}`}>
+                                {renderCellWrapper(row, title, rowIndex, columnDataType)}
+                              </td>
+                            );
+                          })}
+                          
+                          {/* Acciones */}
+                          {hasRowActions() && (
+                            <td className={`${getCellClasses()} ${cellClassName}`}>
+                              <TableActions
+                                actions={actions}
+                                row={row}
+                                rowIndex={actualIndex}
+                                cellClassName={cellClassName}
+                              />
+                            </td>
+                          )}
+                        </tr>
+                        
+                        {/* Contenido expandible */}
+                        {isRowExpanded && (
+                          <tr>
+                            <td 
+                              colSpan={calculateColumnSpan(headers.length, showCount, selectable, expandable, hasRowActions())}
+                              className="p-0"
+                            >
+                              {renderExpandedContentWrapper(row)}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </React.Fragment>
               );
             })
+          ) : (
+            // Modo normal (sin agrupación)
+            paginatedData(processedData).length === 0 ? (
+              <tr>
+                <td 
+                  colSpan={calculateColumnSpan(headers.length, showCount, selectable, expandable, hasRowActions())}
+                  className="px-6 py-4 text-center text-gray-500"
+                >
+                  {emptyMessage}
+                </td>
+              </tr>
+            ) : (
+              paginatedData(processedData).map((row, rowIndex) => {
+                const actualIndex = data.indexOf(row);
+                const isRowExpanded = isExpanded(actualIndex);
+                const isSelected = selectedRows.has(actualIndex);
+                
+                return (
+                  <React.Fragment key={rowIndex}>
+                    <tr 
+                      className={getRowClasses(rowIndex, isRowExpanded)}
+                      onClick={() => onRowClick && onRowClick(row, actualIndex)}
+                    >
+                      {/* Columna inteligente: conteo o expansión */}
+                      <SmartColumn
+                        showCount={showCount}
+                        expandable={expandable}
+                        actualIndex={actualIndex}
+                        isExpanded={isRowExpanded}
+                        onExpand={handleExpand}
+                        cellClassName={cellClassName}
+                      />
+                      
+                      {/* Selección */}
+                      {selectable && (
+                        <td className={`${getCellClasses()} ${cellClassName}`}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => handleSelect(actualIndex, e.target.checked)}
+                            className={`${TABLE_CLASSES.checkbox} ${getInteractiveClasses()}`}
+                          />
+                        </td>
+                      )}
+                      
+                      {/* Datos */}
+                      {headers.map((header, colIndex) => {
+                        const { title, type } = processHeader(header);
+                        const columnDataType = header.type || getDataType(data, title);
+                        return (
+                          <td key={colIndex} className={`${getCellClasses()} ${cellClassName}`}>
+                            {renderCellWrapper(row, title, rowIndex, columnDataType)}
+                          </td>
+                        );
+                      })}
+                      
+                      {/* Acciones */}
+                      {hasRowActions() && (
+                        <td className={`${getCellClasses()} ${cellClassName}`}>
+                          <TableActions
+                            actions={actions}
+                            row={row}
+                            rowIndex={actualIndex}
+                            cellClassName={cellClassName}
+                          />
+                        </td>
+                      )}
+                    </tr>
+                    
+                    {/* Contenido expandible */}
+                    {isRowExpanded && (
+                      <tr>
+                        <td 
+                          colSpan={calculateColumnSpan(headers.length, showCount, selectable, expandable, hasRowActions())}
+                          className="p-0"
+                        >
+                          {renderExpandedContentWrapper(row)}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
+            )
           )}
         </tbody>
       </table>

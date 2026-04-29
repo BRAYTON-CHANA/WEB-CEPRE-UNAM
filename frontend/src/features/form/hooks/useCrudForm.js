@@ -1,29 +1,57 @@
-import { useState, useEffect, useCallback } from 'react';
-import crudService from '@/shared/services/crudService';
+import { useState, useEffect, useCallback, useReducer } from 'react';
+import { db } from '@/shared/api';
 import cacheService from '@/shared/services/cacheService';
+
+/**
+ * Reducer para manejar el estado de useCrudForm de forma atómica
+ */
+const initialState = {
+  schema: null,
+  record: null,
+  loading: false,
+  error: null,
+  isInitialized: false
+};
+
+function crudFormReducer(state, action) {
+  switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
+    case 'SET_SCHEMA':
+      return { ...state, schema: action.payload };
+    case 'SET_RECORD':
+      return { ...state, record: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
+    case 'SET_INITIALIZED':
+      return { ...state, isInitialized: action.payload };
+    case 'BATCH_UPDATE':
+      return { ...state, ...action.payload };
+    case 'RESET':
+      return initialState;
+    default:
+      return state;
+  }
+}
 
 /**
  * Hook para manejar formularios conectados a backend CRUD
  * Maneja carga de schema, datos de registro (modo edit), y submit
  */
-export const useCrudForm = (tableName, mode = 'create', recordId = null) => {
-  const [schema, setSchema] = useState(null);
-  const [record, setRecord] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+export const useCrudForm = (tableName, mode = 'create', recordId = null, primaryKey = 'id') => {
+  const [state, dispatch] = useReducer(crudFormReducer, initialState);
 
   /**
    * Cargar el schema de la tabla
    */
   const loadSchema = useCallback(async () => {
     try {
-      setError(null);
-      const tableSchema = await crudService.getTableSchema(tableName);
-      setSchema(tableSchema);
+      dispatch({ type: 'SET_ERROR', payload: null });
+      const tableSchema = await db.getTableSchema(tableName);
+      dispatch({ type: 'SET_SCHEMA', payload: tableSchema });
       return tableSchema;
     } catch (err) {
-      setError(`Error cargando schema: ${err.message}`);
+      dispatch({ type: 'SET_ERROR', payload: `Error cargando schema: ${err.message}` });
       throw err;
     }
   }, [tableName]);
@@ -32,46 +60,45 @@ export const useCrudForm = (tableName, mode = 'create', recordId = null) => {
    * Cargar datos de un registro específico (modo edit)
    */
   const loadRecord = useCallback(async (id) => {
-    console.log(`[useCrudForm] loadRecord called:`, { id, mode, tableName });
+    console.log(`[useCrudForm] loadRecord called:`, { id, mode, tableName, primaryKey });
     if (!id || mode !== 'edit') {
       console.log(`[useCrudForm] loadRecord skipped: no id or not edit mode`);
       return null;
     }
 
     try {
-      setError(null);
-      setLoading(true);
-      console.log(`[useCrudForm] Fetching record ${id} from ${tableName}`);
-      const response = await crudService.getRecordById(tableName, id);
-      const recordData = response.data?.record || response.data;
+      dispatch({ type: 'SET_ERROR', payload: null });
+      dispatch({ type: 'SET_LOADING', payload: true });
+      console.log(`[useCrudForm] Fetching record ${id} from ${tableName} with primaryKey ${primaryKey}`);
+      const recordData = await db.getById(tableName, id, primaryKey);
       console.log(`[useCrudForm] Record loaded:`, recordData);
-      setRecord(recordData);
+      dispatch({ type: 'SET_RECORD', payload: recordData });
       return recordData;
     } catch (err) {
       console.error(`[useCrudForm] Error loading record:`, err);
-      setError(`Error cargando registro: ${err.message}`);
+      dispatch({ type: 'SET_ERROR', payload: `Error cargando registro: ${err.message}` });
       throw err;
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [tableName, mode]);
+  }, [tableName, mode, primaryKey]);
 
   /**
    * Crear un nuevo registro
    */
   const createRecord = useCallback(async (data) => {
     try {
-      setError(null);
-      setLoading(true);
-      const result = await crudService.createRecord(tableName, data);
-      // crudService ya invalida el cache (cacheService.invalidateAll)
-      return result;
+      dispatch({ type: 'SET_ERROR', payload: null });
+      dispatch({ type: 'SET_LOADING', payload: true });
+      const result = await db.insert(tableName, data);
+      cacheService.invalidateAll();
+      return { success: true, data: result };
     } catch (err) {
       console.error('[useCrudForm] createRecord error:', err);
-      setError(`Error creando registro: ${err.message}`);
+      dispatch({ type: 'SET_ERROR', payload: `Error creando registro: ${err.message}` });
       throw err;
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, [tableName]);
 
@@ -80,18 +107,18 @@ export const useCrudForm = (tableName, mode = 'create', recordId = null) => {
    */
   const updateRecord = useCallback(async (id, data) => {
     try {
-      setError(null);
-      setLoading(true);
-      const result = await crudService.updateRecord(tableName, id, data);
-      // crudService ya invalida el cache (cacheService.invalidateAll)
-      return result;
+      dispatch({ type: 'SET_ERROR', payload: null });
+      dispatch({ type: 'SET_LOADING', payload: true });
+      const result = await db.update(tableName, id, data, primaryKey);
+      cacheService.invalidateAll();
+      return { success: true, data: result };
     } catch (err) {
-      setError(`Error actualizando registro: ${err.message}`);
+      dispatch({ type: 'SET_ERROR', payload: `Error actualizando registro: ${err.message}` });
       throw err;
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [tableName]);
+  }, [tableName, primaryKey]);
 
   /**
    * Submit según el modo (create o edit)
@@ -109,26 +136,26 @@ export const useCrudForm = (tableName, mode = 'create', recordId = null) => {
       console.log('[useCrudForm] Llamando updateRecord...');
       return await updateRecord(id || recordId, data);
     }
-  }, [mode, createRecord, updateRecord, recordId]);
+  }, [mode, createRecord, updateRecord, recordId, primaryKey]);
 
   /**
    * Limpiar errores
    */
   const clearError = useCallback(() => {
-    setError(null);
+    dispatch({ type: 'SET_ERROR', payload: null });
   }, []);
 
   /**
    * Recargar todo (schema + record si es modo edit)
    */
   const reload = useCallback(async () => {
-    setIsInitialized(false);
+    dispatch({ type: 'SET_INITIALIZED', payload: false });
     await loadSchema();
     if (mode === 'edit' && recordId) {
       await loadRecord(recordId);
     }
-    setIsInitialized(true);
-  }, [loadSchema, loadRecord, mode, recordId]);
+    dispatch({ type: 'SET_INITIALIZED', payload: true });
+  }, [loadSchema, loadRecord, mode, recordId, primaryKey]);
 
   // Efecto inicial: cargar schema y record si aplica
   useEffect(() => {
@@ -136,29 +163,50 @@ export const useCrudForm = (tableName, mode = 'create', recordId = null) => {
 
     const initialize = async () => {
       try {
-        setLoading(true);
+        // Establecer loading=true al inicio
+        dispatch({ type: 'SET_LOADING', payload: true });
+        
         const schemaData = await loadSchema();
 
         if (isMounted) {
-          setSchema(schemaData);
-
           // Si es modo edit, cargar el registro
           if (mode === 'edit' && recordId) {
             const recordData = await loadRecord(recordId);
             if (isMounted) {
-              setRecord(recordData);
+              // Batch update: schema, record, isInitialized, loading=false en un solo render
+              dispatch({ 
+                type: 'BATCH_UPDATE', 
+                payload: { 
+                  schema: schemaData, 
+                  record: recordData, 
+                  isInitialized: true, 
+                  loading: false,
+                  error: null
+                } 
+              });
             }
+          } else {
+            // Batch update: schema, isInitialized, loading=false en un solo render
+            dispatch({ 
+              type: 'BATCH_UPDATE', 
+              payload: { 
+                schema: schemaData, 
+                isInitialized: true, 
+                loading: false,
+                error: null
+              } 
+            });
           }
-
-          setIsInitialized(true);
         }
       } catch (err) {
         if (isMounted) {
-          setError(err.message);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
+          dispatch({ 
+            type: 'BATCH_UPDATE', 
+            payload: { 
+              error: err.message, 
+              loading: false 
+            } 
+          });
         }
       }
     };
@@ -170,15 +218,15 @@ export const useCrudForm = (tableName, mode = 'create', recordId = null) => {
     return () => {
       isMounted = false;
     };
-  }, [tableName, mode, recordId, loadSchema, loadRecord]);
+  }, [tableName, mode, recordId, primaryKey, loadSchema, loadRecord]);
 
   return {
     // Estados
-    schema,
-    record,
-    loading,
-    error,
-    isInitialized,
+    schema: state.schema,
+    record: state.record,
+    loading: state.loading,
+    error: state.error,
+    isInitialized: state.isInitialized,
 
     // Acciones
     loadSchema,

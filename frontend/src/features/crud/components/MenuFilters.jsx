@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getInputComponent } from '@/features/form/utils/inputMapping';
+import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
 
 /**
  * Componente MenuFilters - Filtros dinámicos con UI para tablas CRUD
@@ -84,7 +85,10 @@ const MenuFilters = ({ config, onApply, schema }) => {
             position === 'side' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
           }`}>
             {fields.map(fieldConfig => {
-              const InputComponent = getInputComponent(fieldConfig.type);
+              // Manejo especial para reference-select debido a problema de importación circular
+              const InputComponent = fieldConfig.type === 'reference-select' 
+                ? ReferenceSelectInput 
+                : getInputComponent(fieldConfig.type);
               
               return (
                 <div key={fieldConfig.name} className="flex flex-col">

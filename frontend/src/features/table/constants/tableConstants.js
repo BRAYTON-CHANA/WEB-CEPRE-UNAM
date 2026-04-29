@@ -14,6 +14,7 @@ export const TABLE_DEFAULTS = {
   sortable: false,
   selectable: false,
   expandable: false,
+  groupable: { active: false, field: null, className: 'bg-white text-black font-semibold' },
   filterable: false,
   pagination: true,
   

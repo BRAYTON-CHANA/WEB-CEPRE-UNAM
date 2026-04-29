@@ -30,7 +30,47 @@ const ConfigSidebar = () => {
     </svg>
   );
 
+  const SchoolIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+      <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+    </svg>
+  );
+
+  const BookIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+    </svg>
+  );
+
+  const UserIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+      <circle cx="12" cy="7" r="4"></circle>
+    </svg>
+  );
+
+  const LinkIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+    </svg>
+  );
+
   const menuItems = [
+    {
+      id: 'configuracion',
+      name: 'Dashboard',
+      icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7"></rect>
+        <rect x="14" y="3" width="7" height="7"></rect>
+        <rect x="14" y="14" width="7" height="7"></rect>
+        <rect x="3" y="14" width="7" height="7"></rect>
+      </svg>,
+      href: '/configuracion',
+      active: location.pathname === '/configuracion'
+    },
     {
       id: 'sedes',
       name: 'Sedes',
@@ -44,6 +84,41 @@ const ConfigSidebar = () => {
       icon: <MapIcon />,
       href: '/configuracion/areas',
       active: location.pathname === '/configuracion/areas'
+    },
+    {
+      id: 'aulas',
+      name: 'Aulas',
+      icon: <SchoolIcon />,
+      href: '/configuracion/aulas',
+      active: location.pathname === '/configuracion/aulas'
+    },
+    {
+      id: 'cursos',
+      name: 'Cursos',
+      icon: <BookIcon />,
+      href: '/configuracion/cursos',
+      active: location.pathname === '/configuracion/cursos'
+    },
+    {
+      id: 'docentes',
+      name: 'Docentes',
+      icon: <UserIcon />,
+      href: '/configuracion/docentes',
+      active: location.pathname === '/configuracion/docentes'
+    },
+    {
+      id: 'curso_area',
+      name: 'Curso-Área',
+      icon: <LinkIcon />,
+      href: '/configuracion/curso_area',
+      active: location.pathname === '/configuracion/curso_area'
+    },
+    {
+      id: 'docente_curso',
+      name: 'Docente-Curso',
+      icon: <LinkIcon />,
+      href: '/configuracion/docente_curso',
+      active: location.pathname === '/configuracion/docente_curso'
     }
   ];
 

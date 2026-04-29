@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import SelectInput from './SelectInput';
 import { useReferenceData } from '@/shared/hooks/useReferenceData';
-import crudService from '@/shared/services/crudService';
+import { db } from '@/shared/api';
 
 /**
  * Helper para formatear template con valores
@@ -119,15 +119,14 @@ const CascadeSearchInput = React.memo(({
         
         console.log(`[CascadeSearchInput] Buscando en ${resultField.referenceTable}:`, resultFilters);
         
-        const response = await crudService.getTableData(
+        const response = await db.select(
           resultField.referenceTable,
-          { filters: resultFilters }
+          resultFilters
         );
+        const records = response || [];
         
-        console.log(`[CascadeSearchInput] Respuesta:`, response);
-        
-        if (response.data && response.data.length > 0) {
-          const resultId = response.data[0][resultField.referenceField];
+        if (records.length > 0) {
+          const resultId = records[0][resultField.referenceField];
           console.log(`[CascadeSearchInput] Resultado encontrado: ${resultId}`);
           
           if (onChange) {

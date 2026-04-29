@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import crudService from '@/shared/services/crudService';
+import { db } from '@/shared/api';
 
 // Cache simple por sesión
 const cache = new Map();
@@ -29,9 +29,10 @@ export const useUniqueValues = (tableName, columnName) => {
 
     setLoading(true);
     try {
-      const data = await crudService.getUniqueValues(tableName, columnName);
-      cache.set(cacheKey, data);
-      setValues(data);
+      const data = await db.select(tableName, {}, [columnName]);
+      const uniqueValues = [...new Set(data.map(row => row[columnName]))];
+      cache.set(cacheKey, uniqueValues);
+      setValues(uniqueValues);
     } catch (err) {
       console.error('Error cargando valores únicos:', err);
     } finally {

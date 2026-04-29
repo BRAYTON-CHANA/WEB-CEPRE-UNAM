@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import crudService from '@/shared/services/crudService';
+import { db } from '@/shared/api';
 
 /**
  * Hook para manejar operaciones CRUD genéricas
@@ -17,9 +17,8 @@ export function useCrud() {
     setError(null);
     
     try {
-      const response = await crudService.getTables();
-      console.log('Respuesta de /api/tables:', response);
-      setTables(response.data?.tables || []);
+      const result = await db.query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
+      setTables(result || []);
     } catch (err) {
       setError(err.message);
       console.error('Error en hook useCrud:', err);
@@ -36,8 +35,8 @@ export function useCrud() {
     setError(null);
     
     try {
-      const response = await crudService.getTableData(tableName);
-      return response;
+      const result = await db.select(tableName);
+      return { success: true, data: result };
     } catch (err) {
       setError(err.message);
       console.error(`Error obteniendo datos de ${tableName}:`, err);
@@ -55,8 +54,8 @@ export function useCrud() {
     setError(null);
     
     try {
-      const response = await crudService.createRecord(tableName, record);
-      return response;
+      const result = await db.insert(tableName, record);
+      return { success: true, data: result };
     } catch (err) {
       setError(err.message);
       console.error(`Error creando registro en ${tableName}:`, err);
@@ -74,8 +73,8 @@ export function useCrud() {
     setError(null);
     
     try {
-      const response = await crudService.updateRecord(tableName, id, record);
-      return response;
+      const result = await db.update(tableName, id, record);
+      return { success: true, data: result };
     } catch (err) {
       setError(err.message);
       console.error(`Error actualizando registro en ${tableName}:`, err);
@@ -93,8 +92,8 @@ export function useCrud() {
     setError(null);
     
     try {
-      const response = await crudService.deleteRecord(tableName, id);
-      return response;
+      const result = await db.delete(tableName, id);
+      return { success: true, data: result };
     } catch (err) {
       setError(err.message);
       console.error(`Error eliminando registro en ${tableName}:`, err);
@@ -112,8 +111,12 @@ export function useCrud() {
     setError(null);
     
     try {
-      const response = await crudService.searchTable(tableName, searchTerm, field);
-      return response;
+      let filters = {};
+      if (field && searchTerm) {
+        filters[field] = searchTerm;
+      }
+      const result = await db.select(tableName, filters);
+      return { success: true, data: result };
     } catch (err) {
       setError(err.message);
       console.error(`Error buscando en ${tableName}:`, err);
@@ -131,8 +134,8 @@ export function useCrud() {
     setError(null);
     
     try {
-      const response = await crudService.getTableStats(tableName);
-      return response;
+      const count = await db.count(tableName);
+      return { success: true, data: { count } };
     } catch (err) {
       setError(err.message);
       console.error(`Error obteniendo estadísticas de ${tableName}:`, err);
@@ -150,8 +153,8 @@ export function useCrud() {
     setError(null);
     
     try {
-      const response = await crudService.getRecordById(tableName, id);
-      return response;
+      const result = await db.getById(tableName, id);
+      return { success: true, data: result };
     } catch (err) {
       setError(err.message);
       console.error(`Error obteniendo registro ${id} de ${tableName}:`, err);

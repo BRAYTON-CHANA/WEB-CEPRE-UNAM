@@ -15,12 +15,12 @@ import DatosDashboard from '@/app/views/datos';
 import SedesConfig from '@/app/views/configuracion/sedes';
 import TurnosConfig from '@/app/views/datos/turnos';
 import AreasConfig from '@/app/views/configuracion/areas';
-import AulasConfig from '@/app/views/datos/aulas';
+import AulasConfig from '@/app/views/configuracion/aulas';
 import PeriodosConfig from '@/app/views/datos/periodos';
-import DocentesConfig from '@/app/views/datos/docentes';
-import CursosConfig from '@/app/views/datos/cursos';
-import CursoAreaConfig from '@/app/views/datos/curso_area';
-import DocenteCursoConfig from '@/app/views/datos/docente_curso';
+import DocentesConfig from '@/app/views/configuracion/docentes';
+import CursosConfig from '@/app/views/configuracion/cursos';
+import CursoAreaConfig from '@/app/views/configuracion/curso_area';
+import DocenteCursoConfig from '@/app/views/configuracion/docente_curso';
 import DocentePeriodoConfig from '@/app/views/datos/docente_periodo';
 import GruposConfig from '@/app/views/datos/grupos';
 import PlanAcademicoConfig from '@/app/views/datos/plan_academico';
@@ -64,6 +64,11 @@ function App() {
 
       <Route path="/configuracion/sedes" element={<SedesConfig />} />
       <Route path="/configuracion/areas" element={<AreasConfig />} />
+      <Route path="/configuracion/aulas" element={<AulasConfig />} />
+      <Route path="/configuracion/cursos" element={<CursosConfig />} />
+      <Route path="/configuracion/docentes" element={<DocentesConfig />} />
+      <Route path="/configuracion/curso_area" element={<CursoAreaConfig />} />
+      <Route path="/configuracion/docente_curso" element={<DocenteCursoConfig />} />
      
     </Routes>
   );

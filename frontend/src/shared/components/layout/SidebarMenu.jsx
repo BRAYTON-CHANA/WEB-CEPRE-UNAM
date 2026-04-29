@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import '../../theme/components/SidebarMenu.css'
 
@@ -90,14 +91,24 @@ const SidebarMenu = ({
             return (
               <li key={item.id || index} className={itemClasses}>
                 {href ? (
-                  <a
-                    href={href}
-                    target={target}
-                    className="sidebar-menu__link"
-                    onClick={(e) => !disabled && handleItemClick(item, e)}
-                  >
-                    {content}
-                  </a>
+                  target ? (
+                    <a
+                      href={href}
+                      target={target}
+                      className="sidebar-menu__link"
+                      onClick={(e) => !disabled && handleItemClick(item, e)}
+                    >
+                      {content}
+                    </a>
+                  ) : (
+                    <Link
+                      to={href}
+                      className="sidebar-menu__link"
+                      onClick={(e) => !disabled && handleItemClick(item, e)}
+                    >
+                      {content}
+                    </Link>
+                  )
                 ) : (
                   <button
                     className="sidebar-menu__button"

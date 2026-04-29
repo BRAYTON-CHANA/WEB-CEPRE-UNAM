@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Form from './Form';
 import { useCrudForm } from '../hooks/useCrudForm';
 import { validateFieldsAgainstSchema, buildPayload } from '../utils/schemaValidator';
@@ -43,6 +43,28 @@ const CrudForm = ({
 }) => {
   const [fieldErrors, setFieldErrors] = useState([]);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [referenceSelectsLoading, setReferenceSelectsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Contar reference-selects
+  const referenceSelectCount = useMemo(() => {
+    return fields.filter(f => f.type === 'reference-select').length;
+  }, [fields]);
+
+  // Estado para rastrear reference-selects cargados
+  const [referenceSelectsLoaded, setReferenceSelectsLoaded] = useState(0);
+
+  // Callback para cuando un reference-select termina de cargar
+  const handleReferenceSelectLoadComplete = useCallback(() => {
+    setReferenceSelectsLoaded(prev => prev + 1);
+  }, []);
+
+  // Verificar si todos los reference-select han cargado
+  const allReferenceSelectsLoaded = useMemo(() => {
+    // En modo edit, no esperar a reference-selects porque los valores ya están seleccionados
+    if (mode === 'edit') return true;
+    return referenceSelectCount === 0 || referenceSelectsLoaded >= referenceSelectCount;
+  }, [referenceSelectCount, referenceSelectsLoaded, mode]);
 
   // Hook para manejo de CRUD
   const {
@@ -52,7 +74,7 @@ const CrudForm = ({
     error: crudError,
     isInitialized,
     submit
-  } = useCrudForm(tableName, mode, recordId);
+  } = useCrudForm(tableName, mode, recordId, primaryKey);
 
   // Memoizar initialValues para evitar re-renders en cascada
   const initialValues = useMemo(() => {
@@ -77,12 +99,18 @@ const CrudForm = ({
     }
   }, [schema]);
 
+  // Resetear reference-selects cargados cuando cambia record
+  useEffect(() => {
+    setReferenceSelectsLoaded(0);
+  }, [record]);
+
   /**
    * Manejar submit del formulario
    */
   const handleSubmit = async (formData) => {
     setSubmitAttempted(true);
     setFieldErrors([]);
+    setIsSubmitting(true);
 
     // Validar que tenemos schema
     if (!schema) {
@@ -90,6 +118,7 @@ const CrudForm = ({
       console.error('[CrudForm.jsx]', error);
       setFieldErrors([{ field: '*', error }]);
       onFieldMismatch?.([{ field: '*', error }]);
+      setIsSubmitting(false);
       return;
     }
 
@@ -99,11 +128,12 @@ const CrudForm = ({
     if (mismatches.length > 0) {
       setFieldErrors(mismatches);
       onFieldMismatch?.(mismatches);
+      setIsSubmitting(false);
       return;
     }
 
     // Construir payload (filtrar campos que no están en schema, excluir PK y campos ignoreField)
-    const payload = buildPayload(formData, schema, primaryKey, fields);
+    const payload = buildPayload(formData, schema, primaryKey, fields, mode === 'edit' ? record : null);
 
     try {
       // Enviar al backend
@@ -115,6 +145,8 @@ const CrudForm = ({
       // Error del backend
       console.error('[CrudForm.jsx] Error del backend:', error);
       onError?.(error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -143,12 +175,21 @@ const CrudForm = ({
   };
 
   // Renderizar estado de carga
-  console.log('[CrudForm] Render check:', { isInitialized, loading, crudError, hasSchema: !!schema, hasRecord: !!record });
   if (!isInitialized && loading) {
     return (
       <div className="p-8 text-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
         <p className="mt-2 text-sm text-gray-600">Cargando información...</p>
+      </div>
+    );
+  }
+
+  // Renderizar carga de reference-selects (solo en modo create)
+  if (isInitialized && !loading && mode === 'create' && referenceSelectCount > 0 && !allReferenceSelectsLoaded) {
+    return (
+      <div className="p-8 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+        <p className="mt-2 text-sm text-gray-600">Cargando datos de referencia... ({referenceSelectsLoaded}/{referenceSelectCount})</p>
       </div>
     );
   }
@@ -192,13 +233,15 @@ const CrudForm = ({
       <Form
         fields={fields}
         initialValues={initialValues}
-        validation={validation}
         onSubmit={handleSubmit}
-        submitText={getSubmitText()}
-        loading={loading}
+        validation={validation}
         layout={layout}
         multiStep={multiStep}
         onPageChange={onPageChange}
+        submitText={submitText}
+        loading={isSubmitting}
+        className={className}
+        onReferenceSelectLoadComplete={handleReferenceSelectLoadComplete}
         showWarnings={showWarnings}
         showVisualDebugs={showVisualDebugs}
         confirmSubmit={confirmSubmit}
@@ -220,4 +263,4 @@ const CrudForm = ({
   );
 };
 
-export default CrudForm;
+export default React.memo(CrudForm);

@@ -61,6 +61,7 @@ function CrudTable({
     sortable = false,
     selectable = false,
     expandable = false,
+    groupable = { active: false, field: null, className: 'bg-white text-black font-semibold' },
     filterable = false,
     pagination = false,
     fit = false,
@@ -167,6 +168,7 @@ function CrudTable({
             sortable={sortable}
             selectable={selectable}
             expandable={expandable}
+            groupable={groupable}
             filterable={filterable}
             pagination={pagination}
             fit={fit}

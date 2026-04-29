@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import SelectInput from './SelectInput';
 import { useReferenceData } from '@/shared/hooks/useReferenceData';
 import { evaluateOperatorSet } from '@/features/form/utils/conditionEvaluator';
-import crudService from '@/shared/services/crudService';
+import { db } from '@/shared/api';
 
 /**
  * Helper para formatear template con valores de formData
@@ -51,6 +51,7 @@ const ReferenceSelectInput = React.memo(({
   blocked = null,
   hidden = null,
   formData = {},
+  onReferenceSelectLoadComplete = null,
   ...props
 }) => {
   // Estado para manejar errores
@@ -142,6 +143,43 @@ const ReferenceSelectInput = React.memo(({
 
   const { options, loading } = useReferenceData(shouldLoadData ? config : null);
 
+  // Llamar callback cuando loading termina
+  const prevLoadingRef = useRef(loading);
+  const hasCalledCallbackRef = useRef(false);
+  const hasMountedRef = useRef(false);
+
+  useEffect(() => {
+    // Primera vez que se monta
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      // Si loading ya es false (datos cacheados) Y hay un valor real, llamar callback inmediatamente
+      if (!loading && onReferenceSelectLoadComplete && currentValue) {
+        onReferenceSelectLoadComplete();
+        hasCalledCallbackRef.current = true;
+      }
+      return;
+    }
+    
+    // Cuando loading termina (pasa de true a false)
+    if (prevLoadingRef.current && !loading && onReferenceSelectLoadComplete) {
+      if (!hasCalledCallbackRef.current) {
+        onReferenceSelectLoadComplete();
+        hasCalledCallbackRef.current = true;
+      }
+    }
+    prevLoadingRef.current = loading;
+  }, [loading, onReferenceSelectLoadComplete, currentValue]);
+
+  // Resetear callback flag cuando cambia currentValue
+  useEffect(() => {
+    hasCalledCallbackRef.current = false;
+    // Si loading es false después del cambio Y hay un valor real, llamar callback inmediatamente
+    if (!loading && onReferenceSelectLoadComplete && currentValue) {
+      onReferenceSelectLoadComplete();
+      hasCalledCallbackRef.current = true;
+    }
+  }, [currentValue, loading, onReferenceSelectLoadComplete]);
+
   // Manejar caso donde no se encuentra el registro
   useEffect(() => {
     // ← CAMBIO: No aplicar cuando referenceSelf está activo (el registro self se carga por separado)
@@ -212,16 +250,8 @@ const ReferenceSelectInput = React.memo(({
       
       try {
         console.log(`[ReferenceSelectInput:${name}] 🚀 Consultando ${referenceSelfTable} con filtros:`, filters);
-        const response = await crudService.getTableData(referenceSelfTable, {
-          fields: [referenceSelfValueColumn],
-          filters: filters,
-          page: 1,
-          pageSize: 1
-        });
-        
-        console.log(`[ReferenceSelectInput:${name}] 📦 Respuesta recibida:`, response.data);
-        
-        const records = response.data?.records || response.data || [];
+        const data = await db.select(referenceSelfTable, filters, [referenceSelfValueColumn]);
+        const records = data || [];
         console.log(`[ReferenceSelectInput:${name}] 📊 Registros encontrados:`, records.length);
         
         if (records.length > 0) {

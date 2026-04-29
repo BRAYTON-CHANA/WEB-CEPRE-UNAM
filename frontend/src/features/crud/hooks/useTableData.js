@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import crudService from '@/shared/services/crudService';
+import { db } from '@/shared/api';
 
 /**
- * Hook para obtener datos y schema de una tabla específica por nombre
+ * Hook para obtener datos de una tabla específica
  * @param {string} tableName - Nombre de la tabla
- * @returns {Object} - Schema, records, loading, error y refresh
+ * @returns {Object} - records, loading, error y refresh
  */
-export function useTableData(tableName) {
-  const [schema, setSchema] = useState(null);
+export function useTableData(tableName, filters = {}) {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -22,21 +21,15 @@ export function useTableData(tableName) {
     setError(null);
 
     try {
-      const response = await crudService.getTableData(tableName);
-      
-      if (response.success) {
-        setSchema(response.data.schema);
-        setRecords(response.data.records);
-      } else {
-        setError(response.message || 'Error al obtener datos');
-      }
+      const result = await db.select(tableName, filters);
+      setRecords(result);
     } catch (err) {
       setError(err.message || 'Error de conexión');
       console.error(`Error en useTableData (${tableName}):`, err);
     } finally {
       setLoading(false);
     }
-  }, [tableName]);
+  }, [tableName, JSON.stringify(filters)]);
 
   useEffect(() => {
     fetchData();
@@ -47,7 +40,6 @@ export function useTableData(tableName) {
   }, [fetchData]);
 
   return {
-    schema,
     records,
     loading,
     error,

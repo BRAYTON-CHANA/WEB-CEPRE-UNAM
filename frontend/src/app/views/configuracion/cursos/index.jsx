@@ -3,41 +3,64 @@ import { Crud } from '@/features/crud';
 import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
 
 /**
- * Configuración de SEDES
- * CRUD completo para la tabla SEDES
+ * Configuración de CURSOS
+ * CRUD completo para la tabla CURSOS
  */
-function SedesConfig() {
+function CursosConfig() {
   // ==========================================
   // 1. CONFIGURACIÓN DE TABLA (tableConfig)
   // ==========================================
   const tableConfig = {
-    tableName: 'SEDES',
+    tableName: 'CURSOS',
     headers: [
-      { title: 'NOMBRE_SEDE', type: 'string' },
+      { title: 'CODIGO_COMPARTIDO', type: 'string' },
+      { title: 'NOMBRE_CURSO', type: 'string' },
+
       { title: 'ACTIVO', type: 'boolean' }
     ],
-    boundColumn: 'ID_SEDE'
+    boundColumn: 'ID_CURSO'
   };
 
   // ==========================================
   // 2. CONFIGURACIÓN DE FORMULARIO (formConfig)
   // ==========================================
   const formConfig = {
-    tableName: 'SEDES',
-    primaryKey: 'ID_SEDE',
+    tableName: 'CURSOS',
+    primaryKey: 'ID_CURSO',
     fields: [
+      
       { 
-        name: 'NOMBRE_SEDE', 
+        name: 'CODIGO_COMPARTIDO', 
         type: 'text', 
-        label: 'Nombre de Sede', 
+        label: 'Código Compartido', 
         required: true,
-        placeholder: 'Ej: Sede Central, Sede Norte, etc.'
+        placeholder: 'Ej: MAT-I, RM'
       },
-      {
-        name: 'ACTIVO',
-        type: 'boolean',
-        label: 'Activo',
+      { 
+        name: 'NOMBRE_CURSO', 
+        type: 'text', 
+        label: 'Nombre del Curso', 
         required: true,
+        placeholder: 'Ej: MATEMATICA I, RAZONAMIENTO MATEMATICO'
+      },
+      { 
+        name: 'EJE_TEMATICO', 
+        type: 'unique-select', 
+        label: 'Eje Temático', 
+        required: true,
+        tableName: 'CURSOS',
+        columnName: 'EJE_TEMATICO',
+        allowCreate: true,
+        createTitle: 'Agregar Nuevo Eje Temático',
+        searchable: false,
+
+      },
+      
+      { 
+        name: 'ACTIVO', 
+        type: 'boolean', 
+        label: 'Activo', 
+        required: false,
         defaultValue: true
       }
     ],
@@ -47,18 +70,18 @@ function SedesConfig() {
       persistData: false,
       nextText: 'Siguiente',
       prevText: 'Atrás',
-      submitText: 'Guardar Sede'
+      submitText: 'Guardar Curso'
     },
     confirmSubmit: true,
-    confirmConfig: {
-      title: 'Confirmar acción',
-      message: '¿Estás seguro de que deseas realizar esta acción?',
-      confirmText: 'Sí, Continuar',
-      cancelText: 'Cancelar'
-    },
     validation: {
-      NOMBRE_SEDE: {
-        required: { value: true, message: 'El nombre de la sede es obligatorio' }
+      CODIGO_COMPARTIDO: {
+        required: { value: true, message: 'El código compartido es requerido' }
+      },
+      NOMBRE_CURSO: {
+        required: { value: true, message: 'El nombre del curso es requerido' }
+      },
+      EJE_TEMATICO: {
+        required: { value: true, message: 'El eje temático es requerido' }
       }
     }
   };
@@ -68,7 +91,7 @@ function SedesConfig() {
   // ==========================================
   const tableComponentParameters = {
     showCount: false,
-    emptyMessage: 'No hay sedes registradas',
+    emptyMessage: 'No hay cursos registrados',
     variant: 'default',
     striped: true,
     hover: true,
@@ -77,6 +100,10 @@ function SedesConfig() {
     selectable: false,
     expandable: false,
     filterable: true,
+    groupable:{
+      active: true,
+      field: 'EJE_TEMATICO',
+    },
     pagination: false,
     fit: false,
     itemsPerPage: 10,
@@ -88,8 +115,8 @@ function SedesConfig() {
   // 4. CONFIGURACIÓN DE MODALES
   // ==========================================
   const modalConfig = {
-    createTitle: 'Crear Nueva Sede',
-    editTitle: 'Editar Sede',
+    createTitle: 'Crear Nuevo Curso',
+    editTitle: 'Editar Curso',
     size: 'medium',
     widthClass: 'w-1/2'
   };
@@ -98,8 +125,8 @@ function SedesConfig() {
   // 5. PROPIEDADES DEL HEADER
   // ==========================================
   const headerProps = {
-    headerTitle: 'Gestión de Sedes',
-    headerDescription: 'Administra las sedes académicas del sistema',
+    headerTitle: 'Gestión de Cursos',
+    headerDescription: 'Administra los cursos académicos del CEPRE',
     titleClassName: '',
     descriptionClassName: '',
     actions: []
@@ -127,11 +154,11 @@ function SedesConfig() {
   // 8. CALLBACKS
   // ==========================================
   const handleSuccess = (result) => {
-    console.log('Operación exitosa en SEDES:', result);
+    console.log('Operación exitosa en CURSOS:', result);
   };
 
   const handleError = (error) => {
-    console.error('Error en operación SEDES:', error);
+    console.error('Error en operación CURSOS:', error);
   };
 
   return (
@@ -151,4 +178,4 @@ function SedesConfig() {
   );
 }
 
-export default SedesConfig;
+export default CursosConfig;
