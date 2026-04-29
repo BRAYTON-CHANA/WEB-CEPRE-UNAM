@@ -1,9 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import SidebarMenu from '@/shared/components/layout/SidebarMenu';
 
 const ConfigSidebar = () => {
   const location = useLocation();
+  const [expandedMenus, setExpandedMenus] = useState({});
+
+  const toggleMenu = (menuId) => {
+    setExpandedMenus(prev => ({
+      ...prev,
+      [menuId]: !prev[menuId]
+    }));
+  };
 
   // Iconos SVG simples
   const BuildingIcon = () => (
@@ -58,72 +66,96 @@ const ConfigSidebar = () => {
     </svg>
   );
 
+  const ChevronDownIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  );
+
   const menuItems = [
     {
-      id: 'configuracion',
-      name: 'Dashboard',
-      icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="7" height="7"></rect>
-        <rect x="14" y="3" width="7" height="7"></rect>
-        <rect x="14" y="14" width="7" height="7"></rect>
-        <rect x="3" y="14" width="7" height="7"></rect>
-      </svg>,
-      href: '/configuracion',
-      active: location.pathname === '/configuracion'
-    },
-    {
-      id: 'sedes',
-      name: 'Sedes',
+      id: 'infraestructura',
+      name: 'Infraestructura',
       icon: <BuildingIcon />,
-      href: '/configuracion/sedes',
-      active: location.pathname === '/configuracion/sedes'
+      expanded: expandedMenus.infraestructura,
+      children: [
+        {
+          id: 'sedes',
+          name: 'Sedes',
+          icon: <BuildingIcon />,
+          href: '/configuracion/sedes',
+          active: location.pathname === '/configuracion/sedes'
+        },
+        {
+          id: 'areas',
+          name: 'Áreas',
+          icon: <MapIcon />,
+          href: '/configuracion/areas',
+          active: location.pathname === '/configuracion/areas'
+        },
+        {
+          id: 'aulas',
+          name: 'Aulas',
+          icon: <SchoolIcon />,
+          href: '/configuracion/aulas',
+          active: location.pathname === '/configuracion/aulas'
+        }
+      ]
     },
     {
-      id: 'areas',
-      name: 'Áreas',
-      icon: <MapIcon />,
-      href: '/configuracion/areas',
-      active: location.pathname === '/configuracion/areas'
-    },
-    {
-      id: 'aulas',
-      name: 'Aulas',
-      icon: <SchoolIcon />,
-      href: '/configuracion/aulas',
-      active: location.pathname === '/configuracion/aulas'
-    },
-    {
-      id: 'cursos',
-      name: 'Cursos',
+      id: 'academico',
+      name: 'Académico',
       icon: <BookIcon />,
-      href: '/configuracion/cursos',
-      active: location.pathname === '/configuracion/cursos'
+      expanded: expandedMenus.academico,
+      children: [
+        {
+          id: 'cursos',
+          name: 'Cursos',
+          icon: <BookIcon />,
+          href: '/configuracion/cursos',
+          active: location.pathname === '/configuracion/cursos'
+        },
+        {
+          id: 'docentes',
+          name: 'Docentes',
+          icon: <UserIcon />,
+          href: '/configuracion/docentes',
+          active: location.pathname === '/configuracion/docentes'
+        }
+      ]
     },
     {
-      id: 'docentes',
-      name: 'Docentes',
-      icon: <UserIcon />,
-      href: '/configuracion/docentes',
-      active: location.pathname === '/configuracion/docentes'
-    },
-    {
-      id: 'curso_area',
-      name: 'Curso-Área',
+      id: 'relaciones',
+      name: 'Relaciones',
       icon: <LinkIcon />,
-      href: '/configuracion/curso_area',
-      active: location.pathname === '/configuracion/curso_area'
-    },
-    {
-      id: 'docente_curso',
-      name: 'Docente-Curso',
-      icon: <LinkIcon />,
-      href: '/configuracion/docente_curso',
-      active: location.pathname === '/configuracion/docente_curso'
+      expanded: expandedMenus.relaciones,
+      children: [
+        {
+          id: 'curso_area',
+          name: 'Curso-Área',
+          icon: <LinkIcon />,
+          href: '/configuracion/curso_area',
+          active: location.pathname === '/configuracion/curso_area'
+        },
+        {
+          id: 'docente_curso',
+          name: 'Docente-Curso',
+          icon: <LinkIcon />,
+          href: '/configuracion/docente_curso',
+          active: location.pathname === '/configuracion/docente_curso'
+        }
+      ]
     }
   ];
 
   return (
-    <SidebarMenu items={menuItems} className="w-64" />
+    <SidebarMenu 
+      items={menuItems} 
+      className="w-64" 
+      expandable={true}
+      expandedMenus={expandedMenus}
+      onToggleMenu={toggleMenu}
+    />
   );
 };
 

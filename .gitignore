@@ -5,7 +5,7 @@ node_modules/
 .env
 .env.local
 .env.*.local
-
+.env.example
 # Agents / IDE
 .agents
 .windsurf
