@@ -86,10 +86,10 @@ const MenuFilters = ({ config, onApply, schema }) => {
           }`}>
             {fields.map(fieldConfig => {
               // Manejo especial para reference-select debido a problema de importación circular
-              const InputComponent = fieldConfig.type === 'reference-select' 
-                ? ReferenceSelectInput 
+              const InputComponent = fieldConfig.type === 'reference-select'
+                ? ReferenceSelectInput
                 : getInputComponent(fieldConfig.type);
-              
+
               return (
                 <div key={fieldConfig.name} className="flex flex-col">
                   {/* Label del filtro */}
@@ -110,6 +110,10 @@ const MenuFilters = ({ config, onApply, schema }) => {
                     referenceFilters={fieldConfig.referenceFilters}
                     searchable={fieldConfig.searchable}
                     allowClear={true}
+                    watch={() => filters[fieldConfig.name]}
+                    setValue={(name, val) => handleChange(name, val)}
+                    formData={{}}
+                    onReferenceSelectLoadComplete={null}
                   />
                 </div>
               );

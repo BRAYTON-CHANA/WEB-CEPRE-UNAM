@@ -43,28 +43,7 @@ const CrudForm = ({
 }) => {
   const [fieldErrors, setFieldErrors] = useState([]);
   const [submitAttempted, setSubmitAttempted] = useState(false);
-  const [referenceSelectsLoading, setReferenceSelectsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Contar reference-selects
-  const referenceSelectCount = useMemo(() => {
-    return fields.filter(f => f.type === 'reference-select').length;
-  }, [fields]);
-
-  // Estado para rastrear reference-selects cargados
-  const [referenceSelectsLoaded, setReferenceSelectsLoaded] = useState(0);
-
-  // Callback para cuando un reference-select termina de cargar
-  const handleReferenceSelectLoadComplete = useCallback(() => {
-    setReferenceSelectsLoaded(prev => prev + 1);
-  }, []);
-
-  // Verificar si todos los reference-select han cargado
-  const allReferenceSelectsLoaded = useMemo(() => {
-    // En modo edit, no esperar a reference-selects porque los valores ya están seleccionados
-    if (mode === 'edit') return true;
-    return referenceSelectCount === 0 || referenceSelectsLoaded >= referenceSelectCount;
-  }, [referenceSelectCount, referenceSelectsLoaded, mode]);
 
   // Hook para manejo de CRUD
   const {
@@ -98,11 +77,6 @@ const CrudForm = ({
       setFieldErrors([]);
     }
   }, [schema]);
-
-  // Resetear reference-selects cargados cuando cambia record
-  useEffect(() => {
-    setReferenceSelectsLoaded(0);
-  }, [record]);
 
   /**
    * Manejar submit del formulario
@@ -185,14 +159,7 @@ const CrudForm = ({
   }
 
   // Renderizar carga de reference-selects (solo en modo create)
-  if (isInitialized && !loading && mode === 'create' && referenceSelectCount > 0 && !allReferenceSelectsLoaded) {
-    return (
-      <div className="p-8 text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="mt-2 text-sm text-gray-600">Cargando datos de referencia... ({referenceSelectsLoaded}/{referenceSelectCount})</p>
-      </div>
-    );
-  }
+  // Eliminado: ya no esperamos a que carguen los reference-selects
 
   // Renderizar error de inicialización
   if (!isInitialized && crudError) {
@@ -241,7 +208,6 @@ const CrudForm = ({
         submitText={submitText}
         loading={isSubmitting}
         className={className}
-        onReferenceSelectLoadComplete={handleReferenceSelectLoadComplete}
         showWarnings={showWarnings}
         showVisualDebugs={showVisualDebugs}
         confirmSubmit={confirmSubmit}

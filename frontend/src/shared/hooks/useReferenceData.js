@@ -110,16 +110,8 @@ export const useReferenceData = (config) => {
   }), [tableName, neededFields, cacheKey, valueField, filters]);
 
   const load = useCallback(async () => {
-    //console.log(`[useReferenceData] load() called:`, {
-    //  tableName,
-    //  valueField,
-    //  filters: loadConfig?.filters,
-    //  hasAttemptedLoad: hasAttemptedLoad.current
-    //});
-    
     // No cargar si no hay configuración válida
     if (!tableName || !valueField) {
-      //console.log('reference-select: Sin configuración válida, omitiendo carga');
       return;
     }
     
@@ -127,12 +119,12 @@ export const useReferenceData = (config) => {
     if (hasAttemptedLoad.current) {
       return;
     }
-    
+
     // No cargar si faltan parámetros esenciales
     if (!loadConfig.tableName || !loadConfig.valueField) {
-      console.warn('reference-select: Faltan parámetros esenciales:', { 
-        tableName: loadConfig.tableName, 
-        valueField: loadConfig.valueField 
+      console.warn('[useReferenceData] Faltan parámetros esenciales:', {
+        tableName: loadConfig.tableName,
+        valueField: loadConfig.valueField
       });
       setRecords([]);
       hasAttemptedLoad.current = true;
@@ -141,7 +133,6 @@ export const useReferenceData = (config) => {
 
     // Si ya hay una petición en progreso para esta clave, esperarla
     if (pendingRequests.has(loadConfig.cacheKey)) {
-      //console.log(`reference-select: Esperando petición en progreso para: ${loadConfig.cacheKey}`);
       try {
         const data = await pendingRequests.get(loadConfig.cacheKey);
         setRecords(data);
@@ -149,38 +140,32 @@ export const useReferenceData = (config) => {
         return;
       } catch (err) {
         // Si la petición pendiente falló, continuar para intentar de nuevo
-        console.log(`reference-select: Petición pendiente falló, reintentando: ${loadConfig.cacheKey}`);
       }
     }
 
     // ← CAMBIO: Detectar si hay filtros activos
     const hasFilters = loadConfig.filters && loadConfig.filters.length > 0;
-    
+
     // ← CAMBIO: Solo usar cache de datos si NO hay filtros (datos deben ser frescos con filtros)
     if (hasFilters && cache.has(loadConfig.cacheKey)) {
-      //console.log(`reference-select: Ignorando caché por filtros activos para: ${loadConfig.cacheKey}`);
     }
-    
+
     if (!hasFilters && cache.has(loadConfig.cacheKey)) {
-      //console.log(`reference-select: Usando datos cacheados para tabla: ${loadConfig.cacheKey}`);
       setRecords(cache.get(loadConfig.cacheKey));
       hasAttemptedLoad.current = true;
       return;
     }
 
-    //console.log(`reference-select: Cargando datos desde servidor para tabla: ${loadConfig.tableName}, campos: ${loadConfig.neededFields.join(', ')}`);
-    if (loadConfig.filters && loadConfig.filters.length > 0) {
-      //console.log(`reference-select: Aplicando filtros:`, loadConfig.filters);
-    }
     setLoading(true);
-    
+
     // Crear la promesa y guardarla en pendingRequests
-    const promise = db.select(loadConfig.tableName, loadConfig.filters, loadConfig.neededFields);
+    // Pasar objeto vacío si filters es undefined para evitar problemas en el backend
+    const filtersToUse = loadConfig.filters || {};
+    const promise = db.select(loadConfig.tableName, filtersToUse, loadConfig.neededFields);
     pendingRequests.set(loadConfig.cacheKey, promise);
     
     try {
       const data = await promise;
-      //console.log(`reference-select: Datos recibidos del servidor para ${loadConfig.tableName}:`, data);
       // ← CAMBIO: Solo guardar en cache si NO hay filtros activos
       if (!hasFilters) {
         cache.set(loadConfig.cacheKey, data);
@@ -199,7 +184,6 @@ export const useReferenceData = (config) => {
       pendingRequests.delete(loadConfig.cacheKey);
       setLoading(false);
       hasAttemptedLoad.current = true;
-      //console.log('reference-select: Carga de datos finalizada');
     }
   }, [loadConfig]);
 

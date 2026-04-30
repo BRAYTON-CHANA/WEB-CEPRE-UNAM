@@ -124,7 +124,6 @@ const ReferenceSelectInput = React.memo(({
 
   // Configuración para useReferenceData
   const config = useMemo(() => {
-    
     return {
       tableName: referenceTable,
       valueField: referenceField,
@@ -133,8 +132,8 @@ const ReferenceSelectInput = React.memo(({
       descriptionField: referenceDescriptionField,
       filters: processedFilters,
       referenceSelfValue: referenceSelf ? currentValue : null,
-      referenceSelfFilter: processedSelfFilters, // ← NUEVO: Filtros adicionales para self loading
-      referenceOriginalValue: referenceSelf ? originalValueRef.current : null // ← NUEVO: Valor original (sticky)
+      referenceSelfFilter: processedSelfFilters,
+      referenceOriginalValue: referenceSelf ? originalValueRef.current : null
     };
   }, [
     referenceTable, referenceField, referenceLabelField, referenceQuery,
