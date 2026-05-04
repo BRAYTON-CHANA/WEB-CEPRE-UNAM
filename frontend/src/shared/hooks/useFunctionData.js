@@ -65,12 +65,15 @@ export const useFunctionData = (config) => {
 
     const processed = {};
     Object.entries(functionParams).forEach(([key, value]) => {
+      let rawValue;
       if (typeof value === 'string' && value.includes('{')) {
         const fieldName = value.replace(/[{}]/g, '');
-        processed[key] = formData[fieldName] ?? '';
+        rawValue = formData[fieldName] ?? '';
       } else {
-        processed[key] = value;
+        rawValue = value;
       }
+      // Convertir string vacío a null para evitar errores de tipo en PostgreSQL
+      processed[key] = rawValue === '' ? null : rawValue;
     });
 
     console.log(`[useFunctionData:${functionName}] Processed params:`, processed);

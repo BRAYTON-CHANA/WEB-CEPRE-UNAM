@@ -5,6 +5,7 @@
 @import "./components/cards.css";       /* Estilos de tarjetas: card, header, body, footer */
 @import "./components/forms.css";       /* Estilos de formularios: inputs, labels, groups */
 @import "./components/navigation.css";  /* Estilos de navegación: links, nav items */
+@import "./components/tables.css";      /* Estilos de tablas: TableMultiLevel, etc. */
 @import "./utilities/typography.css";  /* Utilidades de texto: gradient, shadow, truncate */
 @import "./utilities/layout.css";       /* Utilidades de layout: container, grid, flex */
 @import "./utilities/visual.css";       /* Utilidades visuales: gradients, backdrop, shadows */

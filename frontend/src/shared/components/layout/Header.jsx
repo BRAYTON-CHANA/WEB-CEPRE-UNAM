@@ -42,7 +42,12 @@ const Header = () => {
                 Inicio
               </Link>
               
-
+              <Link 
+                to="/modules" 
+                className={`text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/modules') ? 'bg-gray-100' : ''}`}
+              >
+                Módulos
+              </Link>
 
               <Link 
                 to="/datos" 

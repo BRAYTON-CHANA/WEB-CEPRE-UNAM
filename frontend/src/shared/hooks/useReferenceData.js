@@ -143,14 +143,9 @@ export const useReferenceData = (config) => {
       }
     }
 
-    // ← CAMBIO: Detectar si hay filtros activos
-    const hasFilters = loadConfig.filters && loadConfig.filters.length > 0;
-
-    // ← CAMBIO: Solo usar cache de datos si NO hay filtros (datos deben ser frescos con filtros)
-    if (hasFilters && cache.has(loadConfig.cacheKey)) {
-    }
-
-    if (!hasFilters && cache.has(loadConfig.cacheKey)) {
+    // Usar cache si existe (la cacheKey ya incluye los valores de filtros resueltos,
+    // así que si la clave es la misma los datos son válidos independientemente de si hay filtros)
+    if (cache.has(loadConfig.cacheKey)) {
       setRecords(cache.get(loadConfig.cacheKey));
       hasAttemptedLoad.current = true;
       return;
@@ -166,10 +161,7 @@ export const useReferenceData = (config) => {
     
     try {
       const data = await promise;
-      // ← CAMBIO: Solo guardar en cache si NO hay filtros activos
-      if (!hasFilters) {
-        cache.set(loadConfig.cacheKey, data);
-      }
+      cache.set(loadConfig.cacheKey, data);
       // Guard: evitar setRecords si datos idénticos (evita re-renders innecesarios)
       setRecords(prev => {
         try {
@@ -187,10 +179,11 @@ export const useReferenceData = (config) => {
     }
   }, [loadConfig]);
 
-  // Resetear hasAttemptedLoad cuando cambian los parámetros esenciales
+  // Resetear hasAttemptedLoad cuando cambia la cacheKey (que refleja tabla + campos + filtros resueltos)
+  // Usar cacheKey en vez de filters evita resets por nueva referencia de array con mismos valores
   useEffect(() => {
     hasAttemptedLoad.current = false;
-  }, [tableName, valueField, labelField, labelTemplate, descriptionField, filters]);
+  }, [cacheKey]);
 
   // Resetear hasLoggedOptions cuando cambian los parámetros que afectan las opciones
   useEffect(() => {

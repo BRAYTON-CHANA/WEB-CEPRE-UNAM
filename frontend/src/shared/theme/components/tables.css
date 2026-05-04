@@ -1,0 +1,144 @@
+/* Variables CSS específicas para tables */
+:root {
+  /* Header - Estilo estructural sutil */
+  --table-header-bg: linear-gradient(to bottom, #ffffff, #f8fafc);
+  --table-header-border: 3px solid var(--color-primary);
+  --table-header-text: var(--color-primary);
+  
+  /* Colores de backgrounds */
+  --table-row-hover: #f1f5f9;
+  --table-row-alternate: rgba(248, 250, 252, 0.5);
+  
+  /* Group Rows - Sin border-left, más suave */
+  --table-group-bg: linear-gradient(to right, #f8fafc, #f1f5f9);
+  --table-group-hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --table-group-hover-bg: linear-gradient(to right, #f1f5f9, #e2e8f0);
+  --table-group-border-radius: 0.5rem;
+  --table-group-margin-bottom: 0.5rem;
+  
+  /* Container con margin */
+  --table-container-margin: 1.5rem;
+  --table-container-padding: 1.5rem;
+  --table-container-bg: #ffffff;
+  --table-container-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --table-container-radius: 0.75rem;
+  
+  /* Colores de acciones */
+  --table-action-edit-bg: rgba(45, 54, 111, 0.1);
+  --table-action-edit-text: #2D366F;
+  --table-action-edit-hover: rgba(45, 54, 111, 0.15);
+  --table-action-delete-bg: rgba(239, 68, 68, 0.1);
+  --table-action-delete-text: #ef4444;
+  --table-action-delete-hover: rgba(239, 68, 68, 0.15);
+  
+  /* Colores de bordes y badges */
+  --table-border-color: #e2e8f0;
+  --table-badge-bg: #e2e8f0;
+  --table-badge-text: #475569;
+  
+  /* Header CRUD mejorado */
+  --crud-header-bg: linear-gradient(to right, #ffffff, #f8fafc);
+  --crud-header-border-bottom: 2px solid var(--color-primary);
+  --crud-header-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --crud-header-padding: 1.5rem;
+  --crud-header-title-color: var(--color-primary);
+  --crud-header-description-color: #64748b;
+  --crud-header-radius: 0.75rem;
+}
+
+/* Clases CSS para TableMultiLevel */
+.table-multilevel-container {
+  margin: var(--table-container-margin);
+  padding: var(--table-container-padding);
+  background: var(--table-container-bg);
+  border-radius: var(--table-container-radius);
+  box-shadow: var(--table-container-shadow);
+}
+
+.table-multilevel-header {
+  background: var(--table-header-bg);
+  border-bottom: var(--table-header-border);
+}
+
+.table-multilevel-group-row {
+  background: var(--table-group-bg);
+  border-radius: var(--table-group-border-radius);
+  margin-bottom: var(--table-group-margin-bottom);
+  transition: all 300ms ease-out;
+}
+
+.table-multilevel-group-row:hover {
+  box-shadow: var(--table-group-hover-shadow);
+  background: var(--table-group-hover-bg);
+}
+
+.table-multilevel-group-row-hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+.table-multilevel-data-row {
+  transition: background-color 300ms ease-out;
+}
+
+.table-multilevel-data-row:hover {
+  background-color: var(--table-row-hover);
+}
+
+.table-multilevel-data-row:nth-child(even) {
+  background-color: var(--table-row-alternate);
+}
+
+.table-multilevel-action-edit {
+  background-color: var(--table-action-edit-bg);
+  color: var(--table-action-edit-text);
+}
+
+.table-multilevel-action-edit:hover {
+  background-color: var(--table-action-edit-hover);
+}
+
+.table-multilevel-action-delete {
+  background-color: var(--table-action-delete-bg);
+  color: var(--table-action-delete-text);
+}
+
+.table-multilevel-action-delete:hover {
+  background-color: var(--table-action-delete-hover);
+}
+
+.table-multilevel-badge {
+  background-color: var(--table-badge-bg);
+  color: var(--table-badge-text);
+}
+
+/* Clases CSS para Header CRUD */
+.crud-header {
+  background: var(--crud-header-bg);
+  border-bottom: var(--crud-header-border-bottom);
+  box-shadow: var(--crud-header-shadow);
+  padding: var(--crud-header-padding);
+  border-radius: var(--crud-header-radius);
+  margin-bottom: 1.5rem;
+}
+
+.crud-header-title {
+  color: var(--crud-header-title-color);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.crud-header-description {
+  color: var(--crud-header-description-color);
+}
+
+.crud-header-action-btn {
+  transition: all 200ms ease-out;
+}
+
+.crud-header-action-btn:hover {
+  transform: scale(1.05);
+}
+
+.crud-header-action-btn:active {
+  transform: scale(0.95);
+}

@@ -7,3 +7,4 @@ export { useTableFilters } from './useTableFilters';
 export { useTableData } from './useTableData';
 export { useTableStyles } from './useTableStyles';
 export { useTablePagination } from './useTablePagination';
+export { useEditableTable } from './useEditableTable';

@@ -83,7 +83,7 @@ export const useApi = (baseUrl, options = {}) => {
       return result;
     } catch (err) {
       // Si el error es por campo inexistente, mostrar mensaje específico
-      if (err.message && err.message.includes('SQLITE_ERROR: no such column')) {
+      if (err.message && (err.message.includes('does not exist') || err.message.includes('no such column'))) {
         setError(`El campo '${field}' no existe en la tabla. Usa los campos correctos.`);
       } else {
         setError(err.message);
@@ -155,7 +155,7 @@ export const useApi = (baseUrl, options = {}) => {
       return result;
     } catch (err) {
       // Si el error es por campo inexistente, mostrar mensaje específico
-      if (err.message && err.message.includes('SQLITE_ERROR: no such column')) {
+      if (err.message && (err.message.includes('does not exist') || err.message.includes('no such column'))) {
         setError(`El campo '${field}' no existe en la tabla. Usa los campos correctos.`);
       } else {
         setError(err.message);
@@ -203,7 +203,7 @@ export const useApi = (baseUrl, options = {}) => {
       return result;
     } catch (err) {
       // Si el error es por campo inexistente, mostrar mensaje específico
-      if (err.message && err.message.includes('SQLITE_ERROR: no such column')) {
+      if (err.message && (err.message.includes('does not exist') || err.message.includes('no such column'))) {
         setError(`El campo '${field}' no existe en la tabla. Usa los campos correctos.`);
       } else {
         setError(err.message);

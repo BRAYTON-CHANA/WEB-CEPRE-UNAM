@@ -20,11 +20,6 @@ export default async function handler(req, res) {
   const { functionName, params } = req.body;
 
   try {
-    console.log('Request body:', req.body);
-    const { functionName, params } = req.body;
-    console.log('Function name:', functionName);
-    console.log('Params:', params);
-
     // Convertir filtros array → objeto plano
     if (params.filters && Array.isArray(params.filters)) {
       const plainFilters = {};
@@ -34,12 +29,10 @@ export default async function handler(req, res) {
         }
       }
       params.filters = plainFilters;
-      console.log('Converted filters:', params.filters);
     }
 
     const func = DatabaseManager[functionName];
     if (!func) {
-      console.error(`Función ${functionName} no existe en DatabaseManager`);
       return res.status(400).json({
         success: false,
         message: `Función ${functionName} no existe`
@@ -51,9 +44,7 @@ export default async function handler(req, res) {
 
     // Ejecutar función
     const args = Object.values(params || {});
-    console.log('Args:', args);
     const result = await func(...args);
-    console.log('Result:', result);
 
     res.json({
       success: true,
@@ -63,8 +54,7 @@ export default async function handler(req, res) {
     console.error(`Error en /api/execute (${functionName}):`, error);
     res.status(500).json({
       success: false,
-      message: error.message,
-      stack: error.stack
+      message: error.message
     });
   }
 }

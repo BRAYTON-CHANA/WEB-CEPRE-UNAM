@@ -30,25 +30,19 @@ const ConfigSidebar = () => {
     </svg>
   );
 
-  const MapIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
-      <line x1="8" y1="2" x2="8" y2="18"></line>
-      <line x1="16" y1="6" x2="16" y2="22"></line>
-    </svg>
-  );
-
-  const SchoolIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-      <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
-    </svg>
-  );
-
   const BookIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
       <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+    </svg>
+  );
+
+  const CalendarIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="16" y1="2" x2="16" y2="6"></line>
+      <line x1="8" y1="2" x2="8" y2="6"></line>
+      <line x1="3" y1="10" x2="21" y2="10"></line>
     </svg>
   );
 
@@ -59,10 +53,12 @@ const ConfigSidebar = () => {
     </svg>
   );
 
-  const LinkIcon = () => (
+  const GridIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+      <rect x="3" y="3" width="7" height="7"></rect>
+      <rect x="14" y="3" width="7" height="7"></rect>
+      <rect x="3" y="14" width="7" height="7"></rect>
+      <rect x="14" y="14" width="7" height="7"></rect>
     </svg>
   );
 
@@ -72,35 +68,53 @@ const ConfigSidebar = () => {
     </svg>
   );
 
+  const ClockIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <polyline points="12 6 12 12 16 14"></polyline>
+    </svg>
+  );
+
+  const TimetableIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+      <line x1="3" y1="8" x2="21" y2="8"></line>
+      <line x1="3" y1="13" x2="21" y2="13"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+      <line x1="9" y1="3" x2="9" y2="21"></line>
+    </svg>
+  );
+
+  const SunIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="4"></circle>
+      <path d="M12 2v2"></path>
+      <path d="M12 20v2"></path>
+      <path d="M4.93 4.93l1.41 1.41"></path>
+      <path d="M17.66 17.66l1.41 1.41"></path>
+      <path d="M2 12h2"></path>
+      <path d="M20 12h2"></path>
+      <path d="M6.34 17.66l-1.41 1.41"></path>
+      <path d="M19.07 4.93l-1.41 1.41"></path>
+    </svg>
+  );
+
+  const UsersIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+      <circle cx="9" cy="7" r="4"></circle>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+    </svg>
+  );
+
   const menuItems = [
     {
       id: 'infraestructura',
       name: 'Infraestructura',
       icon: <BuildingIcon />,
-      expanded: expandedMenus.infraestructura,
-      children: [
-        {
-          id: 'sedes',
-          name: 'Sedes',
-          icon: <BuildingIcon />,
-          href: '/configuracion/sedes',
-          active: location.pathname === '/configuracion/sedes'
-        },
-        {
-          id: 'areas',
-          name: 'Áreas',
-          icon: <MapIcon />,
-          href: '/configuracion/areas',
-          active: location.pathname === '/configuracion/areas'
-        },
-        {
-          id: 'aulas',
-          name: 'Aulas',
-          icon: <SchoolIcon />,
-          href: '/configuracion/aulas',
-          active: location.pathname === '/configuracion/aulas'
-        }
-      ]
+      href: '/configuracion/sedes_aulas',
+      active: location.pathname === '/configuracion/sedes_aulas'
     },
     {
       id: 'academico',
@@ -116,33 +130,84 @@ const ConfigSidebar = () => {
           active: location.pathname === '/configuracion/cursos'
         },
         {
-          id: 'docentes',
-          name: 'Docentes',
+          id: 'areas_cursos',
+          name: 'Áreas y Cursos',
+          icon: <GridIcon />,
+          href: '/configuracion/areas_cursos',
+          active: location.pathname === '/configuracion/areas_cursos'
+        },
+        {
+          id: 'docentes_cursos',
+          name: 'Docentes y Cursos',
           icon: <UserIcon />,
-          href: '/configuracion/docentes',
-          active: location.pathname === '/configuracion/docentes'
+          href: '/configuracion/docentes_cursos',
+          active: location.pathname === '/configuracion/docentes_cursos'
+        },
+        {
+          id: 'planes_academicos',
+          name: 'Planes Académicos',
+          icon: <BookIcon />,
+          href: '/configuracion/planes_academicos',
+          active: location.pathname === '/configuracion/planes_academicos'
+        }
+      ]
+    },
+    
+    {
+      id: 'horarios_y_turnos',
+      name: 'Horarios y Turnos',
+      icon: <ClockIcon />,
+      expanded: expandedMenus.horarios_y_turnos,
+      children: [
+        {
+          id: 'horarios_bloques',
+          name: 'Plantillas de Horario',
+          icon: <TimetableIcon />,
+          href: '/configuracion/horarios_bloques',
+          active: location.pathname === '/configuracion/horarios_bloques'
+        },
+        {
+          id: 'turnos',
+          name: 'Turnos',
+          icon: <SunIcon />,
+          href: '/configuracion/turnos',
+          active: location.pathname === '/configuracion/turnos'
         }
       ]
     },
     {
-      id: 'relaciones',
-      name: 'Relaciones',
-      icon: <LinkIcon />,
-      expanded: expandedMenus.relaciones,
+      id: 'periodos_academicos',
+      name: 'Periodos Academicos',
+      icon: <CalendarIcon />,
+      expanded: expandedMenus.programacion,
       children: [
         {
-          id: 'curso_area',
-          name: 'Curso-Área',
-          icon: <LinkIcon />,
-          href: '/configuracion/curso_area',
-          active: location.pathname === '/configuracion/curso_area'
+          id: 'periodos',
+          name: 'Periodos',
+          icon: <CalendarIcon />,
+          href: '/configuracion/periodos',
+          active: location.pathname === '/configuracion/periodos'
         },
         {
-          id: 'docente_curso',
-          name: 'Docente-Curso',
-          icon: <LinkIcon />,
-          href: '/configuracion/docente_curso',
-          active: location.pathname === '/configuracion/docente_curso'
+          id: 'plazas_docentes',
+          name: 'Plazas Docentes',
+          icon: <UserIcon />,
+          href: '/configuracion/plazas_docentes',
+          active: location.pathname === '/configuracion/plazas_docentes'
+        },
+        {
+          id: 'grupos',
+          name: 'Grupos',
+          icon: <UsersIcon />,
+          href: '/configuracion/grupos',
+          active: location.pathname === '/configuracion/grupos'
+        },
+        {
+          id: 'programacion_grupo',
+          name: 'Programación de Grupo',
+          icon: <TimetableIcon />,
+          href: '/configuracion/programacion_grupo',
+          active: location.pathname === '/configuracion/programacion_grupo'
         }
       ]
     }

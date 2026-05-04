@@ -11,11 +11,11 @@ const LayoutWithSidebar = ({ children, sidebarComponent: Sidebar = ConfigSidebar
 
   return (
     <Layout>
-      <div className="flex relative">
+      <div className="flex relative min-w-0 w-full">
         {/* Botón de menú móvil */}
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md hover:bg-gray-100"
+          className="lg:hidden fixed top-4 left-4 z-10 p-2 bg-white rounded-lg shadow-md hover:bg-gray-100"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -34,7 +34,7 @@ const LayoutWithSidebar = ({ children, sidebarComponent: Sidebar = ConfigSidebar
 
         {/* Sidebar */}
         <div className={`
-          fixed lg:static inset-y-0 left-0 z-50
+          fixed lg:static inset-y-0 left-0 z-10
           transform transition-transform duration-300 ease-in-out
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           lg:translate-x-0
@@ -43,7 +43,7 @@ const LayoutWithSidebar = ({ children, sidebarComponent: Sidebar = ConfigSidebar
         </div>
 
         {/* Contenido principal */}
-        <div className="flex-1 lg:ml-8 p-4 lg:p-0">
+        <div className="flex-1 min-w-0 lg:ml-8 p-4 lg:p-0">
           {children}
         </div>
       </div>

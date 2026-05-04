@@ -15,15 +15,16 @@ function CrudPage() {
   // ==========================================
   const tableConfig = {
     // Nombre de la tabla/vista para mostrar datos (puede ser un VIEW)
-    tableName: 'CURSO_PERIODO',
+    tableName: 'areas',
     
     // Headers para la tabla - define qué columnas se MUESTRAN
     headers: [
-      { title: 'ID_CURSO_PERIODO', type: 'number' },
+      { title: 'ID_AREA', type: 'number' },
+      { title: "NOMBRE_AREA",type: 'string'},
     ],
     
     // Columna que identifica el registro (para selección y acciones)
-    boundColumn: 'ID_CURSO_PERIODO'
+    boundColumn: 'ID_AREA'
   };
 
   // ==========================================
@@ -32,17 +33,17 @@ function CrudPage() {
   const formConfig = {
     // Nombre de la tabla para escritura (puede ser diferente a tableConfig.tableName)
     // Útil cuando CRUD muestra un VIEW pero form escribe a TABLE real
-    tableName: 'CURSO_PERIODO',
+    tableName: 'areas',
     
     // Clave primaria para identificar registros
-    primaryKey: 'ID_CURSO_PERIODO',
+    primaryKey: 'ID_AREA',
     
     // Campos del formulario - define qué campos se EDITAN
     fields: [
       { 
-        name: 'NOMBRE_SEDE', 
+        name: 'NOMBRE_AREA', 
         type: 'text', 
-        label: 'Sede', 
+        label: 'Nombre del Área', 
         required: true 
       }
     ],

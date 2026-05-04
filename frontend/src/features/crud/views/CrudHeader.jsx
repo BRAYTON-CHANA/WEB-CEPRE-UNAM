@@ -16,40 +16,38 @@ function CrudHeader({
   actions = [] 
 }) {
   return (
-    <div>
-      <div className="container mx-auto px-4 py-0 mt-6">
-        <div className="flex items-center justify-between">
-          {/* Título y descripción - Izquierda */}
-          <div className="ml-1">
-            <h1 className={`text-2xl font-bold text-gray-900 mb-1 ${titleClassName || ''}`}>
-              {headerTitle}
-            </h1>
-            {headerDescription && (
-              <p className={`text-gray-600 text-sm ${descriptionClassName || ''}`}>
-                {headerDescription}
-              </p>
-            )}
-          </div>
-
-          {/* Acciones - Derecha */}
-          {actions.length > 0 && (
-            <div className="flex items-center gap-3 mr-4">
-              {actions.map((action, index) => (
-                <button
-                  key={index}
-                  onClick={action.onClick}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
-                    action.font || 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}
-                  style={action.color ? { backgroundColor: action.color } : undefined}
-                >
-                  {action.icon && <span>{action.icon}</span>}
-                  <span>{action.text}</span>
-                </button>
-              ))}
-            </div>
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-6 py-5">
+      <div className="flex items-center justify-between gap-4">
+        {/* Título y descripción - Izquierda */}
+        <div className="min-w-0">
+          <h1 className={`text-xl font-semibold text-gray-900 mb-1.5 tracking-tight ${titleClassName || ''}`}>
+            {headerTitle}
+          </h1>
+          {headerDescription && (
+            <p className={`text-gray-500 text-sm leading-relaxed ${descriptionClassName || ''}`}>
+              {headerDescription}
+            </p>
           )}
         </div>
+
+        {/* Acciones - Derecha */}
+        {actions.length > 0 && (
+          <div className="flex items-center gap-2.5 shrink-0">
+            {actions.map((action, index) => (
+              <button
+                key={index}
+                onClick={action.onClick}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm hover:shadow ${
+                  action.font || 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+                style={action.color ? { backgroundColor: action.color } : undefined}
+              >
+                {action.icon && <span>{action.icon}</span>}
+                <span>{action.text}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

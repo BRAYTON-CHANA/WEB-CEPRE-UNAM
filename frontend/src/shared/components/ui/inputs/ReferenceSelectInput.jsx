@@ -85,20 +85,46 @@ const ReferenceSelectInput = React.memo(({
   // Solo hacer consulta si no está bloqueado ni oculto
   const shouldLoadData = !isBlocked && !isHidden;
 
+  // Extraer solo los valores de los campos que usan los filtros dinámicos
+  // Esto evita que processedFilters se recalcule en cada cambio de formData no relacionado
+  const filterDependencyValues = useMemo(() => {
+    if (!referenceFilters || referenceFilters.length === 0 || !formData) return null;
+    const result = {};
+    referenceFilters.forEach(filter => {
+      if (typeof filter.value === 'string' && filter.value.includes('{')) {
+        const matches = filter.value.match(/\{(\w+)\}/g) || [];
+        matches.forEach(m => {
+          const fieldName = m.replace(/[{}]/g, '');
+          result[fieldName] = formData[fieldName];
+        });
+      }
+    });
+    return result;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [referenceFilters, ...( 
+    referenceFilters
+      ? referenceFilters.flatMap(f =>
+          typeof f.value === 'string' && f.value.includes('{')
+            ? (f.value.match(/\{(\w+)\}/g) || []).map(m => formData?.[m.replace(/[{}]/g, '')])
+            : []
+        )
+      : []
+  )]);
+
   // Procesar filtros con templates dinámicos {CAMPO} -> valor de formData
   const processedFilters = useMemo(() => {
     if (!referenceFilters || referenceFilters.length === 0) return referenceFilters;
     if (!formData || Object.keys(formData).length === 0) return referenceFilters;
 
     return referenceFilters.map(filter => {
-      // Si el valor es un string y contiene {, procesar templates
       if (typeof filter.value === 'string' && filter.value.includes('{')) {
         const processedValue = formatTemplate(filter.value, formData);
         return { ...filter, value: processedValue };
       }
       return filter;
     });
-  }, [referenceFilters, formData]);
+  // Solo recalcular cuando cambian los valores de campos que realmente usan los filtros
+  }, [referenceFilters, filterDependencyValues]);
 
   // ← NUEVO: Procesar referenceSelfFilter con templates dinámicos
   const processedSelfFilters = useMemo(() => {
@@ -120,7 +146,16 @@ const ReferenceSelectInput = React.memo(({
       return filter;
     });
     return result;
-  }, [referenceSelfFilter, formData, referenceField, currentValue, name]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [referenceSelfFilter, referenceField, currentValue, name, ...(
+    referenceSelfFilter
+      ? referenceSelfFilter.flatMap(f =>
+          typeof f.value === 'string' && f.value.includes('{')
+            ? (f.value.match(/\{(\w+)\}/g) || []).map(m => formData?.[m.replace(/[{}]/g, '')])
+            : []
+        )
+      : []
+  )]);
 
   // Configuración para useReferenceData
   const config = useMemo(() => {

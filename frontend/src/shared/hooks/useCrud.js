@@ -15,10 +15,12 @@ export function useCrud() {
   const loadTables = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const result = await db.query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
-      setTables(result || []);
+      const result = await db.query("SELECT table_name AS name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' ORDER BY table_name");
+      // PostgreSQL information_schema retorna objetos con key 'name'; extraer strings
+      const tableNames = (result || []).map(row => row.name || row.table_name || String(row)).filter(Boolean);
+      setTables(tableNames);
     } catch (err) {
       setError(err.message);
       console.error('Error en hook useCrud:', err);

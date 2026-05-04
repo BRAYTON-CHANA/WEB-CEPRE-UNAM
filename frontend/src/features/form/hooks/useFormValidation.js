@@ -120,8 +120,18 @@ export const useFormValidation = (validationRules = {}, fields = []) => {
       return rules.maxLength.message || `Máximo ${rules.maxLength} caracteres`;
     }
 
-    if (rules.pattern && value && !rules.pattern.test(value)) {
-      return rules.message || 'Formato inválido';
+    if (rules.pattern && value) {
+      let regex, patternMessage;
+      if (rules.pattern instanceof RegExp) {
+        regex = rules.pattern;
+        patternMessage = rules.message;
+      } else if (rules.pattern.value instanceof RegExp) {
+        regex = rules.pattern.value;
+        patternMessage = rules.pattern.message;
+      }
+      if (regex && !regex.test(value)) {
+        return patternMessage || 'Formato inválido';
+      }
     }
 
     // Validación numérica min (para campos number/integer/float)

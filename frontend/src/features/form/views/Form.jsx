@@ -260,8 +260,9 @@ const Form = ({
     const { name } = field;
     const value = formData[name];
     const error = (touched[name] || submitAttempted) ? errors[name] : '';
-    // Solo pasa formData si el campo tiene hidden, blocked, o referenceSelfTable/Filter (necesita evaluar condiciones/templates)
-    const conditionalFormData = (field.hidden || field.blocked || field.referenceSelfTable || field.referenceSelfFilter) ? formData : undefined;
+    // Solo pasa formData si el campo tiene hidden, blocked, referenceSelfTable/Filter, o referenceFilters con templates dinámicos
+    const hasDynamicReferenceFilters = field.referenceFilters?.some(f => typeof f.value === 'string' && f.value.includes('{'));
+    const conditionalFormData = (field.hidden || field.blocked || field.referenceSelfTable || field.referenceSelfFilter || hasDynamicReferenceFilters) ? formData : undefined;
 
     return (
       <FormField

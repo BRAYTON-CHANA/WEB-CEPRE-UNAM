@@ -18,7 +18,7 @@ export const renderCell = (value, rowIndex, header, columnType) => {
     return <span className="text-gray-400">-</span>;
   }
   
-  // Manejo de booleanos (incluyendo 1/0 de SQLite) - SOLO si la columna es de tipo boolean
+  // Manejo de booleanos - SOLO si la columna es de tipo boolean
   if (columnType === 'boolean' && (typeof value === 'boolean' || value === 1 || value === 0)) {
     const isTrue = value === true || value === 1;
     return (

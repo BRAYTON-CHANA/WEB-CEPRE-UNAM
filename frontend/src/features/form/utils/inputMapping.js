@@ -20,6 +20,7 @@ import PhoneInput from '@/shared/components/ui/inputs/PhoneInput';
 import CountryInput from '@/shared/components/ui/inputs/CountryInput';
 import ColorInput from '@/shared/components/ui/inputs/ColorInput';
 import LocationInput from '@/shared/components/ui/inputs/LocationInput';
+import MatrixInput from '@/shared/components/ui/inputs/MatrixInput';
 
 /**
  * Mapeo de tipos de campo a componentes de input
@@ -63,7 +64,10 @@ export const INPUT_COMPONENTS = {
   phone: PhoneInput,
   country: CountryInput,
   color: ColorInput,
-  location: LocationInput
+  location: LocationInput,
+
+  // Input de matriz
+  matrix: MatrixInput
 };
 
 /**

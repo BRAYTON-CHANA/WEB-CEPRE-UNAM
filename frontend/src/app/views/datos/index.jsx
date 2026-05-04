@@ -9,88 +9,18 @@ import Layout from '@/shared/components/layout/Layout';
 function DatosDashboard() {
   // Tablas Generales - Configuración base del sistema
   const tablasGenerales = [
-    {
-      name: 'CURSOS',
-      description: 'Gestión de cursos y eje temático',
-      path: '/datos/cursos',
-      icon: '📝',
-      color: 'bg-teal-500'
-    },
-    {
-      name: 'DOCENTES',
-      description: 'Gestión de docentes del CEPRE',
-      path: '/datos/docentes',
-      icon: '👨‍🏫',
-      color: 'bg-pink-500'
-    },
-    {
-      name: 'AULAS',
-      description: 'Gestión de aulas físicas, virtuales e híbridas',
-      path: '/datos/aulas',
-      icon: '🏫',
-      color: 'bg-orange-500'
-    },
-    {
-      name: 'CURSO ÁREA',
-      description: 'Asignación de cursos a áreas académicas',
-      path: '/datos/curso_area',
-      icon: '📖',
-      color: 'bg-cyan-500'
-    },
-    {
-      name: 'DOCENTE CURSO',
-      description: 'Asignación de cursos a docentes',
-      path: '/datos/docente_curso',
-      icon: '👨‍🏫',
-      color: 'bg-lime-500'
-    }
+   
   ];
 
   // Configuración de Horarios - Turnos, Horarios y Bloques
   const configuracionHorarios = [
    
-    {
-      name: 'VISTA HORARIOS',
-      description: 'Vista de horarios con bloques calculados',
-      path: '/datos/vista_horarios',
-      icon: '📊',
-      color: 'bg-indigo-500'
-    },
-    {
-      name: 'TURNOS',
-      description: 'Turnos de estudio (Sáb-Dom) vinculados a horarios',
-      path: '/datos/turnos',
-      icon: '🕐',
-      color: 'bg-green-500'
-    },
+    
 
   ];
 
   // Configuración por Período - Tablas con dependencia temporal
   const configuracionPeriodo = [
-    {
-      name: 'PERIODOS',
-      description: 'Gestión de períodos académicos',
-      path: '/datos/periodos',
-      icon: '📅',
-      color: 'bg-indigo-500'
-    },
-    
-    {
-      name: 'DOCENTE PERIODO',
-      description: 'Asignación de docentes a períodos con identificador personalizado',
-      path: '/datos/docente_periodo',
-      icon: '👨‍🏫',
-      color: 'bg-violet-500'
-    },
-
-    {
-      name: 'PLAN ACADÉMICO',
-      description: 'Planificación de cursos-área por período con docente asignado',
-      path: '/datos/plan_academico',
-      icon: '📚',
-      color: 'bg-emerald-500'
-    },
     {
       name: 'GRUPOS',
       description: 'Gestión de grupos de estudio por período, área, turno y aula',

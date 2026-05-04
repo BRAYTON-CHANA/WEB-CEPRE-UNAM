@@ -60,6 +60,18 @@ export const validateFieldsAgainstSchema = (formData, schema, formFields, tableN
  * @param {Object} originalRecord - Registro original (para modo edit)
  * @returns {Object} - Payload filtrado
  */
+const formatDateToISO = (dateStr) => {
+  if (!dateStr || typeof dateStr !== 'string') return dateStr;
+  // Si ya está en formato ISO YYYY-MM-DD, retornar tal cual
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  // Si está en formato DD/MM/YYYY, convertir a YYYY-MM-DD
+  const ddmmyyyy = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (ddmmyyyy) {
+    return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`;
+  }
+  return dateStr;
+};
+
 export const buildPayload = (formData, schema, primaryKey, formFields, originalRecord = null) => {
   const payload = {};
   
@@ -86,8 +98,17 @@ export const buildPayload = (formData, schema, primaryKey, formFields, originalR
     
     // Solo incluir campos que existen en schema
     if (schemaFields.includes(key) && key !== primaryKey) {
-      const value = formData[key];
+      let value = formData[key];
       const originalValue = originalRecord ? originalRecord[key] : null;
+      
+      // Transformar fechas DD/MM/YYYY a YYYY-MM-DD
+      if (fieldConfig?.type === 'date' && typeof value === 'string') {
+        value = formatDateToISO(value);
+        // Convertir string vacío a null para campos date
+        if (value === '') {
+          value = null;
+        }
+      }
       
       // No incluir campos undefined o null (a menos que sea explícito)
       if (value !== undefined) {
@@ -145,7 +166,7 @@ export const validateFieldType = (fieldName, value, schema) => {
   const fieldSchema = schema[fieldName];
   const fieldType = fieldSchema.type?.toLowerCase() || 'text';
   
-  // Validaciones básicas por tipo SQLite
+  // Validaciones básicas por tipo de base de datos
   switch (fieldType) {
     case 'integer':
     case 'int':
@@ -219,7 +240,7 @@ export const isFieldRequired = (fieldName, schema) => {
   const field = schema[fieldName];
   
   // NOT NULL y sin valor por defecto = requerido
-  if (field.notNull && !field.dfltValue) {
+  if (field.nullable === false && !field.dfltValue) {
     return true;
   }
   

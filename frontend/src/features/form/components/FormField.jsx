@@ -278,6 +278,15 @@ const FormField = ({
           allowCurrentLocation: field.allowCurrentLocation
         };
 
+      case 'matrix':
+        return {
+          rows: field.rows || 1,
+          cols: field.cols || 1,
+          cellType: field.cellType || 'text',
+          cellOptions: field.cellOptions || [],
+          allowNull: field.allowNull !== false
+        };
+
       default:
         return {};
     }
