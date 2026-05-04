@@ -38,7 +38,7 @@ export const bloqueBaseFields = [
     required: true,
     options: [
       { value: 'clase', label: 'Clase' },
-      { value: 'recreo', label: 'Recreo' }
+      { value: 'break', label: 'Recreo' }
     ],
     defaultValue: 'clase'
   },
