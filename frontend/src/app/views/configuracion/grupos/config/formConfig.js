@@ -86,6 +86,19 @@ export const grupoFormFields = [
     },
     placeholder: 'Seleccione un plan (requiere área seleccionada)'
   },
+
+  {
+    name: 'FECHA_INICIO',
+    type: 'date',
+    label: 'Fecha inicio',
+    required: true
+  },
+  {
+    name: 'FECHA_TERMINO',
+    type: 'date',
+    label: 'Fecha termino',
+    required: true
+  },
   {
     name: 'CODIGO_GRUPO',
     type: 'text',

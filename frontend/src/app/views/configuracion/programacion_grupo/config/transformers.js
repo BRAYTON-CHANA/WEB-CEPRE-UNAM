@@ -78,7 +78,7 @@ export const transformRecords = (records) => {
         seenBlocks.add(r.BLOQUE_ORDEN);
         rawBlocks.push({
           duration: r.DURACION,
-          type: 'clase',
+          type: r.TIPO_BLOQUE || 'clase',
           label: r.ETIQUETA || `Bloque ${r.BLOQUE_ORDEN}`,
           orden: r.BLOQUE_ORDEN,
           idBloque: r.ID_BLOQUE
@@ -91,15 +91,18 @@ export const transformRecords = (records) => {
   // cellEvents: key = "colIdx-bloqueOrden" (colIdx = DIA_IDX - 1, 0-based)
   const cellEvents = {};
   records.forEach(r => {
-    if (!r.CURSO_ASIGNADO && !r.ID_PLAN_ACADEMICO_CURSO) return;
+    if (r.TIPO_BLOQUE === 'break') return;
+    if (!r.CURSO_ASIGNADO && !r.ID_GRUPO_PLAN_CURSO) return;
     const colIdx = r.DIA_IDX - 1;
     const key = `${colIdx}-${r.BLOQUE_ORDEN}`;
     cellEvents[key] = {
-      label: r.CURSO_ASIGNADO || '',
-      color: getCourseColor(String(r.ID_PLAN_ACADEMICO_CURSO)),
-      idProgramacion: r.ID_PROGRAMACION,
-      idBloque: r.ID_BLOQUE,
-      idPlanAcademicoCurso: r.ID_PLAN_ACADEMICO_CURSO
+      label:           r.CURSO_ASIGNADO || '',
+      group:           `${r.CODIGO_GRUPO} - ${r.NOMBRE_GRUPO}`,
+      description:     r.DOCENTE_ASIGNADO || '',
+      color:           getCourseColor(String(r.ID_GRUPO_PLAN_CURSO)),
+      idProgramacion:  r.ID_PROGRAMACION,
+      idBloque:        r.ID_BLOQUE,
+      idGrupoPlanCurso: r.ID_GRUPO_PLAN_CURSO
     };
   });
 

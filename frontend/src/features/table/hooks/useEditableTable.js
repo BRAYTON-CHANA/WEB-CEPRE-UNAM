@@ -56,9 +56,13 @@ export function useEditableTable({ data, primaryKey, tableName, onRefresh }) {
   const saveAll = useCallback(async () => {
     if (!isDirty || isSaving) return;
 
+    const sanitize = (fields) => Object.fromEntries(
+      Object.entries(fields).map(([k, v]) => [k, (v === '' || v === undefined) ? null : v])
+    );
+
     const updates = [...pendingChanges.entries()].map(([id, fields]) => ({
       id,
-      data: fields
+      data: sanitize(fields)
     }));
 
     setIsSaving(true);

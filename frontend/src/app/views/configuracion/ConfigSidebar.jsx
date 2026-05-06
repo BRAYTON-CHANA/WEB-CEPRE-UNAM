@@ -208,6 +208,13 @@ const ConfigSidebar = () => {
           icon: <TimetableIcon />,
           href: '/configuracion/programacion_grupo',
           active: location.pathname === '/configuracion/programacion_grupo'
+        },
+        {
+          id: 'programacion_plazas_docentes',
+          name: 'Programación por Plaza',
+          icon: <TimetableIcon />,
+          href: '/configuracion/programacion_plazas_docentes',
+          active: location.pathname === '/configuracion/programacion_plazas_docentes'
         }
       ]
     }

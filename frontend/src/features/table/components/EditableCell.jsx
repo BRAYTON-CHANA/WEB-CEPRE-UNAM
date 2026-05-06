@@ -67,6 +67,8 @@ const EditableCell = ({ column, value, rowData, rowId, onCellChange }) => {
               formData={rowData}
               placeholder={column.placeholder || 'Seleccione...'}
               searchable={column.searchable || false}
+              freezeParams={column.freezeParams || false}
+              showRefreshButton={column.showRefreshButton || false}
             />
           ) : (
             <ReferenceSelectInput

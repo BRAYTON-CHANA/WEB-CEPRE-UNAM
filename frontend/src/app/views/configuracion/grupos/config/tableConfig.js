@@ -18,8 +18,8 @@ export const getTableLevelConfigs = (gruposCrud, handleAddGrupo, handleAsignarPl
     field: 'CODIGO_PERIODO',
     headers: [
       { title: 'NOMBRE_PERIODO', type: 'string' },
-      { title: 'FECHA_INICIO', type: 'date' },
-      { title: 'FECHA_FIN', type: 'date' }
+      { title: 'INICIO_PERIODO', type: 'date' },
+      { title: 'FIN_PERIODO', type: 'date' }
     ],
     boundColumn: 'ID_PERIODO',
     // Sin acciones para periodos
@@ -44,11 +44,13 @@ export const getTableLevelConfigs = (gruposCrud, handleAddGrupo, handleAsignarPl
     level: 3,
     headers: [
       { title: 'CODIGO_GRUPO', type: 'string' },
-      { title: 'NOMBRE_GRUPO', type: 'string' },
+      //{ title: 'NOMBRE_GRUPO', type: 'string' },
       { title: 'NOMBRE_AREA', type: 'string' },
       { title: 'NOMBRE_TURNO', type: 'string' },
       { title: 'NOMBRE_AULA', type: 'string' },
       { title: 'CAPACIDAD_MAXIMA', type: 'number' },
+      { title: 'FECHA_INICIO', type: 'string' },
+      { title: 'FECHA_TERMINO', type: 'string' },
       { title: 'GRUPO_ACTIVO', type: 'boolean' }
     ],
     boundColumn: 'ID_GRUPO',

@@ -9,7 +9,8 @@ import { headerProps, getHeaderActions } from './config/headerConfig';
 
 const PLAZAS_COLUMNS = [
   { field: 'NOMBRE_CURSO',          title: 'Curso',         editable: false },
-  { field: 'EJE_TEMATICO',          title: 'Eje Temático',  editable: false },
+  //{ field: 'EJE_TEMATICO',          title: 'Eje Temático',  editable: false },
+  { field: 'NOMBRE_AREA',          title: 'Nombre Area',  editable: false },
   { field: 'DESCRIPCION_PLAN',      title: 'Plan',          editable: false },
   { field: 'HORAS_ACADEMICAS_CICLO',title: 'Hrs Ciclo',     editable: false },
   {
@@ -29,7 +30,9 @@ const PLAZAS_COLUMNS = [
     labelField: '{identificador_docente} - {nombre_curso}',
     descriptionField: '{docente_nombre_completo}',
     placeholder: 'Seleccione una plaza...',
-    searchable: true
+    searchable: true,
+    freezeParams: true,
+    showRefreshButton: true
   }
 ];
 

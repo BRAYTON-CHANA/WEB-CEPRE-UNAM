@@ -38,7 +38,8 @@ export const useFunctionData = (config) => {
     descriptionField,
     statusField,
     shouldLoadData = true,
-    formData = {}
+    formData = {},
+    freezeParams = false
   } = config || {};
 
   console.log(`[useFunctionData:${functionName}] Config received:`, {
@@ -56,6 +57,7 @@ export const useFunctionData = (config) => {
   const [error, setError] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const hasLoadedRef = useRef(false);
+  const frozenParamsRef = useRef(null);
 
   // Procesar templates en functionParams {CAMPO} -> valor de formData
   const processedParams = useMemo(() => {
@@ -94,10 +96,21 @@ export const useFunctionData = (config) => {
     return true;
   }, [processedParams, optionalParams]);
 
+  // Si freezeParams, usar params congelados del primer load
+  const activeParams = useMemo(() => {
+    if (!freezeParams) return processedParams;
+    if (frozenParamsRef.current !== null) return frozenParamsRef.current;
+    if (hasAllRequiredValues) {
+      frozenParamsRef.current = processedParams;
+      return processedParams;
+    }
+    return processedParams;
+  }, [freezeParams, processedParams, hasAllRequiredValues]);
+
   // Generar cache key
   const cacheKey = useMemo(() => {
-    return `${functionName}:${JSON.stringify(processedParams)}`;
-  }, [functionName, processedParams]);
+    return `${functionName}:${JSON.stringify(freezeParams ? (frozenParamsRef.current ?? activeParams) : activeParams)}`;
+  }, [functionName, activeParams, freezeParams]);
 
   // Función para cargar datos (memoizada)
   const loadData = useCallback(async () => {
@@ -127,7 +140,7 @@ export const useFunctionData = (config) => {
     // Crear promise y guardarla para evitar duplicados
     const requestPromise = (async () => {
       try {
-        const data = await functionService.execute(functionName, processedParams);
+        const data = await functionService.execute(functionName, freezeParams ? (frozenParamsRef.current ?? activeParams) : activeParams);
         
         // Transformar al formato de opciones
         // Soporta templates en labelField y descriptionField: '{CAMPO}' -> valor del registro
@@ -167,7 +180,7 @@ export const useFunctionData = (config) => {
       pendingRequests.delete(cacheKey);
       setLoading(false);
     }
-  }, [cacheKey, functionName, shouldLoadData, hasAllRequiredValues, valueField, labelField, descriptionField, statusField, processedParams]);
+  }, [cacheKey, functionName, shouldLoadData, hasAllRequiredValues, valueField, labelField, descriptionField, statusField, activeParams, freezeParams]);
 
   // Efecto para carga inicial y cuando cambian dependencias
   useEffect(() => {
@@ -204,5 +217,13 @@ export const useFunctionData = (config) => {
     return unsubscribe;
   }, [functionName, cacheKey]);
 
-  return { options, loading, error, processedParams };
+  const refresh = useCallback(() => {
+    frozenParamsRef.current = null;
+    hasLoadedRef.current = false;
+    cache.delete(cacheKey);
+    pendingRequests.delete(cacheKey);
+    setRefreshTrigger(prev => prev + 1);
+  }, [cacheKey]);
+
+  return { options, loading, error, processedParams: activeParams, refresh };
 };
