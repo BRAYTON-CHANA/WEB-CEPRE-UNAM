@@ -26,7 +26,9 @@ import PlazasDocentesConfig from '@/app/views/configuracion/plazas_docentes';
 import GruposConfig from '@/app/views/configuracion/grupos';
 import ProgramacionGrupoConfig from '@/app/views/configuracion/programacion_grupo';
 import ProgramacionPlazasDocentes from '@/app/views/configuracion/programacion_plazas_docentes';
-import ReportesConfig from '@/app/views/configuracion/reportes';
+import ReportesIndex from '@/app/views/configuracion/reportes';
+import ReportesGrupos from '@/app/views/configuracion/reportes/grupos';
+import ReportesPlazas from '@/app/views/configuracion/reportes/plazas';
 
 
 import AsignacionHorarioGrupo from '@/app/views/datos/asignacion_horario_grupo';
@@ -70,7 +72,9 @@ function App() {
       <Route path="/configuracion/periodos" element={<PeriodosConfig />} />
       <Route path="/configuracion/programacion_grupo" element={<ProgramacionGrupoConfig />} />
       <Route path="/configuracion/programacion_plazas_docentes" element={<ProgramacionPlazasDocentes />} />
-      <Route path="/configuracion/reportes" element={<ReportesConfig />} />
+      <Route path="/configuracion/reportes" element={<ReportesIndex />} />
+      <Route path="/configuracion/reportes/grupos" element={<ReportesGrupos />} />
+      <Route path="/configuracion/reportes/plazas" element={<ReportesPlazas />} />
     </Routes>
   );
 }

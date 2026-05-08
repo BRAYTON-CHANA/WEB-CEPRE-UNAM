@@ -232,8 +232,23 @@ const ConfigSidebar = () => {
       id: 'reportes',
       name: 'Reportes',
       icon: <FileTextIcon />,
-      href: '/configuracion/reportes',
-      active: location.pathname === '/configuracion/reportes'
+      expanded: expandedMenus.reportes,
+      children: [
+        {
+          id: 'reportes_grupos',
+          name: 'Grupos',
+          icon: <UsersIcon />,
+          href: '/configuracion/reportes/grupos',
+          active: location.pathname === '/configuracion/reportes/grupos'
+        },
+        {
+          id: 'reportes_plazas',
+          name: 'Plazas Docentes',
+          icon: <UserIcon />,
+          href: '/configuracion/reportes/plazas',
+          active: location.pathname === '/configuracion/reportes/plazas'
+        }
+      ]
     }
   ];
 
