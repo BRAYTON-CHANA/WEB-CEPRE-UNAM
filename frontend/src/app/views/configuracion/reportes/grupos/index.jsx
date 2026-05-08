@@ -4,12 +4,16 @@ import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectI
 import TableMultiLevelRender from '@/features/table/views/TableMultiLevelRender';
 import { useTableData } from '@/features/crud/hooks/useTableData';
 import { exportSesionesToExcel, exportAllSesionesToExcel } from './utils/exportSesionesToExcel';
+import { exportSesionesToPdf, exportAllSesionesToPdf } from './utils/exportSesionesToPdf';
 import { levelConfigs } from './config';
 
 function ReportesGrupos() {
   const [selectedPeriodo, setSelectedPeriodo] = useState('');
   const [exportingAll, setExportingAll] = useState(false);
   const [exportProgress, setExportProgress] = useState({ current: 0, total: 0 });
+  const [exportingIndividual, setExportingIndividual] = useState(null);
+  const [exportingAllPdf, setExportingAllPdf] = useState(false);
+  const [exportingIndividualPdf, setExportingIndividualPdf] = useState(null);
 
   const filters = useMemo(() => {
     return selectedPeriodo ? { ID_PERIODO: selectedPeriodo } : {};
@@ -49,6 +53,34 @@ function ReportesGrupos() {
     }
   };
 
+  const handleExportIndividual = async (row) => {
+    setExportingIndividual(row.NOMBRE_GRUPO || row.CODIGO_GRUPO);
+    try {
+      await exportSesionesToExcel(row.ID_GRUPO, row.NOMBRE_GRUPO || row.CODIGO_GRUPO);
+    } finally {
+      setExportingIndividual(null);
+    }
+  };
+
+  const handleExportIndividualPdf = async (row) => {
+    setExportingIndividualPdf(row.NOMBRE_GRUPO || row.CODIGO_GRUPO);
+    try {
+      await exportSesionesToPdf(row.ID_GRUPO, row.NOMBRE_GRUPO || row.CODIGO_GRUPO);
+    } finally {
+      setExportingIndividualPdf(null);
+    }
+  };
+
+  const handleExportAllPdf = async () => {
+    if (!records || records.length === 0) return;
+    setExportingAllPdf(true);
+    try {
+      await exportAllSesionesToPdf(records);
+    } finally {
+      setExportingAllPdf(false);
+    }
+  };
+
   const tableLevelConfigs = levelConfigs.map(config => ({
     ...config,
     actions: {
@@ -57,9 +89,14 @@ function ReportesGrupos() {
         icon: 'download',
         label: 'Exportar Excel',
         className: 'text-green-600 hover:bg-green-100',
-        onClick: (row) => {
-          exportSesionesToExcel(row.ID_GRUPO, row.NOMBRE_GRUPO || row.CODIGO_GRUPO);
-        }
+        onClick: (row) => handleExportIndividual(row)
+      },
+      exportPdf: {
+        enabled: true,
+        icon: 'file-text',
+        label: 'Exportar PDF',
+        className: 'text-red-600 hover:bg-red-50',
+        onClick: (row) => handleExportIndividualPdf(row)
       }
     }
   }));
@@ -75,25 +112,30 @@ function ReportesGrupos() {
             </p>
           </div>
           {selectedPeriodo && !loading && !error && records && records.length > 0 && (
-            <button
-              onClick={handleExportAll}
-              disabled={exportingAll}
-              className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-500 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {exportingAll ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  Exportando...
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Exportar Todo
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportAll}
+                disabled={exportingAll || exportingAllPdf}
+                className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-500 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {exportingAll ? (
+                  <><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>Exportando...</>
+                ) : (
+                  <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>Exportar Todo Excel</>
+                )}
+              </button>
+              <button
+                onClick={handleExportAllPdf}
+                disabled={exportingAll || exportingAllPdf}
+                className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-500 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {exportingAllPdf ? (
+                  <><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>Generando PDF...</>
+                ) : (
+                  <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>Exportar Todo PDF</>
+                )}
+              </button>
+            </div>
           )}
         </div>
 
@@ -165,6 +207,36 @@ function ReportesGrupos() {
                 data={records}
                 levelConfigs={tableLevelConfigs}
               />
+            </div>
+          </div>
+        )}
+
+        {exportingIndividual && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 text-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600 mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Exportando Excel...</h3>
+              <p className="text-gray-500 text-sm">{exportingIndividual}</p>
+            </div>
+          </div>
+        )}
+
+        {exportingIndividualPdf && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 text-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-600 mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Generando PDF...</h3>
+              <p className="text-gray-500 text-sm">{exportingIndividualPdf}</p>
+            </div>
+          </div>
+        )}
+
+        {exportingAllPdf && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 text-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-600 mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Generando PDF todos los grupos...</h3>
+              <p className="text-gray-500 text-sm">Por favor espere...</p>
             </div>
           </div>
         )}

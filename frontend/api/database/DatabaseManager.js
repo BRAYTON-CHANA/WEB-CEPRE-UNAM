@@ -274,6 +274,7 @@ class DatabaseManager {
   static async selectWithLimit(table, limit, offset = 0, filters = {}, fields = null) {
     const supabase = await DatabaseManager.connect();
     let query = supabase.from(table).select(fields || '*');
+    console.log(`[DatabaseManager] SELECT from ${table}, limit=${limit}, offset=${offset}, filters=${JSON.stringify(filters)}`);
 
     for (const [key, value] of Object.entries(filters)) {
       query = query.eq(key, value);
@@ -281,6 +282,7 @@ class DatabaseManager {
 
     const { data, error } = await query.range(offset, offset + limit - 1);
     if (error) throw error;
+    console.log(`[DatabaseManager] SELECT result on ${table}: ${(data || []).length} rows`);
     return data || [];
   }
 

@@ -1,6 +1,21 @@
 import ExcelJS from 'exceljs';
 import { db } from '@/shared/api';
 
+// Trae TODOS los registros superando el límite 1000 de Supabase
+const selectAll = async (table, filters = {}) => {
+  const PAGE_SIZE = 1000;
+  let offset = 0;
+  const all = [];
+  while (true) {
+    const res = await db.selectWithLimit(table, PAGE_SIZE, offset, filters);
+    const rows = res?.data?.records || res || [];
+    all.push(...rows);
+    if (rows.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+  return all;
+};
+
 const parseDate = (fechaStr) => {
   const [day, month, year] = fechaStr.split('/').map(Number);
   return new Date(year, month - 1, day);
@@ -368,63 +383,66 @@ export const exportAllSesionesToExcel = async (grupos) => {
       return;
     }
 
-    const ExcelJS = (await import('exceljs')).default;
-    const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Sistema Horarios';
-    workbook.created = new Date();
+    const grupoIds = grupos
+      .map(g => g.ID_GRUPO)
+      .filter(id => id !== null && id !== undefined);
 
-    let gruposExportados = 0;
-    let gruposSinSesiones = 0;
+    if (grupoIds.length === 0) {
+      alert('No hay grupos válidos para exportar');
+      return;
+    }
 
-    for (const grupo of grupos) {
-      const idGrupo = grupo.ID_GRUPO;
-      
-      if (!idGrupo || idGrupo === null || idGrupo === undefined) {
-        continue;
+    // ── 1. Sesiones por grupo (paginado, 1 query por grupo) ──────────────
+    const sesionesPorGrupo = new Map();
+    for (const idGrupo of grupoIds) {
+      const rows = await selectAll('VW_SESIONES_PROGRAMADAS', { ID_GRUPO: idGrupo });
+      sesionesPorGrupo.set(idGrupo, rows);
+    }
+
+    // ── 2. GRUPOS completa → filtrar en memoria ───────────────────────────
+    const grupoIdsSet = new Set(grupoIds);
+    const allGruposRows = await selectAll('GRUPOS');
+    const gruposMap = new Map();
+    for (const r of allGruposRows) {
+      if (grupoIdsSet.has(r.ID_GRUPO)) gruposMap.set(r.ID_GRUPO, r);
+    }
+
+    // ── 3. TURNOS completa → filtrar en memoria ────────────────────────────
+    const turnoIdsSet = new Set([...gruposMap.values()].map(g => g.ID_TURNO).filter(Boolean));
+    const allTurnosRows = await selectAll('TURNOS');
+    const turnosMap = new Map();
+    for (const r of allTurnosRows) {
+      if (turnoIdsSet.has(r.ID_TURNO)) turnosMap.set(r.ID_TURNO, r);
+    }
+
+    // ── 4. HORARIOS + BLOQUES completas → filtrar en memoria ──────────────
+    const horarioIdsSet = new Set([...turnosMap.values()].map(t => t.ID_HORARIO).filter(Boolean));
+    const allHorariosRows = await selectAll('HORARIOS');
+    const horariosMap = new Map();
+    for (const r of allHorariosRows) {
+      if (horarioIdsSet.has(r.ID_HORARIO)) horariosMap.set(r.ID_HORARIO, r);
+    }
+
+    const allBloquesRows = await selectAll('HORARIO_BLOQUES');
+    const bloquesMap = new Map();
+    for (const r of allBloquesRows) {
+      if (horarioIdsSet.has(r.ID_HORARIO)) {
+        if (!bloquesMap.has(r.ID_HORARIO)) bloquesMap.set(r.ID_HORARIO, []);
+        bloquesMap.get(r.ID_HORARIO).push(r);
       }
-      
-      const nombreGrupo = grupo.NOMBRE_GRUPO || grupo.CODIGO_GRUPO || `Grupo_${idGrupo}`;
-      const sheetName = nombreGrupo.slice(0, 30);
+    }
+    for (const [k, v] of bloquesMap) bloquesMap.set(k, v.sort((a, b) => a.ORDEN - b.ORDEN));
 
-      const sesionesResult = await db.select('VW_SESIONES_PROGRAMADAS', { ID_GRUPO: idGrupo });
-      const sesiones = sesionesResult?.data?.records || sesionesResult || [];
-
-      if (sesiones.length === 0) {
-        gruposSinSesiones++;
-        continue;
-      }
-
-      const grupoData = await db.select('GRUPOS', { ID_GRUPO: idGrupo });
-      const grupoInfo = (grupoData?.data?.records || grupoData)?.[0];
-
-      if (!grupoInfo) {
-        gruposSinSesiones++;
-        continue;
-      }
-
-      const turnoResult = await db.select('TURNOS', { ID_TURNO: grupoInfo.ID_TURNO });
-      const turno = (turnoResult?.data?.records || turnoResult)?.[0];
-
-      if (!turno) {
-        gruposSinSesiones++;
-        continue;
-      }
-
-      const horarioResult = await db.select('HORARIOS', { ID_HORARIO: turno.ID_HORARIO });
-      const horario = (horarioResult?.data?.records || horarioResult)?.[0];
-
-      const bloquesResult = await db.select('HORARIO_BLOQUES', { ID_HORARIO: turno.ID_HORARIO });
-      const bloques = (bloquesResult?.data?.records || bloquesResult || [])
-        .sort((a, b) => a.ORDEN - b.ORDEN);
-
-      if (bloques.length === 0) {
-        gruposSinSesiones++;
-        continue;
-      }
+    // ── Construir customBlocks por turno ───────────────────────────────────
+    const customBlocksByTurno = new Map();
+    for (const [turnoId, turno] of turnosMap) {
+      if (!turno.ID_HORARIO) continue;
+      const horario = horariosMap.get(turno.ID_HORARIO);
+      const bloques = bloquesMap.get(turno.ID_HORARIO) || [];
+      if (bloques.length === 0) continue;
 
       const horaInicioJornada = parseInt(horario?.HORA_INICIO_JORNADA?.split(':')[0]) || 7;
-      const startMinutes = horaInicioJornada * 60;
-      let currentMinute = startMinutes;
+      let currentMinute = horaInicioJornada * 60;
 
       const customBlocks = bloques.map((b) => {
         const hour = Math.floor(currentMinute / 60);
@@ -432,11 +450,10 @@ export const exportAllSesionesToExcel = async (grupos) => {
         const endMinuteTotal = currentMinute + (b.DURACION || 50);
         const endHour = Math.floor(endMinuteTotal / 60);
         const endMinute = endMinuteTotal % 60;
-
         const fmt = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
         const timeRange = `${fmt(hour, minute)} - ${fmt(endHour, endMinute)}`;
-
-        const block = {
+        currentMinute = endMinuteTotal;
+        return {
           idBloque: b.ID_BLOQUE,
           duration: b.DURACION || 50,
           type: b.TIPO_BLOQUE?.toLowerCase() || 'clase',
@@ -446,21 +463,41 @@ export const exportAllSesionesToExcel = async (grupos) => {
           endTime: fmt(endHour, endMinute),
           timeRange
         };
-
-        currentMinute = endMinuteTotal;
-        return block;
       });
+      customBlocksByTurno.set(turnoId, customBlocks);
+    }
+
+    // ── Construir workbook ─────────────────────────────────────────────────
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Sistema Horarios';
+    workbook.created = new Date();
+
+    let gruposExportados = 0;
+    let gruposSinSesiones = 0;
+
+    for (const grupo of grupos) {
+      const idGrupo = grupo.ID_GRUPO;
+      if (!idGrupo) continue;
+
+      const nombreGrupo = grupo.NOMBRE_GRUPO || grupo.CODIGO_GRUPO || `Grupo_${idGrupo}`;
+      const sesiones = sesionesPorGrupo.get(idGrupo) || [];
+
+      if (sesiones.length === 0) { gruposSinSesiones++; continue; }
+
+      const grupoInfo = gruposMap.get(idGrupo);
+      if (!grupoInfo) { gruposSinSesiones++; continue; }
+
+      const turno = turnosMap.get(grupoInfo.ID_TURNO);
+      if (!turno) { gruposSinSesiones++; continue; }
+
+      const customBlocks = customBlocksByTurno.get(turno.ID_TURNO);
+      if (!customBlocks || customBlocks.length === 0) { gruposSinSesiones++; continue; }
 
       const sesionesPorFecha = new Map();
       for (const s of sesiones) {
         let fechaStr = s.FECHA;
-        if (typeof fechaStr === 'string' && fechaStr.includes('T')) {
-          fechaStr = fechaStr.split('T')[0];
-        }
-        
-        if (!sesionesPorFecha.has(fechaStr)) {
-          sesionesPorFecha.set(fechaStr, []);
-        }
+        if (typeof fechaStr === 'string' && fechaStr.includes('T')) fechaStr = fechaStr.split('T')[0];
+        if (!sesionesPorFecha.has(fechaStr)) sesionesPorFecha.set(fechaStr, []);
         sesionesPorFecha.get(fechaStr).push(s);
       }
 
@@ -468,31 +505,21 @@ export const exportAllSesionesToExcel = async (grupos) => {
       for (const [fechaStr, sesionesDelDia] of sesionesPorFecha.entries()) {
         const date = parseDate(fechaStr.includes('/') ? fechaStr : fechaStr.split('-').reverse().join('/'));
         const weekday = date.getDay();
-
         const signature = customBlocks.map(cb => {
           if (cb.type === 'break') return '__BREAK__';
-          
           const sesion = sesionesDelDia.find(s => s.BLOQUE_ORDEN === cb.orden);
-          if (sesion) {
-            const desc = `${sesion.CODIGO_AREA || ''}|${sesion.NOMBRE_CURSO || ''}|${sesion.DOCENTE_DISPLAY || 'Sin docente'}`;
-            return desc;
-          }
+          if (sesion) return `${sesion.CODIGO_AREA || ''}|${sesion.NOMBRE_CURSO || ''}|${sesion.DOCENTE_DISPLAY || 'Sin docente'}`;
           return null;
         });
-
         const sigKey = signature.map(s => s === null ? '_' : s).join('||');
         dateInfos.push({ date, fechaStr, weekday, signature, sigKey });
       }
 
       const grouped = new Map();
       for (const info of dateInfos) {
-        if (!grouped.has(info.weekday)) {
-          grouped.set(info.weekday, new Map());
-        }
+        if (!grouped.has(info.weekday)) grouped.set(info.weekday, new Map());
         const byWeekday = grouped.get(info.weekday);
-        if (!byWeekday.has(info.sigKey)) {
-          byWeekday.set(info.sigKey, { signature: info.signature, dates: [] });
-        }
+        if (!byWeekday.has(info.sigKey)) byWeekday.set(info.sigKey, { signature: info.signature, dates: [] });
         byWeekday.get(info.sigKey).dates.push(info.date);
       }
 
@@ -500,67 +527,58 @@ export const exportAllSesionesToExcel = async (grupos) => {
       for (const [wd, byWeekday] of grouped.entries()) {
         for (const g of byWeekday.values()) {
           g.dates.sort((a, b) => a - b);
-          columns.push({
-            weekday: wd,
-            weekdayName: WEEKDAY_NAMES[wd],
-            dates: g.dates,
-            signature: g.signature
-          });
+          columns.push({ weekday: wd, weekdayName: WEEKDAY_NAMES[wd], dates: g.dates, signature: g.signature });
         }
       }
       columns.sort((a, b) => a.dates[0] - b.dates[0]);
 
-      if (columns.length === 0) {
-        gruposSinSesiones++;
-        continue;
-      }
+      if (columns.length === 0) { gruposSinSesiones++; continue; }
 
-      const ws = workbook.addWorksheet(sheetName);
+      const ws = workbook.addWorksheet(nombreGrupo.slice(0, 30));
 
-      const headerFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2D366F' } };
-      const headerFont = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+      const headerFill    = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2D366F' } };
+      const headerFont    = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
       const subHeaderFont = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
-      const blockColFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } };
-      const blockColFont = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2D366F' } };
-      const eventFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD8F1EF' } };
-      const eventFont = { name: 'Arial', size: 9, color: { argb: 'FF1F2937' } };
-      const breakFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
-      const breakFont = { name: 'Arial', size: 9, italic: true, color: { argb: 'FF6B7280' } };
-      const thinBorder = {
-        top: { style: 'thin', color: { argb: 'FF000000' } },
+      const blockColFill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } };
+      const blockColFont  = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2D366F' } };
+      const eventFill     = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD8F1EF' } };
+      const eventFont     = { name: 'Arial', size: 9, color: { argb: 'FF1F2937' } };
+      const breakFill     = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
+      const breakFont     = { name: 'Arial', size: 9, italic: true, color: { argb: 'FF6B7280' } };
+      const thinBorder    = {
+        top:    { style: 'thin', color: { argb: 'FF000000' } },
         bottom: { style: 'thin', color: { argb: 'FF000000' } },
-        left: { style: 'thin', color: { argb: 'FF000000' } },
-        right: { style: 'thin', color: { argb: 'FF000000' } }
+        left:   { style: 'thin', color: { argb: 'FF000000' } },
+        right:  { style: 'thin', color: { argb: 'FF000000' } }
       };
       const institutionFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
-
       const nombrePeriodo = sesiones[0]?.NOMBRE_PERIODO || 'N/A';
 
       ws.mergeCells(1, 1, 1, columns.length + 1);
-      const institutionCell = ws.getCell(1, 1);
-      institutionCell.value = 'CENTRO DE ESTUDIOS PREUNIVERSITARIO - UNAM';
-      institutionCell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
-      institutionCell.fill = institutionFill;
-      institutionCell.alignment = { vertical: 'middle', horizontal: 'center' };
-      institutionCell.border = thinBorder;
+      const ic = ws.getCell(1, 1);
+      ic.value = 'CENTRO DE ESTUDIOS PREUNIVERSITARIO - UNAM';
+      ic.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+      ic.fill = institutionFill;
+      ic.alignment = { vertical: 'middle', horizontal: 'center' };
+      ic.border = thinBorder;
       ws.getRow(1).height = 26;
 
       ws.mergeCells(2, 1, 2, columns.length + 1);
-      const cicloCell = ws.getCell(2, 1);
-      cicloCell.value = `CICLO DE PREPARACIÓN ${nombrePeriodo.toUpperCase()}`;
-      cicloCell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-      cicloCell.fill = institutionFill;
-      cicloCell.alignment = { vertical: 'middle', horizontal: 'center' };
-      cicloCell.border = thinBorder;
+      const cc = ws.getCell(2, 1);
+      cc.value = `CICLO DE PREPARACIÓN ${nombrePeriodo.toUpperCase()}`;
+      cc.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+      cc.fill = institutionFill;
+      cc.alignment = { vertical: 'middle', horizontal: 'center' };
+      cc.border = thinBorder;
       ws.getRow(2).height = 24;
 
       ws.mergeCells(3, 1, 3, columns.length + 1);
-      const titleCell = ws.getCell(3, 1);
-      titleCell.value = `HORARIO - ${nombreGrupo}`;
-      titleCell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
-      titleCell.fill = headerFill;
-      titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
-      titleCell.border = thinBorder;
+      const tc = ws.getCell(3, 1);
+      tc.value = `HORARIO - ${nombreGrupo}`;
+      tc.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+      tc.fill = headerFill;
+      tc.alignment = { vertical: 'middle', horizontal: 'center' };
+      tc.border = thinBorder;
       ws.getRow(3).height = 26;
 
       ws.getCell(4, 1).value = 'BLOQUE';
@@ -583,28 +601,21 @@ export const exportAllSesionesToExcel = async (grupos) => {
         ws.getCell(5, colNum).font = subHeaderFont;
         ws.getCell(5, colNum).fill = headerFill;
         ws.getCell(5, colNum).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-        ws.getCell(3, colNum).border = thinBorder;
+        ws.getCell(5, colNum).border = thinBorder;
       });
 
       ws.getRow(4).height = 24;
-      const maxDates = Math.max(...columns.map(c => c.dates.length), 1);
-      ws.getRow(5).height = Math.max(20, maxDates * 14);
+      ws.getRow(5).height = Math.max(20, Math.max(...columns.map(c => c.dates.length), 1) * 14);
 
       const signatureToCellContent = (sig) => {
-        const cells = [];
-        for (let i = 0; i < customBlocks.length; i++) {
-          const cb = customBlocks[i];
-          if (cb.type === 'break') {
-            cells.push({ type: 'break', label: cb.label });
-          } else if (sig[i] && sig[i] !== '__BREAK__') {
+        return customBlocks.map((cb, i) => {
+          if (cb.type === 'break') return { type: 'break', label: cb.label };
+          if (sig[i] && sig[i] !== '__BREAK__') {
             const [codigo, curso, docente] = sig[i].split('|');
-            const text = `${codigo} ${curso}\n${docente}\n${cb.timeRange}`;
-            cells.push({ type: 'event', text, key: sig[i] });
-          } else {
-            cells.push({ type: 'empty' });
+            return { type: 'event', text: `${codigo} ${curso}\n${docente}\n${cb.timeRange}`, key: sig[i] };
           }
-        }
-        return cells;
+          return { type: 'empty' };
+        });
       };
 
       const computeRuns = (cellInfos) => {
@@ -613,15 +624,9 @@ export const exportAllSesionesToExcel = async (grupos) => {
         while (i < cellInfos.length) {
           const ci = cellInfos[i];
           if (ci.type !== 'event') { i++; continue; }
-          let end = i;
-          let j = i + 1;
+          let end = i, j = i + 1;
           while (j < cellInfos.length) {
-            const cj = cellInfos[j];
-            if (cj.type === 'event' && cj.key === ci.key) {
-              end = j; j++;
-            } else {
-              break;
-            }
+            if (cellInfos[j].type === 'event' && cellInfos[j].key === ci.key) { end = j; j++; } else break;
           }
           runs.push({ start: i, end, key: ci.key });
           i = end + 1;
@@ -630,7 +635,7 @@ export const exportAllSesionesToExcel = async (grupos) => {
       };
 
       const cellsByColumn = columns.map(col => signatureToCellContent(col.signature));
-      const runsByColumn = cellsByColumn.map(computeRuns);
+      const runsByColumn  = cellsByColumn.map(computeRuns);
       const findRun = (runs, i) => runs.find(r => i >= r.start && i <= r.end);
 
       const dataStartRow = 6;
@@ -655,17 +660,13 @@ export const exportAllSesionesToExcel = async (grupos) => {
         columns.forEach((col, idx) => {
           const colNum = idx + 2;
           const cellInfo = cellsByColumn[idx][i];
-          const runs = runsByColumn[idx];
-          const run = findRun(runs, i);
+          const run = findRun(runsByColumn[idx], i);
           const c = ws.getCell(rowNum, colNum);
-
           if (run) {
             if (i === run.start) {
-              const startBlock = customBlocks[run.start];
-              const endBlock = customBlocks[run.end];
-              const combinedRange = `${startBlock.time} - ${endBlock.endTime}`;
+              const sb = customBlocks[run.start], eb = customBlocks[run.end];
               const [codigo, curso, docente] = run.key.split('|');
-              c.value = `${codigo} ${curso}\n${docente}\n${combinedRange}`;
+              c.value = `${codigo} ${curso}\n${docente}\n${sb.time} - ${eb.endTime}`;
             } else {
               c.value = '';
             }
@@ -682,24 +683,18 @@ export const exportAllSesionesToExcel = async (grupos) => {
           c.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
           c.border = thinBorder;
         });
-
         ws.getRow(rowNum).height = cb.type === 'break' ? 22 : 48;
       }
 
       columns.forEach((col, idx) => {
         const colNum = idx + 2;
-        const runs = runsByColumn[idx];
-        runs.forEach(r => {
-          if (r.end > r.start) {
-            ws.mergeCells(dataStartRow + r.start, colNum, dataStartRow + r.end, colNum);
-          }
+        runsByColumn[idx].forEach(r => {
+          if (r.end > r.start) ws.mergeCells(dataStartRow + r.start, colNum, dataStartRow + r.end, colNum);
         });
       });
 
       ws.getColumn(1).width = 15;
-      for (let i = 0; i < columns.length; i++) {
-        ws.getColumn(i + 2).width = 22;
-      }
+      for (let i = 0; i < columns.length; i++) ws.getColumn(i + 2).width = 22;
 
       gruposExportados++;
     }
@@ -721,8 +716,6 @@ export const exportAllSesionesToExcel = async (grupos) => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     });
-
-    alert(`Exportación completada:\n${gruposExportados} grupo(s) exportados\n${gruposSinSesiones} grupo(s) sin sesiones`);
 
   } catch (error) {
     console.error('Error exportando todos los grupos:', error);
