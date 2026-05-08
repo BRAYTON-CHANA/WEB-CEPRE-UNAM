@@ -21,6 +21,7 @@ export function useProgramacionGrupo() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedCells, setSelectedCells] = useState(new Set());
   const [selectedCurso, setSelectedCurso] = useState('');
+  const [estadisticasOpen, setEstadisticasOpen] = useState(false);
 
   const resetPlantilla = useCallback(() => {
     setCustomBlocks(null);
@@ -121,6 +122,14 @@ export function useProgramacionGrupo() {
     setDeleteMode(false);
   };
 
+  const handleOpenEstadisticas = () => {
+    setEstadisticasOpen(true);
+  };
+
+  const handleCloseEstadisticas = () => {
+    setEstadisticasOpen(false);
+  };
+
   const handleCellToggle = useCallback((colIdx, bloqueOrden) => {
     const key = `${colIdx}-${bloqueOrden}`;
     setSelectedCells(prev => {
@@ -204,6 +213,7 @@ export function useProgramacionGrupo() {
     showTemplate,
     stableFormData,
     conflictError,
+    estadisticasOpen,
     setSelectedCurso,
     handleSelectorChange,
     handleStartAdd,
@@ -213,6 +223,8 @@ export function useProgramacionGrupo() {
     handleCellToggle,
     handleConfirmAdd,
     handleCellDelete,
-    handleClearConflict
+    handleClearConflict,
+    handleOpenEstadisticas,
+    handleCloseEstadisticas
   };
 }

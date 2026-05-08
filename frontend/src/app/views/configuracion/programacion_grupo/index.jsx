@@ -3,6 +3,7 @@ import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
 import ScheduleTemplate from '@/features/schedule/components/ScheduleTemplate';
 import GrupoSelector from './components/GrupoSelector';
 import PlantillaToolbar from './components/PlantillaToolbar';
+import EstadisticasModal from './components/EstadisticasModal';
 import { useProgramacionGrupo } from './hooks/useProgramacionGrupo';
 
 function ProgramacionGrupoConfig() {
@@ -22,6 +23,7 @@ function ProgramacionGrupoConfig() {
     showTemplate,
     stableFormData,
     conflictError,
+    estadisticasOpen,
     setSelectedCurso,
     handleSelectorChange,
     handleStartAdd,
@@ -31,7 +33,9 @@ function ProgramacionGrupoConfig() {
     handleCellToggle,
     handleConfirmAdd,
     handleCellDelete,
-    handleClearConflict
+    handleClearConflict,
+    handleOpenEstadisticas,
+    handleCloseEstadisticas
   } = useProgramacionGrupo();
 
   return (
@@ -70,6 +74,7 @@ function ProgramacionGrupoConfig() {
               onConfirmAdd={handleConfirmAdd}
               onStartDelete={handleStartDelete}
               onCancelDelete={handleCancelDelete}
+              onShowEstadisticas={handleOpenEstadisticas}
             />
             <ScheduleTemplate
               blocks={customBlocks}
@@ -122,6 +127,13 @@ function ProgramacionGrupoConfig() {
           </div>
         </div>
       )}
+
+      <EstadisticasModal
+        isOpen={estadisticasOpen}
+        onClose={handleCloseEstadisticas}
+        idGrupo={selectorValues.ID_GRUPO}
+        grupoNombre={grupoNombre}
+      />
     </LayoutWithSidebar>
   );
 }
