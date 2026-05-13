@@ -211,8 +211,20 @@ export function useProgramacionGrupo() {
       const errorMsg = err?.message || '';
       console.log('[DEBUG] errorMsg:', errorMsg);
       console.log('[DEBUG] ¿Incluye [SOLAPAMIENTO]?:', errorMsg?.includes('[SOLAPAMIENTO]'));
+      console.log('[DEBUG] ¿Incluye [CONFLICTO_DOCENTE]?:', errorMsg?.includes('[CONFLICTO_DOCENTE]'));
+      console.log('[DEBUG] ¿Incluye [CONFLICTO_PLAZA]?:', errorMsg?.includes('[CONFLICTO_PLAZA]'));
       
-      if (errorMsg?.includes('[SOLAPAMIENTO]')) {
+      // Detectar cualquier tipo de conflicto (antiguo o nuevo formato)
+      const isConflicto = errorMsg?.includes('[SOLAPAMIENTO]') || 
+                          errorMsg?.includes('[CONFLICTO_DOCENTE]') || 
+                          errorMsg?.includes('[CONFLICTO_PLAZA]');
+      
+      console.log('[DEBUG] isConflicto calculado:', isConflicto);
+      console.log('[DEBUG] errorMsg includes [SOLAPAMIENTO]:', errorMsg?.includes('[SOLAPAMIENTO]'));
+      console.log('[DEBUG] errorMsg includes [CONFLICTO_DOCENTE]:', errorMsg?.includes('[CONFLICTO_DOCENTE]'));
+      console.log('[DEBUG] errorMsg includes [CONFLICTO_PLAZA]:', errorMsg?.includes('[CONFLICTO_PLAZA]'));
+      
+      if (isConflicto) {
         try {
           // El backend ahora envía details directamente en el error
           let detail = err?.details;
@@ -229,12 +241,20 @@ export function useProgramacionGrupo() {
           
           let solapamientoMsg = '';
           
+          // Detectar nivel desde el mensaje (nuevo formato) o desde detail (antiguo)
+          const isNivel1 = errorMsg.includes('[NIVEL 1]') || errorMsg.includes('[CONFLICTO_PLAZA]') || detail?.nivel === 1;
+          const isNivel2 = errorMsg.includes('[NIVEL 2]') || errorMsg.includes('[CONFLICTO_DOCENTE]') || detail?.nivel === 2;
+          
           // Si no hay detalles válidos, usar mensaje básico del error
-          if (!detail || Object.keys(detail).length === 0) {
+          const hasNoDetails = !detail || 
+                               (Array.isArray(detail) && detail.length === 0) || 
+                               (typeof detail === 'object' && !Array.isArray(detail) && Object.keys(detail).length === 0);
+          
+          if (hasNoDetails) {
             solapamientoMsg = `⚠️ ${errorMsg}\n\n` +
               `💡 La plaza o docente ya está asignado a otro grupo en este horario.\n` +
               `🔧 Solución: Libere la plaza del grupo conflictivo primero.`;
-          } else if (detail.nivel === 1) {
+          } else if (isNivel1) {
             const conflictos = detail.conflictos || [];
             solapamientoMsg = `⚠️ SOLAPAMIENTO DE PLAZA (Nivel 1)\n\n` +
               `Plaza: ${detail.plaza_identificador || 'N/A'} (ID: ${detail.plaza_id || 'N/A'})\n` +
@@ -252,12 +272,18 @@ export function useProgramacionGrupo() {
                 : '⚠️ No se pudieron cargar los detalles de los conflictos.') +
               `\n\nSolución: Libere la plaza del grupo conflictivo primero.`;
               
-          } else if (detail.nivel === 2) {
-            const conflictos = detail.conflictos || [];
+          } else if (isNivel2) {
+            // El nuevo formato envía array directo en details
+            const conflictos = Array.isArray(detail) ? detail : (detail.conflictos || []);
+            
+            // Extraer info del docente desde el primer conflicto o del mensaje
+            const docenteNombre = errorMsg.match(/Docente\s+([^)]+)/)?.[1] || 'N/A';
+            const plazaActual = errorMsg.match(/\(([^)]+)\)/)?.[1] || 'N/A';
+            
             solapamientoMsg = `⚠️ SOLAPAMIENTO DE DOCENTE (Nivel 2)\n\n` +
-              `Docente: ${detail.docente_nombre || 'N/A'} (ID: ${detail.docente_id || 'N/A'})\n` +
-              `Plaza actual: ${detail.plaza_actual || 'N/A'}\n` +
-              `Total conflictos detectados: ${detail.total_conflictos || conflictos.length}\n\n` +
+              `Docente: ${docenteNombre}\n` +
+              `Plaza actual: ${plazaActual}\n` +
+              `Total conflictos detectados: ${conflictos.length}\n\n` +
               (conflictos.length > 0
                 ? conflictos.map((c) => 
                     `${c.numero}. Fecha: ${c.fecha} (${c.dia_nombre})\n` +
