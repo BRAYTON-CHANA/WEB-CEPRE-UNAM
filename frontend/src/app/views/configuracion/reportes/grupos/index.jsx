@@ -5,6 +5,7 @@ import TableMultiLevelRender from '@/features/table/views/TableMultiLevelRender'
 import { useTableData } from '@/features/crud/hooks/useTableData';
 import { exportSesionesToExcel, exportAllSesionesToExcel } from './utils/exportSesionesToExcel';
 import { exportSesionesToPdf, exportAllSesionesToPdf } from './utils/exportSesionesToPdf';
+import ExportOptionsModal from '../shared/ExportOptionsModal';
 import { levelConfigs } from './config';
 
 function ReportesGrupos() {
@@ -14,6 +15,7 @@ function ReportesGrupos() {
   const [exportingIndividual, setExportingIndividual] = useState(null);
   const [exportingAllPdf, setExportingAllPdf] = useState(false);
   const [exportingIndividualPdf, setExportingIndividualPdf] = useState(null);
+  const [exportModalPending, setExportModalPending] = useState(null);
 
   const filters = useMemo(() => {
     return selectedPeriodo ? { ID_PERIODO: selectedPeriodo } : {};
@@ -28,56 +30,51 @@ function ReportesGrupos() {
     setSelectedPeriodo(value);
   };
 
-  const handleExportAll = async () => {
+  const handleExportIndividual = (row) => {
+    setExportModalPending({ type: 'individual', row });
+  };
+
+  const handleExportAllExcel = () => {
     if (!records || records.length === 0) return;
-    
-    setExportingAll(true);
-    setExportProgress({ current: 0, total: records.length });
-    
-    const processExport = async () => {
-      for (let i = 0; i < records.length; i++) {
-        setExportProgress({ current: i + 1, total: records.length });
-        if (i % 3 === 0) {
-          await new Promise(resolve => setTimeout(resolve, 10));
-        }
+    setExportModalPending({ type: 'all' });
+  };
+
+  const handleModalConfirm = async (opts) => {
+    const pending = exportModalPending;
+    setExportModalPending(null);
+    if (!pending) return;
+    const isPdf = pending.format === 'pdf';
+
+    if (pending.type === 'individual') {
+      const row = pending.row;
+      const nombre = row.NOMBRE_GRUPO || row.CODIGO_GRUPO;
+      if (isPdf) {
+        setExportingIndividualPdf(nombre);
+        try { await exportSesionesToPdf(row.ID_GRUPO, nombre, opts); }
+        finally { setExportingIndividualPdf(null); }
+      } else {
+        setExportingIndividual(nombre);
+        try { await exportSesionesToExcel(row.ID_GRUPO, nombre, opts); }
+        finally { setExportingIndividual(null); }
       }
-    };
-    
-    processExport();
-    
-    try {
-      await exportAllSesionesToExcel(records);
-    } finally {
-      setExportingAll(false);
-      setExportProgress({ current: 0, total: 0 });
-    }
-  };
-
-  const handleExportIndividual = async (row) => {
-    setExportingIndividual(row.NOMBRE_GRUPO || row.CODIGO_GRUPO);
-    try {
-      await exportSesionesToExcel(row.ID_GRUPO, row.NOMBRE_GRUPO || row.CODIGO_GRUPO);
-    } finally {
-      setExportingIndividual(null);
-    }
-  };
-
-  const handleExportIndividualPdf = async (row) => {
-    setExportingIndividualPdf(row.NOMBRE_GRUPO || row.CODIGO_GRUPO);
-    try {
-      await exportSesionesToPdf(row.ID_GRUPO, row.NOMBRE_GRUPO || row.CODIGO_GRUPO);
-    } finally {
-      setExportingIndividualPdf(null);
-    }
-  };
-
-  const handleExportAllPdf = async () => {
-    if (!records || records.length === 0) return;
-    setExportingAllPdf(true);
-    try {
-      await exportAllSesionesToPdf(records);
-    } finally {
-      setExportingAllPdf(false);
+    } else if (pending.type === 'all') {
+      if (isPdf) {
+        setExportingAllPdf(true);
+        try { await exportAllSesionesToPdf(records, opts); }
+        finally { setExportingAllPdf(false); }
+      } else {
+        setExportingAll(true);
+        setExportProgress({ current: 0, total: records.length });
+        const processExport = async () => {
+          for (let i = 0; i < records.length; i++) {
+            setExportProgress({ current: i + 1, total: records.length });
+            if (i % 3 === 0) await new Promise(resolve => setTimeout(resolve, 10));
+          }
+        };
+        processExport();
+        try { await exportAllSesionesToExcel(records, opts); }
+        finally { setExportingAll(false); setExportProgress({ current: 0, total: 0 }); }
+      }
     }
   };
 
@@ -89,20 +86,30 @@ function ReportesGrupos() {
         icon: 'download',
         label: 'Exportar Excel',
         className: 'text-green-600 hover:bg-green-100',
-        onClick: (row) => handleExportIndividual(row)
+        onClick: (row) => handleExportIndividual(row),
       },
       exportPdf: {
         enabled: true,
         icon: 'file-text',
         label: 'Exportar PDF',
         className: 'text-red-600 hover:bg-red-50',
-        onClick: (row) => handleExportIndividualPdf(row)
+        onClick: (row) => setExportModalPending({ type: 'individual', format: 'pdf', row })
       }
     }
   }));
 
   return (
     <LayoutWithSidebar>
+      <ExportOptionsModal
+        isOpen={!!exportModalPending}
+        title={
+          exportModalPending?.format === 'pdf'
+            ? (exportModalPending?.type === 'all' ? 'Opciones — Exportar Todo PDF' : 'Opciones — Exportar PDF')
+            : (exportModalPending?.type === 'all' ? 'Opciones — Exportar Todo Excel' : 'Opciones — Exportar Excel')
+        }
+        onConfirm={handleModalConfirm}
+        onCancel={() => setExportModalPending(null)}
+      />
       <div className="px-4 py-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -114,7 +121,7 @@ function ReportesGrupos() {
           {selectedPeriodo && !loading && !error && records && records.length > 0 && (
             <div className="flex items-center gap-2">
               <button
-                onClick={handleExportAll}
+                onClick={handleExportAllExcel}
                 disabled={exportingAll || exportingAllPdf}
                 className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-500 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -125,7 +132,7 @@ function ReportesGrupos() {
                 )}
               </button>
               <button
-                onClick={handleExportAllPdf}
+                onClick={() => setExportModalPending({ type: 'all', format: 'pdf' })}
                 disabled={exportingAll || exportingAllPdf}
                 className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-500 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >

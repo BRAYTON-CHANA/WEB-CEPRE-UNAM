@@ -83,8 +83,8 @@ const prepareGrupoData = (sesiones, customBlocks) => {
     const weekday = date.getDay();
     const signature = customBlocks.map(cb => {
       if (cb.type === 'break') return '__BREAK__';
-      const sesion = sesionesDelDia.find(s => s.BLOQUE_ORDEN === cb.orden);
-      if (sesion) return `${sesion.CODIGO_AREA || ''}|${sesion.NOMBRE_CURSO || ''}|${sesion.DOCENTE_DISPLAY || 'Sin docente'}`;
+      const sesion = sesionesDelDia.find(s => s.ORDEN === cb.orden);
+      if (sesion) return `${sesion.CODIGO_AREA || ''}|${sesion.NOMBRE_CURSO || ''}|${sesion.DOCENTE_NOMBRE_COMPLETO || ''}|${sesion.DOCENTE_DISPLAY || 'Sin docente'}`;
       return null;
     });
     const sigKey = signature.map(s => s === null ? '_' : s).join('||');
@@ -219,11 +219,12 @@ const drawHorarioPage = (doc, grupoNombre, nombrePeriodo, columns, customBlocks,
           const runEndY = y + (rowYs[run.end] - y) * scaleY + rowHeights[run.end] * scaleY;
           const runH = runEndY - ry;
           filledRect(doc, cx, ry, dataColW, runH, C_TEAL_LIGHT);
-          const [codigo, curso, docente] = run.key.split('|');
+          const [codigo, curso, nombreCompleto, docente] = run.key.split('|');
           const startB = customBlocks[run.start];
           const endB = customBlocks[run.end];
           const timeRange = `${startB.time} - ${endB.endTime}`;
-          centeredText(doc, `${codigo} ${curso}\n${docente}\n${timeRange}`, cx, ry, dataColW, runH, 5, C_DARK_TEXT, false);
+          const cellLines = [codigo ? `${codigo} ${curso}` : curso, nombreCompleto, docente, timeRange].filter(Boolean).join('\n');
+          centeredText(doc, cellLines, cx, ry, dataColW, runH, 5, C_DARK_TEXT, false);
         }
       } else if (sig === '__BREAK__') {
         filledRect(doc, cx, ry, dataColW, rh, C_GRAY_MED);
@@ -237,7 +238,7 @@ const drawHorarioPage = (doc, grupoNombre, nombrePeriodo, columns, customBlocks,
 // ─── Fetch datos de un grupo ─────────────────────────────────────────────────
 
 const fetchGrupoData = async (idGrupo) => {
-  const sesionesResult = await db.select('VW_SESIONES_PROGRAMADAS', { ID_GRUPO: idGrupo });
+  const sesionesResult = await db.select('VW_SESIONES_AGRUPADAS_DESGLOSE', { ID_GRUPO: idGrupo });
   const sesiones = sesionesResult?.data?.records || sesionesResult || [];
   if (sesiones.length === 0) return null;
 
@@ -256,8 +257,8 @@ const fetchGrupoData = async (idGrupo) => {
   const bloques = (bloquesResult?.data?.records || bloquesResult || []).sort((a, b) => a.ORDEN - b.ORDEN);
   if (bloques.length === 0) return null;
 
-  const horaInicioJornada = parseInt(horario?.HORA_INICIO_JORNADA?.split(':')[0]) || 7;
-  let currentMinute = horaInicioJornada * 60;
+  const _hInit = (horario?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
+  let currentMinute = (isNaN(_hInit[0]) ? 7 : _hInit[0]) * 60 + (isNaN(_hInit[1]) ? 0 : _hInit[1]);
   const fmt = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 
   const customBlocks = bloques.map(b => {
@@ -360,8 +361,8 @@ export const exportAllSesionesToPdf = async (grupos) => {
       const horario = horariosMap.get(turno.ID_HORARIO);
       const bloques = bloquesMap.get(turno.ID_HORARIO) || [];
       if (bloques.length === 0) continue;
-      const horaInicioJornada = parseInt(horario?.HORA_INICIO_JORNADA?.split(':')[0]) || 7;
-      let currentMinute = horaInicioJornada * 60;
+      const _hInit = (horario?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
+      let currentMinute = (isNaN(_hInit[0]) ? 7 : _hInit[0]) * 60 + (isNaN(_hInit[1]) ? 0 : _hInit[1]);
       const fmt = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
       const customBlocks = bloques.map(b => {
         const hour = Math.floor(currentMinute / 60);
@@ -389,7 +390,7 @@ export const exportAllSesionesToPdf = async (grupos) => {
       const idGrupo = grupo.ID_GRUPO;
       if (!idGrupo) continue;
       const nombreGrupo = grupo.NOMBRE_GRUPO || grupo.CODIGO_GRUPO || `Grupo_${idGrupo}`;
-      const sesiones = await selectAll('VW_SESIONES_PROGRAMADAS', { ID_GRUPO: idGrupo });
+      const sesiones = await selectAll('VW_SESIONES_AGRUPADAS_DESGLOSE', { ID_GRUPO: idGrupo });
       if (sesiones.length === 0) continue;
 
       const grupoInfo = gruposMap.get(idGrupo);

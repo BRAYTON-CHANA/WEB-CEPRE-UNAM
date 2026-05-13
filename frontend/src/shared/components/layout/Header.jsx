@@ -44,16 +44,9 @@ const Header = () => {
               
               <Link 
                 to="/modules" 
-                className={`text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/modules') ? 'bg-gray-100' : ''}`}
+                className="hidden"
               >
                 Módulos
-              </Link>
-
-              <Link 
-                to="/datos" 
-                className={`text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/datos') ? 'bg-gray-100' : ''}`}
-              >
-                Datos
               </Link>
               <Link 
                 to="/configuracion" 
@@ -98,7 +91,7 @@ const Header = () => {
               </Link>
               <Link 
                 to="/modules" 
-                className={`block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors ${isActive('/modules') ? 'bg-gray-100' : ''}`}
+                className="hidden"
               >
                 Módulos
               </Link>
@@ -107,12 +100,6 @@ const Header = () => {
                 className={`block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors ${isActive('/configuracion') ? 'bg-gray-100' : ''}`}
               >
                 Configuración
-              </Link>
-              <Link 
-                to="/datos" 
-                className={`block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors ${isActive('/datos') ? 'bg-gray-100' : ''}`}
-              >
-                Datos
               </Link>
             </div>
           </div>

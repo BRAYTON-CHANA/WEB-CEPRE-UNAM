@@ -13,7 +13,11 @@ export async function executeFunction(functionName, params = {}) {
 
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.message);
+    const error = new Error(result.message);
+    error.code = result.code;
+    error.details = result.details;
+    error.hint = result.hint;
+    throw error;
   }
   return result.data;
 }
@@ -65,7 +69,11 @@ export const backend = {
     });
     const result = await response.json();
     if (!result.success) {
-      throw new Error(result.message);
+      const error = new Error(result.message);
+      error.code = result.code;
+      error.details = result.details;
+      error.hint = result.hint;
+      throw error;
     }
     return result.data;
   },
@@ -82,7 +90,11 @@ export const backend = {
     const response = await fetch(`${API_BASE_URL}/functions/${filename}?info=true`);
     const result = await response.json();
     if (!result.success) {
-      throw new Error(result.message);
+      const error = new Error(result.message);
+      error.code = result.code;
+      error.details = result.details;
+      error.hint = result.hint;
+      throw error;
     }
     return result.data;
   },

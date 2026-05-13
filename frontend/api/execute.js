@@ -44,17 +44,35 @@ export default async function handler(req, res) {
 
     // Ejecutar función
     const args = Object.values(params || {});
+    console.log(`[DEBUG execute.js] ===== Función: ${functionName} =====`);
+    console.log(`[DEBUG execute.js] Args:`, args);
+    
+    // NOTA: Eliminado el DELETE manual de sesiones porque el trigger fn_trg_programacion_grupo_sesiones
+    // ya maneja el DELETE + INSERT automáticamente. Hacerlo aquí causa conflicto de concurrencia.
+    
+    console.log(`[DEBUG execute.js] Ejecutando ${functionName}...`);
     const result = await func(...args);
+    console.log(`[DEBUG execute.js] ${functionName} resultado:`, result);
 
     res.json({
       success: true,
       data: result
     });
   } catch (error) {
-    console.error(`Error en /api/execute (${functionName}):`, error);
+    console.error(`[DEBUG execute.js] ===== ERROR en ${functionName} =====`);
+    console.error(`[DEBUG execute.js] Mensaje:`, error.message);
+    console.error(`[DEBUG execute.js] Código:`, error.code);
+    console.error(`[DEBUG execute.js] Detalles:`, error.details);
+    console.error(`[DEBUG execute.js] Hint:`, error.hint);
+    console.error(`[DEBUG execute.js] Stack:`, error.stack);
+    console.error(`[DEBUG execute.js] Error completo:`, error);
+    
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint
     });
   }
 }

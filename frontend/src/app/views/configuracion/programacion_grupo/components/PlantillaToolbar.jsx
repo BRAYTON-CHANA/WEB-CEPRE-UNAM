@@ -55,7 +55,7 @@ export default function PlantillaToolbar({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             )}
-            Confirmar ({selectedCells.size})
+            Guardar ({selectedCells.size})
           </button>
           <button
             onClick={onCancelAdd}

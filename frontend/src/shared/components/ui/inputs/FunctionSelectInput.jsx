@@ -52,15 +52,15 @@ const FunctionSelectInput = React.memo(({
   setValue,
   ...props
 }) => {
-  console.log(`[FunctionSelectInput:${name}] Props received:`, {
-    functionName,
-    functionParams,
-    optionalParams,
-    valueField,
-    labelField,
-    formData,
-    currentValue: value
-  });
+  // console.log(`[FunctionSelectInput:${name}] Props received:`, {
+  //   functionName,
+  //   functionParams,
+  //   optionalParams,
+  //   valueField,
+  //   labelField,
+  //   formData,
+  //   currentValue: value
+  // });
   
   // Estado para errores
   const [showErrorModal, setShowErrorModal] = useState(false);

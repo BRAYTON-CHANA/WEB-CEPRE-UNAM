@@ -69,5 +69,5 @@ export const docenteCursoModalConfig = {
   editTitle: 'Editar Asignación',
   deleteTitle: '¿Eliminar asignación?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar la asignación del curso "${row?.NOMBRE_CURSO}" del docente "${row?.NOMBRE_COMPLETO_DOCENTE}"?`,
-  widthClass: 'w-1/2'
+  widthClass: 'max-w-4xl w-full'
 };

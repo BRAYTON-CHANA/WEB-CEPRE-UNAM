@@ -42,15 +42,15 @@ export const useFunctionData = (config) => {
     freezeParams = false
   } = config || {};
 
-  console.log(`[useFunctionData:${functionName}] Config received:`, {
-    functionName,
-    functionParams,
-    optionalParams,
-    shouldLoadData,
-    formData,
-    formDataKeys: Object.keys(formData),
-    formDataValues: formData
-  });
+  // console.log(`[useFunctionData:${functionName}] Config received:`, {
+  //   functionName,
+  //   functionParams,
+  //   optionalParams,
+  //   shouldLoadData,
+  //   formData,
+  //   formDataKeys: Object.keys(formData),
+  //   formDataValues: formData
+  // });
 
   const [options, setOptions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -78,7 +78,7 @@ export const useFunctionData = (config) => {
       processed[key] = rawValue === '' ? null : rawValue;
     });
 
-    console.log(`[useFunctionData:${functionName}] Processed params:`, processed);
+    // console.log(`[useFunctionData:${functionName}] Processed params:`, processed);
     return processed;
   }, [functionParams, formData, functionName]);
 

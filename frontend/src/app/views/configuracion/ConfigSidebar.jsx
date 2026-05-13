@@ -221,10 +221,10 @@ const ConfigSidebar = () => {
         },
         {
           id: 'programacion_plazas_docentes',
-          name: 'Programación por Plaza',
+          name: 'Programación por Plaza (En mantenimiento)',
           icon: <TimetableIcon />,
-          href: '/configuracion/programacion_plazas_docentes',
-          active: location.pathname === '/configuracion/programacion_plazas_docentes'
+          disabled: true,
+          active: false
         }
       ]
     },

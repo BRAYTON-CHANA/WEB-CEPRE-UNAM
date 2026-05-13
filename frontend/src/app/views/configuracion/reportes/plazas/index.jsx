@@ -5,6 +5,7 @@ import TableMultiLevelRender from '@/features/table/views/TableMultiLevelRender'
 import { useTableData } from '@/features/crud/hooks/useTableData';
 import { exportPlazaToExcel, exportSedeToExcel, exportAllPlazasToExcel } from './utils/exportPlazaToExcel';
 import { exportPlazaToPdf, exportSedeToPdf, exportAllPlazasToPdf } from './utils/exportPlazaToPdf';
+import ExportOptionsModal from '../shared/ExportOptionsModal';
 
 function ReportesPlazas() {
   const [selectedPeriodo, setSelectedPeriodo] = useState('');
@@ -15,27 +16,77 @@ function ReportesPlazas() {
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportPdfProgress, setExportPdfProgress] = useState(null);
   const [exportingIndividualPdf, setExportingIndividualPdf] = useState(null);
+  const [exportModalPending, setExportModalPending] = useState(null);
 
-  const handleExportSede = async (row) => {
-    setExportProgress({ current: 0, total: 0, nombre: row.NOMBRE_SEDE });
-    await exportSedeToExcel(
-      row.ID_SEDE,
-      row.NOMBRE_SEDE,
-      selectedPeriodo,
-      (current, total) => setExportProgress({ current, total, nombre: row.NOMBRE_SEDE })
-    );
-    setExportProgress(null);
-  };
+  const handleExportSede = (row) => setExportModalPending({ type: 'sede', row });
 
-  const handleExportSedePdf = async (row) => {
-    setExportPdfProgress({ current: 0, total: 0, nombre: row.NOMBRE_SEDE });
-    await exportSedeToPdf(
-      row.ID_SEDE,
-      row.NOMBRE_SEDE,
-      selectedPeriodo,
-      (current, total) => setExportPdfProgress({ current, total, nombre: row.NOMBRE_SEDE })
-    );
-    setExportPdfProgress(null);
+  const handleExportIndividualPlaza = (row) => setExportModalPending({ type: 'plaza', row });
+
+  const handleModalConfirm = async (opts) => {
+    const pending = exportModalPending;
+    setExportModalPending(null);
+    if (!pending) return;
+    const isPdf = pending.format === 'pdf';
+
+    if (pending.type === 'sede') {
+      const row = pending.row;
+      if (isPdf) {
+        setExportPdfProgress({ current: 0, total: 0, nombre: row.NOMBRE_SEDE });
+        await exportSedeToPdf(
+          row.ID_SEDE, row.NOMBRE_SEDE, selectedPeriodo,
+          (current, total) => setExportPdfProgress({ current, total, nombre: row.NOMBRE_SEDE }),
+          opts
+        );
+        setExportPdfProgress(null);
+      } else {
+        setExportProgress({ current: 0, total: 0, nombre: row.NOMBRE_SEDE });
+        await exportSedeToExcel(
+          row.ID_SEDE, row.NOMBRE_SEDE, selectedPeriodo,
+          (current, total) => setExportProgress({ current, total, nombre: row.NOMBRE_SEDE }),
+          opts
+        );
+        setExportProgress(null);
+      }
+    } else if (pending.type === 'plaza') {
+      const row = pending.row;
+      if (isPdf) {
+        setExportingIndividualPdf(row.IDENTIFICADOR_DOCENTE);
+        try { await exportPlazaToPdf(row.ID_PLAZA_DOCENTE, row.IDENTIFICADOR_DOCENTE, opts); }
+        finally { setExportingIndividualPdf(null); }
+      } else {
+        setExportingIndividual(row.IDENTIFICADOR_DOCENTE);
+        try { await exportPlazaToExcel(row.ID_PLAZA_DOCENTE, row.IDENTIFICADOR_DOCENTE, opts); }
+        finally { setExportingIndividual(null); }
+      }
+    } else if (pending.type === 'all') {
+      if (isPdf) {
+        setExportingPdf(true);
+        setExportPdfProgress({ current: 0, total: 0 });
+        try {
+          await exportAllPlazasToPdf(
+            selectedPeriodo,
+            (current, total) => setExportPdfProgress({ current, total }),
+            opts
+          );
+        } finally {
+          setExportingPdf(false);
+          setExportPdfProgress(null);
+        }
+      } else {
+        setExportingAll(true);
+        setExportAllProgress({ current: 0, total: 0 });
+        try {
+          await exportAllPlazasToExcel(
+            selectedPeriodo,
+            (current, total) => setExportAllProgress({ current, total }),
+            opts
+          );
+        } finally {
+          setExportingAll(false);
+          setExportAllProgress({ current: 0, total: 0 });
+        }
+      }
+    }
   };
 
   const levelConfigs = [
@@ -51,14 +102,14 @@ function ReportesPlazas() {
           icon: 'download',
           label: 'Exportar Excel',
           className: 'text-green-600 hover:bg-green-100',
-          onClick: (row) => handleExportSede(row)
+          onClick: (row) => handleExportSede(row),
         },
         exportPdf: {
           enabled: true,
           icon: 'file-text',
           label: 'Exportar PDF',
           className: 'text-red-600 hover:bg-red-50',
-          onClick: (row) => handleExportSedePdf(row)
+          onClick: (row) => setExportModalPending({ type: 'sede', format: 'pdf', row })
         }
       }
     },
@@ -75,28 +126,14 @@ function ReportesPlazas() {
           icon: 'download',
           label: 'Exportar Excel',
           className: 'text-green-600 hover:bg-green-100',
-          onClick: async (row) => {
-            setExportingIndividual(row.IDENTIFICADOR_DOCENTE);
-            try {
-              await exportPlazaToExcel(row.ID_PLAZA_DOCENTE, row.IDENTIFICADOR_DOCENTE);
-            } finally {
-              setExportingIndividual(null);
-            }
-          }
+          onClick: (row) => handleExportIndividualPlaza(row)
         },
         exportPdf: {
           enabled: true,
           icon: 'file-text',
           label: 'Exportar PDF',
           className: 'text-red-600 hover:bg-red-50',
-          onClick: async (row) => {
-            setExportingIndividualPdf(row.IDENTIFICADOR_DOCENTE);
-            try {
-              await exportPlazaToPdf(row.ID_PLAZA_DOCENTE, row.IDENTIFICADOR_DOCENTE);
-            } finally {
-              setExportingIndividualPdf(null);
-            }
-          }
+          onClick: (row) => setExportModalPending({ type: 'plaza', format: 'pdf', row })
         }
       }
     }
@@ -115,36 +152,25 @@ function ReportesPlazas() {
     setSelectedPeriodo(value);
   };
 
-  const handleExportAll = async () => {
-    setExportingAll(true);
-    setExportAllProgress({ current: 0, total: 0 });
-    try {
-      await exportAllPlazasToExcel(
-        selectedPeriodo,
-        (current, total) => setExportAllProgress({ current, total })
-      );
-    } finally {
-      setExportingAll(false);
-      setExportAllProgress({ current: 0, total: 0 });
-    }
-  };
-
-  const handleExportAllPdf = async () => {
-    setExportingPdf(true);
-    setExportPdfProgress({ current: 0, total: 0 });
-    try {
-      await exportAllPlazasToPdf(
-        selectedPeriodo,
-        (current, total) => setExportPdfProgress({ current, total })
-      );
-    } finally {
-      setExportingPdf(false);
-      setExportPdfProgress(null);
-    }
-  };
+  const handleExportAll = () => setExportModalPending({ type: 'all' });
+  const handleExportAllPdf = () => setExportModalPending({ type: 'all', format: 'pdf' });
 
   return (
     <LayoutWithSidebar>
+      <ExportOptionsModal
+        isOpen={!!exportModalPending}
+        title={
+          exportModalPending?.format === 'pdf'
+            ? (exportModalPending?.type === 'all' ? 'Opciones — Exportar Todo PDF'
+               : exportModalPending?.type === 'sede' ? `Opciones — Exportar PDF — ${exportModalPending?.row?.NOMBRE_SEDE}`
+               : 'Opciones — Exportar PDF')
+            : (exportModalPending?.type === 'all' ? 'Opciones — Exportar Todo Excel'
+               : exportModalPending?.type === 'sede' ? `Opciones — Exportar Excel — ${exportModalPending?.row?.NOMBRE_SEDE}`
+               : 'Opciones — Exportar Excel')
+        }
+        onConfirm={handleModalConfirm}
+        onCancel={() => setExportModalPending(null)}
+      />
       {exportingIndividual && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 text-center">

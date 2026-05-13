@@ -12,7 +12,7 @@ import CrudPage from '@/app/views/modules/crud';
 import TestFunction from '@/app/views/modules/test-function';
 import TestSchedule from '@/app/views/modules/test-schedule';
 import TestMultiLevelTable from '@/app/views/modules/test-multilevelTable';
-import DatosDashboard from '@/app/views/datos';
+
 
 import SedesYAulasConfig from '@/app/views/configuracion/sedes_aulas';
 import PeriodosConfig from '@/app/views/configuracion/periodos';
@@ -25,14 +25,12 @@ import PlanesAcademicosConfig from '@/app/views/configuracion/planes_academicos'
 import PlazasDocentesConfig from '@/app/views/configuracion/plazas_docentes';
 import GruposConfig from '@/app/views/configuracion/grupos';
 import ProgramacionGrupoConfig from '@/app/views/configuracion/programacion_grupo';
-import ProgramacionPlazasDocentes from '@/app/views/configuracion/programacion_plazas_docentes';
+// import ProgramacionPlazasDocentes from '@/app/views/configuracion/programacion_plazas_docentes'; // TEMP: En mantenimiento
 import ReportesIndex from '@/app/views/configuracion/reportes';
 import ReportesGrupos from '@/app/views/configuracion/reportes/grupos';
 import ReportesPlazas from '@/app/views/configuracion/reportes/plazas';
 
 
-import AsignacionHorarioGrupo from '@/app/views/datos/asignacion_horario_grupo';
-import AsignacionHorarioDocente from '@/app/views/datos/asignacion_horario_docente';
 import Configuracion from '@/app/views/configuracion';
 
 
@@ -50,11 +48,7 @@ function App() {
       <Route path="/modules/test-schedule" element={<TestSchedule />} />
       <Route path="/modules/test-multilevelTable" element={<TestMultiLevelTable />} />
       
-      <Route path="/datos" element={<DatosDashboard />} />
 
-      <Route path="/datos/asignacion_horario_grupo" element={<AsignacionHorarioGrupo />} />
-      <Route path="/datos/asignacion_horario_docente" element={<AsignacionHorarioDocente />} />
-      
       <Route path="/configuracion" element={<Configuracion />} />
 
       <Route path="/configuracion/sedes_aulas" element={<SedesYAulasConfig />} />
@@ -71,7 +65,7 @@ function App() {
 
       <Route path="/configuracion/periodos" element={<PeriodosConfig />} />
       <Route path="/configuracion/programacion_grupo" element={<ProgramacionGrupoConfig />} />
-      <Route path="/configuracion/programacion_plazas_docentes" element={<ProgramacionPlazasDocentes />} />
+      {/* <Route path="/configuracion/programacion_plazas_docentes" element={<ProgramacionPlazasDocentes />} /> TEMP: En mantenimiento */}
       <Route path="/configuracion/reportes" element={<ReportesIndex />} />
       <Route path="/configuracion/reportes/grupos" element={<ReportesGrupos />} />
       <Route path="/configuracion/reportes/plazas" element={<ReportesPlazas />} />

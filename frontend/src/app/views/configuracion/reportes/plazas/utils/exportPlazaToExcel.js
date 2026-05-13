@@ -45,8 +45,8 @@ const downloadWorkbook = async (workbook, fileName) => {
 
 // ─── Helper: construir bloques calculados para un turno ─────────────────────
 const buildCustomBlocks = (turno, horario, bloques) => {
-  const horaInicioJornada = parseInt(horario?.HORA_INICIO_JORNADA?.split(':')[0]) || 7;
-  let currentMinute = horaInicioJornada * 60;
+  const _hInit = (horario?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
+  let currentMinute = (isNaN(_hInit[0]) ? 7 : _hInit[0]) * 60 + (isNaN(_hInit[1]) ? 0 : _hInit[1]);
   const fmt = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 
   return bloques.map((b) => {
@@ -178,7 +178,7 @@ export const buildBulkCache = async (idPeriodo) => {
   // 1. Todas las sesiones del período (paginado)
   const filters = {};
   if (idPeriodo) filters.ID_PERIODO = idPeriodo;
-  const allSesiones = await selectAll('VW_SESIONES_PROGRAMADAS', filters);
+  const allSesiones = await selectAll('VW_SESIONES_AGRUPADAS_DESGLOSE', filters);
 
   if (allSesiones.length === 0) return null;
 
@@ -270,8 +270,19 @@ export const buildBulkCache = async (idPeriodo) => {
   return { gpcToGrupo, grupoToTurno, turnosConBloquesMap, sesionesPorPlaza };
 };
 
+const buildCellValue = (codigo, curso, grupo, nombreCompleto, docente, horario, opts = {}) => {
+  const parts = [];
+  if (opts.showCodigo !== false && codigo) parts.push(codigo);
+  parts.push(curso);
+  if (grupo) parts.push(grupo);
+  if (nombreCompleto) parts.push(nombreCompleto);
+  if (opts.showDocente !== false) parts.push(docente);
+  if (opts.showHorario !== false) parts.push(horario);
+  return parts.filter(Boolean).join('\n');
+};
+
 // ─── Core: construir hoja a partir de sesiones ya resueltas ─────────────────
-const buildWorksheetCore = (workbook, nombrePlaza, sesiones, resolvedLookups) => {
+const buildWorksheetCore = (workbook, nombrePlaza, sesiones, resolvedLookups, opts = {}) => {
   const { programacionToGrupo, gpcToGrupo, grupoToTurno, turnosConBloques } = resolvedLookups;
 
   if (turnosConBloques.length === 0) return false;
@@ -324,8 +335,8 @@ const buildWorksheetCore = (workbook, nombrePlaza, sesiones, resolvedLookups) =>
     const signature = allBlocks.map(cb => {
       if (cb.type === 'break') return '__BREAK__';
       if (cb.type === 'separator') return '__SEPARATOR__';
-      const sesion = sesionesConTurno.find(s => s.BLOQUE_ORDEN === cb.orden && s.turnoId === cb.turnoId);
-      if (sesion) return `${sesion.CODIGO_AREA || ''}|${sesion.NOMBRE_CURSO || ''}|${sesion.DOCENTE_DISPLAY || 'Sin docente'}|${cb.turnoNombre}|${sesion.NOMBRE_GRUPO || ''}`;
+      const sesion = sesionesConTurno.find(s => s.ORDEN === cb.orden && s.turnoId === cb.turnoId);
+      if (sesion) return `${sesion.CODIGO_AREA || ''}|${sesion.NOMBRE_CURSO || ''}|${sesion.DOCENTE_NOMBRE_COMPLETO || ''}|${sesion.DOCENTE_DISPLAY || 'Sin docente'}|${cb.turnoNombre}|${sesion.NOMBRE_GRUPO || ''}`;
       return null;
     });
 
@@ -416,8 +427,8 @@ const buildWorksheetCore = (workbook, nombrePlaza, sesiones, resolvedLookups) =>
       if (cb.type === 'separator') return { type: 'separator', label: cb.label };
       if (cb.type === 'break') return { type: 'break', label: cb.label, turno: cb.turnosLabel || cb.turnoNombre };
       if (sig[i] && sig[i] !== '__BREAK__' && sig[i] !== '__SEPARATOR__') {
-        const [codigo, curso, docente, turno, grupo] = sig[i].split('|');
-        return { type: 'event', text: `${codigo} ${curso}\n${grupo}\n${docente}\n${cb.timeRange}`, key: sig[i], turno, grupo };
+        const [codigo, curso, nombreCompleto, docente, turno, grupo] = sig[i].split('|');
+        return { type: 'event', text: `${codigo} ${curso}\n${grupo}\n${nombreCompleto ? nombreCompleto + '\n' : ''}${docente}\n${cb.timeRange}`, key: sig[i], turno, grupo };
       }
       return { type: 'empty' };
     });
@@ -490,8 +501,8 @@ const buildWorksheetCore = (workbook, nombrePlaza, sesiones, resolvedLookups) =>
           const startBlock = allBlocks[run.start];
           const endBlock   = allBlocks[run.end];
           const combinedRange = `${startBlock.time} - ${endBlock.endTime}`;
-          const [codigo, curso, docente, , grupo] = run.key.split('|');
-          c.value = `${codigo} ${curso}\n${grupo}\n${docente}\n${combinedRange}`;
+          const [codigo, curso, nombreCompleto, docente, , grupo] = run.key.split('|');
+          c.value = buildCellValue(codigo, curso, grupo, nombreCompleto, docente, combinedRange, opts);
         } else {
           c.value = '';
         }
@@ -529,8 +540,8 @@ const buildWorksheetCore = (workbook, nombrePlaza, sesiones, resolvedLookups) =>
 };
 
 // ─── buildWorksheetForPlaza: modo individual (sin cache) ────────────────────
-const buildWorksheetForPlaza = async (workbook, idPlaza, nombrePlaza) => {
-  const sesionesResult = await db.select('VW_SESIONES_PROGRAMADAS', { ID_PLAZA_DOCENTE: idPlaza });
+const buildWorksheetForPlaza = async (workbook, idPlaza, nombrePlaza, opts = {}) => {
+  const sesionesResult = await db.select('VW_SESIONES_AGRUPADAS_DESGLOSE', { ID_PLAZA_DOCENTE: idPlaza });
   const sesiones = sesionesResult?.data?.records || sesionesResult || [];
 
   if (sesiones.length === 0) return false;
@@ -538,18 +549,18 @@ const buildWorksheetForPlaza = async (workbook, idPlaza, nombrePlaza) => {
   const lookups = await resolveLookupsIndividual(sesiones);
   if (!lookups) return false;
 
-  return buildWorksheetCore(workbook, nombrePlaza, sesiones, lookups);
+  return buildWorksheetCore(workbook, nombrePlaza, sesiones, lookups, opts);
 };
 
 // ─── buildWorksheetForPlazaFromCache: modo bulk (con cache) ─────────────────
-const buildWorksheetForPlazaFromCache = (workbook, idPlaza, nombrePlaza, cache) => {
+const buildWorksheetForPlazaFromCache = (workbook, idPlaza, nombrePlaza, cache, opts = {}) => {
   const sesiones = cache.sesionesPorPlaza.get(idPlaza) || [];
   if (sesiones.length === 0) return false;
 
   const lookups = resolveLookupsFromCache(sesiones, cache);
   if (lookups.turnosConBloques.length === 0) return false;
 
-  return buildWorksheetCore(workbook, nombrePlaza, sesiones, lookups);
+  return buildWorksheetCore(workbook, nombrePlaza, sesiones, lookups, opts);
 };
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -559,13 +570,13 @@ const buildWorksheetForPlazaFromCache = (workbook, idPlaza, nombrePlaza, cache) 
 /**
  * Exporta 1 plaza a Excel (modo individual, queries directas)
  */
-export const exportPlazaToExcel = async (idPlaza, nombrePlaza) => {
+export const exportPlazaToExcel = async (idPlaza, nombrePlaza, opts = {}) => {
   try {
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Sistema Horarios';
     workbook.created = new Date();
 
-    const added = await buildWorksheetForPlaza(workbook, idPlaza, nombrePlaza);
+    const added = await buildWorksheetForPlaza(workbook, idPlaza, nombrePlaza, opts);
     if (!added) {
       alert('No hay sesiones programadas para esta plaza docente');
       return;
@@ -582,7 +593,7 @@ export const exportPlazaToExcel = async (idPlaza, nombrePlaza) => {
 /**
  * Exporta todas las plazas de una sede (modo bulk — 1 carga de sesiones total)
  */
-export const exportSedeToExcel = async (idSede, nombreSede, idPeriodo, onProgress) => {
+export const exportSedeToExcel = async (idSede, nombreSede, idPeriodo, onProgress, opts = {}) => {
   try {
     const filters = { ID_SEDE: idSede };
     if (idPeriodo) filters.ID_PERIODO = idPeriodo;
@@ -611,7 +622,7 @@ export const exportSedeToExcel = async (idSede, nombreSede, idPeriodo, onProgres
     let added = 0;
 
     for (const plaza of plazas) {
-      const ok = buildWorksheetForPlazaFromCache(workbook, plaza.ID_PLAZA_DOCENTE, plaza.IDENTIFICADOR_DOCENTE, cache);
+      const ok = await buildWorksheetForPlazaFromCache(workbook, plaza.ID_PLAZA_DOCENTE, plaza.IDENTIFICADOR_DOCENTE, cache, opts);
       if (ok) added++;
       processed++;
       if (onProgress) onProgress(processed, plazas.length);
@@ -633,7 +644,7 @@ export const exportSedeToExcel = async (idSede, nombreSede, idPeriodo, onProgres
 /**
  * Exporta todas las plazas del período (modo bulk — 1 carga de sesiones total)
  */
-export const exportAllPlazasToExcel = async (idPeriodo, onProgress) => {
+export const exportAllPlazasToExcel = async (idPeriodo, onProgress, opts = {}) => {
   try {
     const filters = {};
     if (idPeriodo) filters.ID_PERIODO = idPeriodo;
@@ -662,7 +673,7 @@ export const exportAllPlazasToExcel = async (idPeriodo, onProgress) => {
     let added = 0;
 
     for (const plaza of plazas) {
-      const ok = buildWorksheetForPlazaFromCache(workbook, plaza.ID_PLAZA_DOCENTE, plaza.IDENTIFICADOR_DOCENTE, cache);
+      const ok = buildWorksheetForPlazaFromCache(workbook, plaza.ID_PLAZA_DOCENTE, plaza.IDENTIFICADOR_DOCENTE, cache, opts);
       if (ok) added++;
       processed++;
       if (onProgress) onProgress(processed, plazas.length);

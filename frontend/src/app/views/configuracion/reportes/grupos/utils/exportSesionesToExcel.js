@@ -31,9 +31,19 @@ const formatDateShort = (date) => {
   return `${day}-${month}`;
 };
 
-export const exportSesionesToExcel = async (idGrupo, grupoNombre) => {
+const buildCellValue = (codigo, curso, nombreCompleto, docente, horario, opts = {}) => {
+  const parts = [];
+  if (opts.showCodigo !== false && codigo) parts.push(codigo);
+  parts.push(curso);
+  if (nombreCompleto) parts.push(nombreCompleto);
+  if (opts.showDocente !== false) parts.push(docente);
+  if (opts.showHorario !== false) parts.push(horario);
+  return parts.filter(Boolean).join('\n');
+};
+
+export const exportSesionesToExcel = async (idGrupo, grupoNombre, opts = {}) => {
   try {
-    const sesionesResult = await db.select('VW_SESIONES_PROGRAMADAS', { ID_GRUPO: idGrupo });
+    const sesionesResult = await db.select('VW_SESIONES_AGRUPADAS_DESGLOSE', { ID_GRUPO: idGrupo });
     const sesiones = sesionesResult?.data?.records || sesionesResult || [];
 
     if (sesiones.length === 0) {
@@ -69,9 +79,8 @@ export const exportSesionesToExcel = async (idGrupo, grupoNombre) => {
       return;
     }
 
-    const horaInicioJornada = parseInt(horario?.HORA_INICIO_JORNADA?.split(':')[0]) || 7;
-    const startMinutes = horaInicioJornada * 60;
-    let currentMinute = startMinutes;
+    const _hInit = (horario?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
+    let currentMinute = (isNaN(_hInit[0]) ? 7 : _hInit[0]) * 60 + (isNaN(_hInit[1]) ? 0 : _hInit[1]);
 
     const customBlocks = bloques.map((b) => {
       const hour = Math.floor(currentMinute / 60);
@@ -119,9 +128,9 @@ export const exportSesionesToExcel = async (idGrupo, grupoNombre) => {
       const signature = customBlocks.map(cb => {
         if (cb.type === 'break') return '__BREAK__';
         
-        const sesion = sesionesDelDia.find(s => s.BLOQUE_ORDEN === cb.orden);
+        const sesion = sesionesDelDia.find(s => s.ORDEN === cb.orden);
         if (sesion) {
-          const desc = `${sesion.CODIGO_AREA || ''}|${sesion.NOMBRE_CURSO || ''}|${sesion.DOCENTE_DISPLAY || 'Sin docente'}`;
+          const desc = `${sesion.CODIGO_AREA || ''}|${sesion.NOMBRE_CURSO || ''}|${sesion.DOCENTE_NOMBRE_COMPLETO || ''}|${sesion.DOCENTE_DISPLAY || 'Sin docente'}`;
           return desc;
         }
         return null;
@@ -320,8 +329,8 @@ export const exportSesionesToExcel = async (idGrupo, grupoNombre) => {
             const startBlock = customBlocks[run.start];
             const endBlock = customBlocks[run.end];
             const combinedRange = `${startBlock.time} - ${endBlock.endTime}`;
-            const [codigo, curso, docente] = run.key.split('|');
-            c.value = `${codigo} ${curso}\n${docente}\n${combinedRange}`;
+            const [codigo, curso, nombreCompleto, docente] = run.key.split('|');
+            c.value = buildCellValue(codigo, curso, nombreCompleto, docente, combinedRange, opts);
           } else {
             c.value = '';
           }
@@ -376,7 +385,7 @@ export const exportSesionesToExcel = async (idGrupo, grupoNombre) => {
   }
 };
 
-export const exportAllSesionesToExcel = async (grupos) => {
+export const exportAllSesionesToExcel = async (grupos, opts = {}) => {
   try {
     if (!grupos || grupos.length === 0) {
       alert('No hay grupos para exportar');
@@ -395,7 +404,7 @@ export const exportAllSesionesToExcel = async (grupos) => {
     // ── 1. Sesiones por grupo (paginado, 1 query por grupo) ──────────────
     const sesionesPorGrupo = new Map();
     for (const idGrupo of grupoIds) {
-      const rows = await selectAll('VW_SESIONES_PROGRAMADAS', { ID_GRUPO: idGrupo });
+      const rows = await selectAll('VW_SESIONES_AGRUPADAS_DESGLOSE', { ID_GRUPO: idGrupo });
       sesionesPorGrupo.set(idGrupo, rows);
     }
 
@@ -441,8 +450,8 @@ export const exportAllSesionesToExcel = async (grupos) => {
       const bloques = bloquesMap.get(turno.ID_HORARIO) || [];
       if (bloques.length === 0) continue;
 
-      const horaInicioJornada = parseInt(horario?.HORA_INICIO_JORNADA?.split(':')[0]) || 7;
-      let currentMinute = horaInicioJornada * 60;
+      const _hInit = (horario?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
+      let currentMinute = (isNaN(_hInit[0]) ? 7 : _hInit[0]) * 60 + (isNaN(_hInit[1]) ? 0 : _hInit[1]);
 
       const customBlocks = bloques.map((b) => {
         const hour = Math.floor(currentMinute / 60);
@@ -507,8 +516,8 @@ export const exportAllSesionesToExcel = async (grupos) => {
         const weekday = date.getDay();
         const signature = customBlocks.map(cb => {
           if (cb.type === 'break') return '__BREAK__';
-          const sesion = sesionesDelDia.find(s => s.BLOQUE_ORDEN === cb.orden);
-          if (sesion) return `${sesion.CODIGO_AREA || ''}|${sesion.NOMBRE_CURSO || ''}|${sesion.DOCENTE_DISPLAY || 'Sin docente'}`;
+          const sesion = sesionesDelDia.find(s => s.ORDEN === cb.orden);
+          if (sesion) return `${sesion.CODIGO_AREA || ''}|${sesion.NOMBRE_CURSO || ''}|${sesion.DOCENTE_NOMBRE_COMPLETO || ''}|${sesion.DOCENTE_DISPLAY || 'Sin docente'}`;
           return null;
         });
         const sigKey = signature.map(s => s === null ? '_' : s).join('||');
@@ -665,8 +674,8 @@ export const exportAllSesionesToExcel = async (grupos) => {
           if (run) {
             if (i === run.start) {
               const sb = customBlocks[run.start], eb = customBlocks[run.end];
-              const [codigo, curso, docente] = run.key.split('|');
-              c.value = `${codigo} ${curso}\n${docente}\n${sb.time} - ${eb.endTime}`;
+              const [codigo, curso, nombreCompleto, docente] = run.key.split('|');
+              c.value = buildCellValue(codigo, curso, nombreCompleto, docente, `${sb.time} - ${eb.endTime}`, opts);
             } else {
               c.value = '';
             }

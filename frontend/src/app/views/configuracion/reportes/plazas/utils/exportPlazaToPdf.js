@@ -91,8 +91,8 @@ const preparePlazaData = (sesiones, allBlocks, programacionToGrupo, gpcToGrupo, 
     const signature = allBlocks.map(cb => {
       if (cb.type === 'break') return '__BREAK__';
       if (cb.type === 'separator') return '__SEPARATOR__';
-      const sesion = sesionesConTurno.find(s => s.BLOQUE_ORDEN === cb.orden && s.turnoId === cb.turnoId);
-      if (sesion) return `${sesion.CODIGO_AREA || ''}|${sesion.NOMBRE_CURSO || ''}|${sesion.DOCENTE_DISPLAY || 'Sin docente'}|${cb.turnoNombre}|${sesion.NOMBRE_GRUPO || ''}`;
+      const sesion = sesionesConTurno.find(s => s.ORDEN === cb.orden && s.turnoId === cb.turnoId);
+      if (sesion) return `${sesion.CODIGO_AREA || ''}|${sesion.NOMBRE_CURSO || ''}|${sesion.DOCENTE_NOMBRE_COMPLETO || ''}|${sesion.DOCENTE_DISPLAY || 'Sin docente'}|${cb.turnoNombre}|${sesion.NOMBRE_GRUPO || ''}`;
       return null;
     });
 
@@ -250,11 +250,12 @@ const drawPlazaPage = (doc, nombrePlaza, columns, allBlocks, isFirstPage) => {
           const runEndY = y + (rowYs[run.end] - y) * scaleY + rowHeights[run.end] * scaleY;
           const runH = runEndY - ry;
           filledRect(doc, cx, ry, dataColW, runH, C_TEAL_LIGHT);
-          const [codigo, curso, docente, , grupo] = run.key.split('|');
+          const [codigo, curso, nombreCompleto, docente, , grupo] = run.key.split('|');
           const startB = allBlocks[run.start];
           const endB = allBlocks[run.end];
           const timeRange = startB.time && endB.endTime ? `${startB.time} - ${endB.endTime}` : '';
-          centeredText(doc, `${codigo} ${curso}\n${grupo || ''}\n${docente}\n${timeRange}`, cx, ry, dataColW, runH, 4.5, C_DARK_TEXT, false);
+          const cellLines = [codigo ? `${codigo} ${curso}` : curso, grupo, nombreCompleto, docente, timeRange].filter(Boolean).join('\n');
+          centeredText(doc, cellLines, cx, ry, dataColW, runH, 4.5, C_DARK_TEXT, false);
         }
       } else if (sig === '__BREAK__') {
         filledRect(doc, cx, ry, dataColW, rh, C_GRAY_MED);
@@ -304,8 +305,8 @@ const resolveIndividual = async (sesiones) => {
     const bloques = (await selectAll('HORARIO_BLOQUES', { ID_HORARIO: turno.ID_HORARIO })).sort((a, b) => a.ORDEN - b.ORDEN);
     if (bloques.length === 0) continue;
 
-    const horaInicioJornada = parseInt(horario?.HORA_INICIO_JORNADA?.split(':')[0]) || 7;
-    let currentMinute = horaInicioJornada * 60;
+    const _hInit = (horario?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
+    let currentMinute = (isNaN(_hInit[0]) ? 7 : _hInit[0]) * 60 + (isNaN(_hInit[1]) ? 0 : _hInit[1]);
     const fmt = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 
     const customBlocks = bloques.map(b => {
@@ -360,7 +361,7 @@ const resolveFromCache = (sesiones, cache) => {
 
 export const exportPlazaToPdf = async (idPlaza, nombrePlaza) => {
   try {
-    const sesionesResult = await db.select('VW_SESIONES_PROGRAMADAS', { ID_PLAZA_DOCENTE: idPlaza });
+    const sesionesResult = await db.select('VW_SESIONES_AGRUPADAS_DESGLOSE', { ID_PLAZA_DOCENTE: idPlaza });
     const sesiones = sesionesResult?.data?.records || sesionesResult || [];
     if (sesiones.length === 0) {
       alert('No hay sesiones programadas para esta plaza');

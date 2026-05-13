@@ -12,12 +12,12 @@ class FunctionService {
    * @returns {Array} - Array de resultados
    */
   async execute(functionName, params = {}) {
-    console.log(`[functionService] Executing function:`, functionName);
-    console.log(`[functionService] Params being sent:`, params);
+    // console.log(`[functionService] Executing function:`, functionName);
+    // console.log(`[functionService] Params being sent:`, params);
 
     try {
       const result = await db.executeFunction(functionName, params);
-      console.log(`[functionService] Returning data:`, result);
+      // console.log(`[functionService] Returning data:`, result);
       return result;
     } catch (error) {
       console.error('[functionService] Error:', error.message);
