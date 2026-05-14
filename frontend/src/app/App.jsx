@@ -31,6 +31,7 @@ import ReportesGrupos from '@/app/views/configuracion/reportes/grupos';
 import ReportesPlazas from '@/app/views/configuracion/reportes/plazas';
 
 
+import Asistencias from '@/app/views/asistencias';
 import Configuracion from '@/app/views/configuracion';
 
 
@@ -48,6 +49,8 @@ function App() {
       <Route path="/modules/test-schedule" element={<TestSchedule />} />
       <Route path="/modules/test-multilevelTable" element={<TestMultiLevelTable />} />
       
+
+      <Route path="/asistencias" element={<Asistencias />} />
 
       <Route path="/configuracion" element={<Configuracion />} />
 
