@@ -119,77 +119,134 @@ const preparePlazaData = (sesiones, allBlocks, programacionToGrupo, gpcToGrupo, 
   return columns;
 };
 
-// ─── Construir allBlocks (con separadores entre horarios) ───────────────────
+// ─── Filtrar sesiones por turno ─────────────────────────────────────────────
+const filterSesionesByTurnoPdf = (sesiones, turnoId, gpcToGrupo, grupoToTurno) => {
+  return sesiones.filter(s => {
+    const grupoId = gpcToGrupo.get(s.ID_GRUPO_PLAN_CURSO) ?? (s.ID_GRUPO || null);
+    return grupoId && grupoToTurno.get(grupoId) === turnoId;
+  });
+};
 
-const buildAllBlocks = (turnosConBloques) => {
-  const horariosUnicos = new Map();
-  for (const t of turnosConBloques) {
-    if (!horariosUnicos.has(t.horarioId)) {
-      horariosUnicos.set(t.horarioId, { horarioId: t.horarioId, turnos: [], bloques: t.bloques });
-    }
-    horariosUnicos.get(t.horarioId).turnos.push(t.turnoNombre);
+// ─── Calcular columnas para un turno ────────────────────────────────────────
+const buildColumnsPdf = (sesiones, allBlocks, programacionToGrupo, gpcToGrupo, grupoToTurno) => {
+  const sesionesPorFecha = new Map();
+  for (const s of sesiones) {
+    let fechaStr = s.FECHA;
+    if (typeof fechaStr === 'string' && fechaStr.includes('T')) fechaStr = fechaStr.split('T')[0];
+    if (!sesionesPorFecha.has(fechaStr)) sesionesPorFecha.set(fechaStr, []);
+    sesionesPorFecha.get(fechaStr).push(s);
   }
 
-  const allBlocks = [];
-  for (const [, horarioData] of horariosUnicos) {
-    if (horariosUnicos.size > 1 && allBlocks.length > 0) {
-      allBlocks.push({ type: 'separator', label: `--- ${horarioData.turnos.join(' / ')} ---`, orden: 0, time: '', endTime: '', timeRange: '', turnoNombre: horarioData.turnos.join('/') });
-    }
-    for (const bloque of horarioData.bloques) {
-      allBlocks.push({ ...bloque, turnosLabel: horarioData.turnos.join(' / ') });
+  const dateInfos = [];
+  for (const [fechaStr, sesionesDelDia] of sesionesPorFecha.entries()) {
+    const date = parseDate(fechaStr.includes('/') ? fechaStr : fechaStr.split('-').reverse().join('/'));
+    const weekday = date.getDay();
+    const sesionesConTurno = sesionesDelDia.map(s => {
+      let grupoId = null;
+      if (s.ID_PROGRAMACION && programacionToGrupo.has(s.ID_PROGRAMACION)) grupoId = programacionToGrupo.get(s.ID_PROGRAMACION);
+      if (!grupoId && s.ID_GRUPO_PLAN_CURSO && gpcToGrupo.has(s.ID_GRUPO_PLAN_CURSO)) grupoId = gpcToGrupo.get(s.ID_GRUPO_PLAN_CURSO);
+      const turnoId = grupoId ? grupoToTurno.get(grupoId) : null;
+      return { ...s, turnoId };
+    });
+    const signature = allBlocks.map(cb => {
+      if (cb.type === 'break') return '__BREAK__';
+      const sesion = sesionesConTurno.find(s => s.ORDEN === cb.orden && s.turnoId === cb.turnoId);
+      if (sesion) return `${sesion.CODIGO_AREA || ''}|${sesion.NOMBRE_CURSO || ''}|${sesion.DOCENTE_NOMBRE_COMPLETO || ''}|${sesion.DOCENTE_DISPLAY || 'Sin docente'}|${cb.turnoNombre}|${sesion.NOMBRE_GRUPO || ''}`;
+      return null;
+    });
+    const sigKey = signature.map(s => s === null ? '_' : s).join('||');
+    dateInfos.push({ date, weekday, signature, sigKey });
+  }
+
+  const grouped = new Map();
+  for (const info of dateInfos) {
+    if (!grouped.has(info.weekday)) grouped.set(info.weekday, new Map());
+    const byWeekday = grouped.get(info.weekday);
+    if (!byWeekday.has(info.sigKey)) byWeekday.set(info.sigKey, { signature: info.signature, dates: [] });
+    byWeekday.get(info.sigKey).dates.push(info.date);
+  }
+  const columns = [];
+  for (const [wd, byWeekday] of grouped.entries()) {
+    for (const g of byWeekday.values()) {
+      g.dates.sort((a, b) => a - b);
+      columns.push({ weekday: wd, weekdayName: WEEKDAY_NAMES[wd], dates: g.dates, signature: g.signature });
     }
   }
-  return allBlocks;
+  columns.sort((a, b) => a.dates[0] - b.dates[0]);
+  return columns;
 };
 
 // ─── Dibujar página de plaza en el PDF ──────────────────────────────────────
 
-const drawPlazaPage = (doc, nombrePlaza, columns, allBlocks, isFirstPage) => {
+const drawPlazaPage = (doc, nombrePlaza, sesiones, resolvedLookups, isFirstPage) => {
   if (!isFirstPage) doc.addPage('a4', 'landscape');
 
+  const { programacionToGrupo, gpcToGrupo, grupoToTurno, turnosConBloques } = resolvedLookups;
+
   const PW = doc.internal.pageSize.getWidth();
+  const PH = doc.internal.pageSize.getHeight();
   const marginL = 8;
   const marginR = 8;
   const usableW = PW - marginL - marginR;
 
+  // Calcular maxCols para centrado del header
+  let maxDataCols = 1;
+  const turnosData = [];
+  for (const turno of turnosConBloques) {
+    const sesT = filterSesionesByTurnoPdf(sesiones, turno.turnoId, gpcToGrupo, grupoToTurno);
+    const allBlocks = turno.bloques.map(b => ({ ...b, turnosLabel: turno.turnoNombre }));
+    const columns = buildColumnsPdf(sesT, allBlocks, programacionToGrupo, gpcToGrupo, grupoToTurno);
+    if (columns.length > 0) {
+      turnosData.push({ turno, allBlocks, columns });
+      if (columns.length > maxDataCols) maxDataCols = columns.length;
+    }
+  }
+
+  if (turnosData.length === 0) return;
+
   const blockColW = 30;
-  const dataColW = Math.min(34, (usableW - blockColW) / Math.max(columns.length, 1));
-  const totalW = blockColW + dataColW * columns.length;
+  const dataColW = Math.min(34, (usableW - blockColW) / Math.max(maxDataCols, 1));
+  const totalW = blockColW + dataColW * maxDataCols;
   const startX = marginL + (usableW - totalW) / 2;
 
   let y = 6;
 
-  // Cabecera
+  // ── Header general ────────────────────────────────────────────────────────
+  const s0 = sesiones[0] || {};
+  const nombreDocente = s0.DOCENTE_NOMBRE_COMPLETO || 'Docente no asignado';
+  const periodo = s0.NOMBRE_PERIODO || '';
+  const sede    = s0.NOMBRE_SEDE    || '';
+  const curso   = s0.NOMBRE_CURSO   || '';
+
   const headerH = 7;
   filledRect(doc, startX, y, totalW, headerH, C_BLUE);
   centeredText(doc, `HORARIO - ${nombrePlaza || 'Docente'}`, startX, y, totalW, headerH, 9, C_WHITE, true);
   y += headerH;
 
-  // Encabezado días
-  const dayH = 6;
-  filledRect(doc, startX, y, blockColW, dayH * 2, C_BLUE);
-  centeredText(doc, 'BLOQUE', startX, y, blockColW, dayH * 2, 7, C_WHITE, true);
+  const infoH1 = 5;
+  filledRect(doc, startX, y, totalW, infoH1, C_GRAY_LIGHT, C_BORDER);
+  doc.setFontSize(7); doc.setFont('helvetica', 'bold'); setTextColor(doc, C_DARK_TEXT);
+  doc.text(`Docente: ${nombreDocente}`, startX + 3, y + infoH1 * 0.65);
+  y += infoH1;
 
-  columns.forEach((col, idx) => {
-    const cx = startX + blockColW + idx * dataColW;
-    filledRect(doc, cx, y, dataColW, dayH, C_BLUE);
-    centeredText(doc, col.weekdayName, cx, y, dataColW, dayH, 6.5, C_WHITE, true);
-    filledRect(doc, cx, y + dayH, dataColW, dayH, C_BLUE);
-    centeredText(doc, col.dates.map(formatDateShort).join(' / '), cx, y + dayH, dataColW, dayH, 5.5, C_WHITE, false);
-  });
-  y += dayH * 2;
+  const infoH2 = 4.5;
+  filledRect(doc, startX, y, totalW, infoH2, [250, 250, 250], C_BORDER);
+  const metaLine = [periodo && `Período: ${periodo}`, sede && `Sede: ${sede}`, curso && `Curso: ${curso}`].filter(Boolean).join('   |   ');
+  doc.setFontSize(6); doc.setFont('helvetica', 'normal'); setTextColor(doc, C_GRAY_TEXT);
+  doc.text(metaLine, startX + 3, y + infoH2 * 0.7);
+  y += infoH2;
 
-  // computeRuns
+  // ── Tablas por turno ──────────────────────────────────────────────────────
   const computeRuns = (sig) => {
     const runs = [];
     let i = 0;
     while (i < sig.length) {
       const s = sig[i];
-      if (!s || s === '__BREAK__' || s === '__SEPARATOR__' || s === null) { i++; continue; }
+      if (!s || s === '__BREAK__' || s === null) { i++; continue; }
       let end = i, j = i + 1;
       while (j < sig.length) {
         const sj = sig[j];
-        if (sj === '__SEPARATOR__' || sj === '__BREAK__') break;
+        if (sj === '__BREAK__') break;
         if (sj === s) { end = j; j++; } else break;
       }
       runs.push({ start: i, end, key: s });
@@ -198,73 +255,90 @@ const drawPlazaPage = (doc, nombrePlaza, columns, allBlocks, isFirstPage) => {
     return runs;
   };
 
-  const runsByCol = columns.map(col => computeRuns(col.signature));
-  const findRun = (runs, i) => runs.find(r => i >= r.start && i <= r.end);
+  for (let ti = 0; ti < turnosData.length; ti++) {
+    const { turno, allBlocks, columns } = turnosData[ti];
+    const turnoTotalW = blockColW + dataColW * columns.length;
+    const turnoStartX = marginL + (usableW - turnoTotalW) / 2;
 
-  const breakH = 5;
-  const sepH = 5;
-  const classH = 15;
+    // Separación entre turnos
+    if (ti > 0) y += 4;
 
-  const rowHeights = allBlocks.map(cb => {
-    if (cb.type === 'separator') return sepH;
-    if (cb.type === 'break') return breakH;
-    return classH;
-  });
+    // Título del turno
+    const turnoH = 6;
+    filledRect(doc, startX, y, totalW, turnoH, [30, 58, 138], [30, 58, 138]);
+    centeredText(doc, `═══  ${turno.turnoNombre}  ═══`, startX, y, totalW, turnoH, 7, C_WHITE, true);
+    y += turnoH;
 
-  const rowYs = [];
-  let yCursor = y;
-  for (const h of rowHeights) { rowYs.push(yCursor); yCursor += h; }
-
-  const totalContentH = yCursor - y;
-  const availH = doc.internal.pageSize.getHeight() - y - 6;
-  const scaleY = totalContentH > availH ? availH / totalContentH : 1;
-
-  let ordenClase = 0;
-  for (let i = 0; i < allBlocks.length; i++) {
-    const cb = allBlocks[i];
-    const ry = y + (rowYs[i] - y) * scaleY;
-    const rh = rowHeights[i] * scaleY;
-
-    if (cb.type === 'separator') {
-      filledRect(doc, startX, ry, totalW, rh, C_SEP, C_SEP);
-      centeredText(doc, cb.label, startX, ry, totalW, rh, 5, C_WHITE, true);
-      continue;
-    }
-
-    if (cb.type === 'break') {
-      filledRect(doc, startX, ry, blockColW, rh, C_GRAY_MED);
-      centeredText(doc, `${cb.label}\n${cb.timeRange}`, startX, ry, blockColW, rh, 4.5, C_GRAY_TEXT, false);
-    } else {
-      ordenClase++;
-      filledRect(doc, startX, ry, blockColW, rh, C_GRAY_LIGHT);
-      centeredText(doc, `Bloque ${ordenClase}\n${cb.timeRange}\n(${cb.turnosLabel || cb.turnoNombre})`, startX, ry, blockColW, rh, 4.5, C_BLUE, true);
-    }
+    // Encabezado de días
+    const dayH = 6;
+    filledRect(doc, turnoStartX, y, blockColW, dayH * 2, C_BLUE);
+    centeredText(doc, 'BLOQUE', turnoStartX, y, blockColW, dayH * 2, 7, C_WHITE, true);
 
     columns.forEach((col, idx) => {
-      const cx = startX + blockColW + idx * dataColW;
-      const run = findRun(runsByCol[idx], i);
-      const sig = col.signature[i];
-
-      if (run) {
-        if (i === run.start) {
-          const runEndY = y + (rowYs[run.end] - y) * scaleY + rowHeights[run.end] * scaleY;
-          const runH = runEndY - ry;
-          filledRect(doc, cx, ry, dataColW, runH, C_TEAL_LIGHT);
-          const [codigo, curso, nombreCompleto, docente, , grupo] = run.key.split('|');
-          const startB = allBlocks[run.start];
-          const endB = allBlocks[run.end];
-          const timeRange = startB.time && endB.endTime ? `${startB.time} - ${endB.endTime}` : '';
-          const cellLines = [codigo ? `${codigo} ${curso}` : curso, grupo, nombreCompleto, docente, timeRange].filter(Boolean).join('\n');
-          centeredText(doc, cellLines, cx, ry, dataColW, runH, 4.5, C_DARK_TEXT, false);
-        }
-      } else if (sig === '__BREAK__') {
-        filledRect(doc, cx, ry, dataColW, rh, C_GRAY_MED);
-      } else if (sig === '__SEPARATOR__') {
-        filledRect(doc, cx, ry, dataColW, rh, C_SEP, C_SEP);
-      } else {
-        filledRect(doc, cx, ry, dataColW, rh, C_WHITE);
-      }
+      const cx = turnoStartX + blockColW + idx * dataColW;
+      filledRect(doc, cx, y, dataColW, dayH, C_BLUE);
+      centeredText(doc, col.weekdayName, cx, y, dataColW, dayH, 6.5, C_WHITE, true);
+      filledRect(doc, cx, y + dayH, dataColW, dayH, C_BLUE);
+      centeredText(doc, col.dates.map(formatDateShort).join(' / '), cx, y + dayH, dataColW, dayH, 5.5, C_WHITE, false);
     });
+    y += dayH * 2;
+
+    const runsByCol = columns.map(col => computeRuns(col.signature));
+    const findRun = (runs, i) => runs.find(r => i >= r.start && i <= r.end);
+
+    const breakH = 5;
+    const classH = 15;
+    const rowHeights = allBlocks.map(cb => cb.type === 'break' ? breakH : classH);
+
+    const rowYs = [];
+    let yCursor = y;
+    for (const h of rowHeights) { rowYs.push(yCursor); yCursor += h; }
+
+    const totalContentH = yCursor - y;
+    const availH = PH - y - 6;
+    const scaleY = totalContentH > availH ? availH / totalContentH : 1;
+
+    let ordenClase = 0;
+    for (let i = 0; i < allBlocks.length; i++) {
+      const cb = allBlocks[i];
+      const ry = y + (rowYs[i] - y) * scaleY;
+      const rh = rowHeights[i] * scaleY;
+
+      if (cb.type === 'break') {
+        filledRect(doc, turnoStartX, ry, blockColW, rh, C_GRAY_MED);
+        centeredText(doc, `${cb.label}\n${cb.timeRange}`, turnoStartX, ry, blockColW, rh, 4.5, C_GRAY_TEXT, false);
+      } else {
+        ordenClase++;
+        filledRect(doc, turnoStartX, ry, blockColW, rh, C_GRAY_LIGHT);
+        centeredText(doc, `Bloque ${ordenClase}\n${cb.timeRange}`, turnoStartX, ry, blockColW, rh, 4.5, C_BLUE, true);
+      }
+
+      columns.forEach((col, idx) => {
+        const cx = turnoStartX + blockColW + idx * dataColW;
+        const run = findRun(runsByCol[idx], i);
+        const sig = col.signature[i];
+
+        if (run) {
+          if (i === run.start) {
+            const runEndY = y + (rowYs[run.end] - y) * scaleY + rowHeights[run.end] * scaleY;
+            const runH = runEndY - ry;
+            filledRect(doc, cx, ry, dataColW, runH, C_TEAL_LIGHT);
+            const [codigo, curso, nombreCompleto, docente, , grupo] = run.key.split('|');
+            const startB = allBlocks[run.start];
+            const endB = allBlocks[run.end];
+            const timeRange = startB.time && endB.endTime ? `${startB.time} - ${endB.endTime}` : '';
+            const cellLines = [codigo ? `${codigo} ${curso}` : curso, grupo, nombreCompleto, docente, timeRange].filter(Boolean).join('\n');
+            centeredText(doc, cellLines, cx, ry, dataColW, runH, 4.5, C_DARK_TEXT, false);
+          }
+        } else if (sig === '__BREAK__') {
+          filledRect(doc, cx, ry, dataColW, rh, C_GRAY_MED);
+        } else {
+          filledRect(doc, cx, ry, dataColW, rh, C_WHITE);
+        }
+      });
+    }
+
+    y += totalContentH * scaleY;
   }
 };
 
@@ -374,15 +448,8 @@ export const exportPlazaToPdf = async (idPlaza, nombrePlaza) => {
       return;
     }
 
-    const allBlocks = buildAllBlocks(lookups.turnosConBloques);
-    const columns = preparePlazaData(sesiones, allBlocks, lookups.programacionToGrupo, lookups.gpcToGrupo, lookups.grupoToTurno);
-    if (columns.length === 0) {
-      alert('No hay datos para exportar');
-      return;
-    }
-
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    drawPlazaPage(doc, nombrePlaza, columns, allBlocks, true);
+    drawPlazaPage(doc, nombrePlaza, sesiones, lookups, true);
     doc.save(`Horario_${nombrePlaza || 'Plaza'}_${new Date().toISOString().split('T')[0]}.pdf`);
   } catch (error) {
     console.error('Error exportando plaza PDF:', error);
@@ -420,11 +487,7 @@ export const exportSedeToPdf = async (idSede, nombreSede, idPeriodo, onProgress)
       const lookups = resolveFromCache(sesiones, cache);
       if (lookups.turnosConBloques.length === 0) { if (onProgress) onProgress(++added, plazas.length); continue; }
 
-      const allBlocks = buildAllBlocks(lookups.turnosConBloques);
-      const columns = preparePlazaData(sesiones, allBlocks, lookups.programacionToGrupo, lookups.gpcToGrupo, lookups.grupoToTurno);
-      if (columns.length === 0) { if (onProgress) onProgress(++added, plazas.length); continue; }
-
-      drawPlazaPage(doc, plaza.IDENTIFICADOR_DOCENTE, columns, allBlocks, isFirst);
+      drawPlazaPage(doc, plaza.IDENTIFICADOR_DOCENTE, sesiones, lookups, isFirst);
       isFirst = false;
       added++;
       if (onProgress) onProgress(added, plazas.length);
@@ -473,12 +536,8 @@ export const exportAllPlazasToPdf = async (idPeriodo, onProgress) => {
       const lookups = resolveFromCache(sesiones, cache);
       if (lookups.turnosConBloques.length === 0) { if (onProgress) onProgress(processed, plazas.length); continue; }
 
-      const allBlocks = buildAllBlocks(lookups.turnosConBloques);
-      const columns = preparePlazaData(sesiones, allBlocks, lookups.programacionToGrupo, lookups.gpcToGrupo, lookups.grupoToTurno);
-      if (columns.length > 0) {
-        drawPlazaPage(doc, plaza.IDENTIFICADOR_DOCENTE, columns, allBlocks, isFirst);
-        isFirst = false;
-      }
+      drawPlazaPage(doc, plaza.IDENTIFICADOR_DOCENTE, sesiones, lookups, isFirst);
+      isFirst = false;
 
       if (onProgress) onProgress(processed, plazas.length);
     }

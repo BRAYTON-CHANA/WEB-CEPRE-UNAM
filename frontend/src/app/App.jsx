@@ -29,9 +29,13 @@ import ProgramacionGrupoConfig from '@/app/views/configuracion/programacion_grup
 import ReportesIndex from '@/app/views/configuracion/reportes';
 import ReportesGrupos from '@/app/views/configuracion/reportes/grupos';
 import ReportesPlazas from '@/app/views/configuracion/reportes/plazas';
+import ReportesDocentes from '@/app/views/configuracion/reportes/docentes';
 
 
 import Asistencias from '@/app/views/asistencias';
+import AsistenciasGrupos from '@/app/views/asistencias/grupos';
+import AsistenciasDocentes from '@/app/views/asistencias/docentes';
+import AsistenciasEstudiantes from '@/app/views/asistencias/estudiantes';
 import Configuracion from '@/app/views/configuracion';
 
 
@@ -51,6 +55,9 @@ function App() {
       
 
       <Route path="/asistencias" element={<Asistencias />} />
+      <Route path="/asistencias/grupos" element={<AsistenciasGrupos />} />
+      <Route path="/asistencias/docentes" element={<AsistenciasDocentes />} />
+      <Route path="/asistencias/estudiantes" element={<AsistenciasEstudiantes />} />
 
       <Route path="/configuracion" element={<Configuracion />} />
 
@@ -72,6 +79,7 @@ function App() {
       <Route path="/configuracion/reportes" element={<ReportesIndex />} />
       <Route path="/configuracion/reportes/grupos" element={<ReportesGrupos />} />
       <Route path="/configuracion/reportes/plazas" element={<ReportesPlazas />} />
+      <Route path="/configuracion/reportes/docentes" element={<ReportesDocentes />} />
     </Routes>
   );
 }

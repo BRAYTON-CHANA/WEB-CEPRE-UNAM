@@ -95,11 +95,15 @@ export const transformRecords = (records) => {
     if (!r.CURSO_ASIGNADO && !r.ID_GRUPO_PLAN_CURSO) return;
     const colIdx = r.DIA_IDX - 1;
     const key = `${colIdx}-${r.BLOQUE_ORDEN}`;
+    
+    // 🎨 Usar color del curso si está definido, sino asignar color aleatorio
+    const courseColor = r.CURSO_COLOR || getCourseColor(String(r.ID_GRUPO_PLAN_CURSO));
+    
     cellEvents[key] = {
       label:           r.CURSO_ASIGNADO || '',
       group:           `${r.CODIGO_GRUPO} - ${r.NOMBRE_GRUPO}`,
       description:     r.DOCENTE_ASIGNADO || '',
-      color:           getCourseColor(String(r.ID_GRUPO_PLAN_CURSO)),
+      color:           courseColor,
       idProgramacion:  r.ID_PROGRAMACION,
       idBloque:        r.ID_BLOQUE,
       idGrupoPlanCurso: r.ID_GRUPO_PLAN_CURSO

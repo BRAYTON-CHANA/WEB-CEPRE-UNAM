@@ -3,7 +3,131 @@ import React from 'react';
 export function ConflictErrorDisplay({ error }) {
   if (!error) return null;
 
-  // Parsear el mensaje de error
+  // ============================================
+  // NUEVO: Detectar si es objeto estructurado (formato pipe-separated parseado)
+  // ============================================
+  const isStructuredError = typeof error === 'object' && error !== null && error.tipo;
+  
+  if (isStructuredError) {
+    // Renderizar tabla estructurada para nuevo formato
+    const isDocente = error.tipo === 'SOLAPAMIENTO_DOCENTE';
+    const isPlaza = error.tipo === 'SOLAPAMIENTO_PLAZA';
+    
+    return (
+      <div className="max-h-[70vh] overflow-y-auto">
+        {/* Header con badge de tipo */}
+        <div className="p-5 border-b border-red-200 bg-red-100/30">
+          <div className="flex items-center gap-3 mb-4">
+            <span className={`px-3 py-1.5 text-sm font-bold text-white rounded-lg shadow-sm ${
+              isDocente ? 'bg-red-600' : 'bg-orange-500'
+            }`}>
+              {isDocente ? '👤 SOLAPAMIENTO DE DOCENTE' : '🏫 SOLAPAMIENTO DE PLAZA'}
+            </span>
+            <span className="text-sm font-medium text-gray-600">
+              No se puede asignar
+            </span>
+          </div>
+          
+          <p className="text-base text-gray-700 leading-relaxed">
+            {isDocente 
+              ? `El docente "${error.docente?.nombre}" ya está asignado al grupo "${error.grupo?.nombre}" en este horario.`
+              : `La plaza para "${error.cursoIntentado}" ya está asignada al grupo "${error.grupo?.nombre}".`
+            }
+          </p>
+        </div>
+
+        {/* Tabla comparativa de datos */}
+        <div className="p-4">
+          <h4 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
+            📋 Detalles del Conflicto
+          </h4>
+          <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="px-4 py-3 text-left font-bold text-gray-700 w-1/4">Campo</th>
+                <th className="px-4 py-3 text-left font-bold text-green-700 w-1/3">Intento Actual</th>
+                <th className="px-4 py-3 text-left font-bold text-red-700 w-1/3">Existente (Conflicto)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {/* Curso */}
+              <tr className="hover:bg-gray-50/50">
+                <td className="px-4 py-3 font-semibold text-gray-600">📚 Curso</td>
+                <td className="px-4 py-3 text-gray-900 bg-green-50/30">{error.cursoIntentado || '-'}</td>
+                <td className="px-4 py-3 text-gray-900 bg-red-50/30 font-medium">{error.cursoExistente || '-'}</td>
+              </tr>
+              
+              {/* Docente (solo para solapamiento de docente) */}
+              {isDocente && (
+                <tr className="hover:bg-gray-50/50">
+                  <td className="px-4 py-3 font-semibold text-gray-600">👤 Docente</td>
+                  <td className="px-4 py-3 text-gray-900 bg-green-50/30">{error.docente?.nombre || '-'}</td>
+                  <td className="px-4 py-3 text-gray-900 bg-red-50/30 font-medium">{error.docente?.nombre || '-'}</td>
+                </tr>
+              )}
+              
+              {/* Grupo */}
+              <tr className="hover:bg-gray-50/50">
+                <td className="px-4 py-3 font-semibold text-gray-600">👥 Grupo</td>
+                <td className="px-4 py-3 text-gray-900 bg-green-50/30">Nuevo</td>
+                <td className="px-4 py-3 text-gray-900 bg-red-50/30 font-medium">
+                  {error.grupo?.nombre} ({error.grupo?.codigo})
+                </td>
+              </tr>
+              
+              {/* Día */}
+              <tr className="hover:bg-gray-50/50">
+                <td className="px-4 py-3 font-semibold text-gray-600">📅 Día</td>
+                <td className="px-4 py-3 text-gray-900 bg-green-50/30">{error.diaIdx}</td>
+                <td className="px-4 py-3 text-gray-900 bg-red-50/30 font-medium">{error.diaIdx}</td>
+              </tr>
+              
+              {/* Bloque */}
+              <tr className="hover:bg-gray-50/50">
+                <td className="px-4 py-3 font-semibold text-gray-600">🕐 Bloque</td>
+                <td className="px-4 py-3 text-gray-900 bg-green-50/30">{error.bloqueOrden}</td>
+                <td className="px-4 py-3 text-gray-900 bg-red-50/30 font-medium">{error.bloqueOrden}</td>
+              </tr>
+              
+              {/* Fechas */}
+              <tr className="hover:bg-gray-50/50">
+                <td className="px-4 py-3 font-semibold text-gray-600">📆 Fechas</td>
+                <td colSpan="2" className="px-4 py-3 text-gray-900">
+                  <div className="flex flex-wrap gap-1">
+                    {error.fechas?.map((fecha, idx) => (
+                      <span key={idx} className="inline-block px-2 py-0.5 bg-amber-100 text-amber-800 text-xs rounded font-medium">
+                        {fecha}
+                      </span>
+                    ))}
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Footer con solución */}
+        <div className="p-4 border-t border-red-200 bg-red-50/50">
+          <div className="flex items-start gap-3">
+            <span className="text-xl">💡</span>
+            <div>
+              <p className="text-sm font-bold text-red-800 mb-1">Solución sugerida:</p>
+              <p className="text-sm text-gray-700">
+                {isDocente 
+                  ? 'Libere al docente del grupo conflictivo primero, o asigne otro docente a esta plaza.'
+                  : 'Libere la plaza del grupo conflictivo primero antes de reasignarla.'
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================
+  // LEGACY: Parsear el mensaje de error (formato string antiguo)
+  // ============================================
   const isSolapamiento = error.includes('SOLAPAMIENTO DE PLAZA');
   const isDocente = error.includes('SOLAPAMIENTO DE DOCENTE');
   const isSesionDuplicada = error.includes('SESIÓN DUPLICADA') || error.includes('SESION_DUPLICADA');

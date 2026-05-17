@@ -45,6 +45,21 @@ export const renderCell = (value, rowIndex, header, columnType) => {
     }
   }
   
+  // Manejo de colores - Muestra círculo con color + código HEX
+  if (columnType === 'color' && value) {
+    const hexColor = value.startsWith('#') ? value : `#${value}`;
+    return (
+      <div className="flex items-center gap-2">
+        <div 
+          className="w-6 h-6 rounded-full border-2 border-gray-300 shadow-sm flex-shrink-0"
+          style={{ backgroundColor: hexColor }}
+          title={hexColor}
+        />
+        <span className="text-xs font-mono text-gray-600">{hexColor.toUpperCase()}</span>
+      </div>
+    );
+  }
+  
   // Manejo de objetos (no arrays)
   if (typeof value === 'object' && !Array.isArray(value)) {
     return (
@@ -59,7 +74,7 @@ export const renderCell = (value, rowIndex, header, columnType) => {
     return (
       <div className="flex flex-wrap gap-1">
         {value.map((item, idx) => (
-          <span key={idx} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+          <span key={idx} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-800 text-white font-medium shadow-sm">
             {item}
           </span>
         ))}

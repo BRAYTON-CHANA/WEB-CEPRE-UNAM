@@ -116,8 +116,12 @@ function ReportesPlazas() {
     {
       level: 2,
       headers: [
-        { title: 'IDENTIFICADOR_DOCENTE', type: 'string' },
-        { title: 'PAGO_POR_HORA', type: 'number' }
+        { title: 'IDENTIFICADOR_DOCENTE',  type: 'string' },
+        { title: 'NOMBRE_CURSO',           type: 'string' },
+        { title: 'CODIGOS_GRUPOS',         type: 'array'  },
+        { title: 'HORAS_REALIZADAS',      type: 'number' },
+        { title: 'PAGO_POR_HORA',          type: 'number' },
+        { title: 'PAGO_ESTIMADO',          type: 'number' },
       ],
       boundColumn: 'ID_PLAZA_DOCENTE',
       actions: {
@@ -144,7 +148,7 @@ function ReportesPlazas() {
   }, [selectedPeriodo]);
 
   const { records, loading, error } = useTableData(
-    selectedPeriodo ? 'VW_PERIODOS_SEDES_PLAZAS' : null,
+    selectedPeriodo ? 'VW_HORAS_POR_PLAZA' : null,
     filters
   );
 

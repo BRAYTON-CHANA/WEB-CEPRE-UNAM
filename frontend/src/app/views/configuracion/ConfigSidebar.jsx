@@ -247,6 +247,13 @@ const ConfigSidebar = () => {
           icon: <UserIcon />,
           href: '/configuracion/reportes/plazas',
           active: location.pathname === '/configuracion/reportes/plazas'
+        },
+        {
+          id: 'reportes_docentes',
+          name: 'Docentes',
+          icon: <UserIcon />,
+          href: '/configuracion/reportes/docentes',
+          active: location.pathname === '/configuracion/reportes/docentes'
         }
       ]
     }

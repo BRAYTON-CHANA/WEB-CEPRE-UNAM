@@ -15,14 +15,21 @@ function CrudHeader({
   descriptionClassName,
   actions = [] 
 }) {
+  // No renderizar si no hay contenido
+  if (!headerTitle && !headerDescription && actions.length === 0) {
+    return null;
+  }
+
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-6 py-5">
       <div className="flex items-center justify-between gap-4">
         {/* Título y descripción - Izquierda */}
         <div className="min-w-0">
-          <h1 className={`text-xl font-semibold text-gray-900 mb-1.5 tracking-tight ${titleClassName || ''}`}>
-            {headerTitle}
-          </h1>
+          {headerTitle && (
+            <h1 className={`text-xl font-semibold text-gray-900 mb-1.5 tracking-tight ${titleClassName || ''}`}>
+              {headerTitle}
+            </h1>
+          )}
           {headerDescription && (
             <p className={`text-gray-500 text-sm leading-relaxed ${descriptionClassName || ''}`}>
               {headerDescription}

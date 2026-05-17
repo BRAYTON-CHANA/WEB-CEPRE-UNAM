@@ -1,6 +1,6 @@
 /**
  * Configuración de tabla multinivel para Grupos
- * 3 niveles: Periodo → Sede → Grupo
+ * 2 niveles: Sede → Grupo (selector de período en el componente padre)
  */
 export const tableConfig = {
   tableName: 'VW_GRUPOS'
@@ -8,24 +8,12 @@ export const tableConfig = {
 
 /**
  * Genera los levelConfigs para TableMultiLevelRender.
- * Nivel 1: Periodo (solo visualización, sin actions)
- * Nivel 2: Sede (botón "+" para añadir grupo)
- * Nivel 3: Grupo (CRUD completo: editar, eliminar)
+ * Nivel 1: Sede (botón "+" para añadir grupo)
+ * Nivel 2: Grupo (CRUD completo: editar, eliminar)
  */
 export const getTableLevelConfigs = (gruposCrud, handleAddGrupo, handleAsignarPlazas) => [
   {
     level: 1,
-    field: 'CODIGO_PERIODO',
-    headers: [
-      { title: 'NOMBRE_PERIODO', type: 'string' },
-      { title: 'INICIO_PERIODO', type: 'date' },
-      { title: 'FIN_PERIODO', type: 'date' }
-    ],
-    boundColumn: 'ID_PERIODO',
-    // Sin acciones para periodos
-  },
-  {
-    level: 2,
     field: 'NOMBRE_SEDE',
     headers: [],
     boundColumn: 'ID_SEDE',
@@ -41,7 +29,7 @@ export const getTableLevelConfigs = (gruposCrud, handleAddGrupo, handleAsignarPl
     }
   },
   {
-    level: 3,
+    level: 2,
     headers: [
       { title: 'CODIGO_GRUPO', type: 'string' },
       //{ title: 'NOMBRE_GRUPO', type: 'string' },

@@ -211,11 +211,17 @@ export function useProgramacionGrupo() {
       const errorMsg = err?.message || '';
       console.log('[DEBUG] errorMsg:', errorMsg);
       console.log('[DEBUG] ¿Incluye [SOLAPAMIENTO]?:', errorMsg?.includes('[SOLAPAMIENTO]'));
+      console.log('[DEBUG] ¿Incluye [SOLAPAMIENTO_DOCENTE]?:', errorMsg?.includes('[SOLAPAMIENTO_DOCENTE]'));
+      console.log('[DEBUG] ¿Incluye [SOLAPAMIENTO_PLAZA]?:', errorMsg?.includes('[SOLAPAMIENTO_PLAZA]'));
       console.log('[DEBUG] ¿Incluye [CONFLICTO_DOCENTE]?:', errorMsg?.includes('[CONFLICTO_DOCENTE]'));
       console.log('[DEBUG] ¿Incluye [CONFLICTO_PLAZA]?:', errorMsg?.includes('[CONFLICTO_PLAZA]'));
       
-      // Detectar cualquier tipo de conflicto (antiguo o nuevo formato)
+      // Detectar cualquier tipo de conflicto (nuevos formatos del backend)
+      const isSolapamientoDocente = errorMsg?.includes('[SOLAPAMIENTO_DOCENTE]');
+      const isSolapamientoPlaza = errorMsg?.includes('[SOLAPAMIENTO_PLAZA]');
       const isConflicto = errorMsg?.includes('[SOLAPAMIENTO]') || 
+                          isSolapamientoDocente || 
+                          isSolapamientoPlaza ||
                           errorMsg?.includes('[CONFLICTO_DOCENTE]') || 
                           errorMsg?.includes('[CONFLICTO_PLAZA]');
       
@@ -226,6 +232,71 @@ export function useProgramacionGrupo() {
       
       if (isConflicto) {
         try {
+          // ============================================
+          // NUEVO: Parsear formato pipe-separated del backend
+          // ============================================
+          if (isSolapamientoDocente || isSolapamientoPlaza) {
+            // Extraer la parte con datos del mensaje
+            const dataMatch = errorMsg.match(/\[SOLAPAMIENTO_\w+\]\s*(.+)/);
+            if (dataMatch) {
+              const parts = dataMatch[1].split('|');
+              
+              let errorData;
+              if (isSolapamientoDocente && parts.length >= 9) {
+                // Formato: [SOLAPAMIENTO_DOCENTE] ID_DOC|NOMBRE|CURSO_NEW|CURSO_OLD|GRUPO|COD_GRUPO|DIA|BLOQUE|FECHAS|IDENTIF
+                errorData = {
+                  tipo: 'SOLAPAMIENTO_DOCENTE',
+                  titulo: 'Docente ya asignado',
+                  docente: {
+                    id: parts[0],
+                    nombre: parts[1]
+                  },
+                  cursoIntentado: parts[2],
+                  cursoExistente: parts[3],
+                  grupo: {
+                    nombre: parts[4],
+                    codigo: parts[5]
+                  },
+                  diaIdx: parts[6],
+                  bloqueOrden: parts[7],
+                  fechas: parts[8]?.split(', ') || [],
+                  identificador: parts[9] || ''
+                };
+              } else if (isSolapamientoPlaza && parts.length >= 8) {
+                // Formato: [SOLAPAMIENTO_PLAZA] CURSO_NEW|CURSO_OLD|GRUPO|COD_GRUPO|DOC_NOMBRE|DOC_APELLIDO|DIA|BLOQUE|FECHAS
+                errorData = {
+                  tipo: 'SOLAPAMIENTO_PLAZA',
+                  titulo: 'Plaza ya asignada',
+                  cursoIntentado: parts[0],
+                  cursoExistente: parts[1],
+                  grupo: {
+                    nombre: parts[2],
+                    codigo: parts[3]
+                  },
+                  docente: {
+                    nombres: parts[4],
+                    apellidos: parts[5]
+                  },
+                  diaIdx: parts[6],
+                  bloqueOrden: parts[7],
+                  fechas: parts[8]?.split(', ') || []
+                };
+              }
+              
+              if (errorData) {
+                console.log('[DEBUG] Datos parseados del error:', errorData);
+                setConflictError(errorData); // Pasar objeto estructurado
+                console.log('[DEBUG] setConflictError llamado con objeto estructurado');
+                setSaving(false);
+                return;
+              }
+            }
+          }
+          
+          // ============================================
+          // LEGACY: Mantener compatibilidad con formatos antiguos
+          // ============================================
+          
           // El backend ahora envía details directamente en el error
           let detail = err?.details;
           

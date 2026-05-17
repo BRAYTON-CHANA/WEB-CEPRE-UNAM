@@ -3,6 +3,7 @@ import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/features/cr
 import { EditableTable } from '@/features/table';
 import { Modal } from '@/features/modal';
 import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
+import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
 import { tableConfig, getTableLevelConfigs } from './config/tableConfig';
 import { grupoFormFields, grupoMultiStep, grupoValidation, grupoModalConfig } from './config/formConfig';
 import { headerProps, getHeaderActions } from './config/headerConfig';
@@ -37,16 +38,32 @@ const PLAZAS_COLUMNS = [
 ];
 
 /**
- * Grupos — CRUD 3 niveles
- * Nivel 1: Periodo (visualización)
- * Nivel 2: Sede (visualización + botón "Añadir Grupo")
- * Nivel 3: Grupo (CRUD completo)
+ * Grupos — CRUD 2 niveles con selector de período
+ * Selector: Período (antes de cargar datos)
+ * Nivel 1: Sede (visualización + botón "Añadir Grupo")
+ * Nivel 2: Grupo (CRUD completo)
  */
 function GruposConfig() {
   // ==========================================
-  // 1. DATOS
+  // 1. SELECTOR DE PERÍODO
   // ==========================================
-  const { records, loading, error, refresh } = useTableData(tableConfig.tableName);
+  const [selectedPeriodo, setSelectedPeriodo] = useState('');
+
+  const handlePeriodoChange = (_, value) => {
+    setSelectedPeriodo(value);
+  };
+
+  const filters = useMemo(() => {
+    return selectedPeriodo ? { ID_PERIODO: selectedPeriodo } : {};
+  }, [selectedPeriodo]);
+
+  // ==========================================
+  // 2. DATOS (filtrados por período)
+  // ==========================================
+  const { records, loading, error, refresh } = useTableData(
+    selectedPeriodo ? tableConfig.tableName : null,
+    filters
+  );
 
   // ==========================================
   // 2. CRUD HOOKS
@@ -60,18 +77,14 @@ function GruposConfig() {
   // ==========================================
   // 3. ESTADOS PARA CREAR GRUPO DESDE SEDE
   // ==========================================
-
-  const [selectedPeriodoId, setSelectedPeriodoId] = useState(null);
   const [selectedSedeId, setSelectedSedeId] = useState(null);
 
   const handleAddGrupo = (row) => {
-    setSelectedPeriodoId(row.ID_PERIODO);
     setSelectedSedeId(row.ID_SEDE);
     gruposCrud.handleCreate();
   };
 
   const handleCreateClose = () => {
-    setSelectedPeriodoId(null);
     setSelectedSedeId(null);
     gruposCrud.handleCloseCreate();
   };
@@ -80,12 +93,12 @@ function GruposConfig() {
   // 4. FORMULARIO DINÁMICO (prellena Periodo y Sede)
   // ==========================================
   const dynamicGrupoFields = useMemo(() => {
-    const isCreatingFromSede = selectedPeriodoId !== null && selectedSedeId !== null;
+    const isCreatingFromSede = selectedPeriodo !== '' && selectedSedeId !== null;
     return grupoFormFields.map((field) => {
       if (isCreatingFromSede && field.name === 'ID_PERIODO') {
         return {
           ...field,
-          defaultValue: selectedPeriodoId,
+          defaultValue: selectedPeriodo,
           disabled: true
         };
       }
@@ -98,7 +111,7 @@ function GruposConfig() {
       }
       return field;
     });
-  }, [selectedPeriodoId, selectedSedeId]);
+  }, [selectedPeriodo, selectedSedeId]);
 
   // ==========================================
   // 5. ASIGNAR PLAZAS — estado y datos
@@ -144,17 +157,56 @@ function GruposConfig() {
 
   return (
     <LayoutWithSidebar>
-      <CrudMultiLevelManager
-        data={records}
-        loading={loading}
-        error={error}
-        tableLevelConfigs={tableLevelConfigs}
-        headerProps={{
-          ...headerProps,
-          actions: getHeaderActions()
-        }}
-        crudLevels={crudLevels}
-      />
+      <div className="px-4 py-6 space-y-6">
+        {/* Título - siempre visible */}
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Grupos</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Seleccione un período para ver los grupos
+          </p>
+        </div>
+
+        {/* Selector de Período */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+          <div className="flex-1 max-w-md">
+            <ReferenceSelectInput
+              name="id_periodo"
+              label="Período Académico"
+              referenceTable="PERIODOS"
+              referenceField="ID_PERIODO"
+              referenceLabelField="NOMBRE_PERIODO"
+              placeholder="Seleccione un período..."
+              searchable={true}
+              value={selectedPeriodo}
+              onChange={handlePeriodoChange}
+              formData={{}}
+            />
+          </div>
+        </div>
+
+        {/* Tabla o mensaje de selección */}
+        {selectedPeriodo ? (
+          <CrudMultiLevelManager
+            data={records}
+            loading={loading}
+            error={error}
+            tableLevelConfigs={tableLevelConfigs}
+            headerProps={{
+              title: null,
+              actions: getHeaderActions()
+            }}
+            crudLevels={crudLevels}
+          />
+        ) : (
+          <div className="p-12 bg-white rounded-xl border border-gray-200 shadow-sm text-center">
+            <svg className="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p className="mt-3 text-gray-500 font-medium">Seleccione un período</p>
+            <p className="mt-1 text-sm text-gray-400">Elija un período académico para ver los grupos disponibles.</p>
+          </div>
+        )}
+      </div>
 
       {/* Modal Asignar Plazas */}
       <Modal

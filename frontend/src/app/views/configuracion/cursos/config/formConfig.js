@@ -27,7 +27,14 @@ export const cursosFormFields = [
     createTitle: 'Agregar Nuevo Eje Temático',
     searchable: false
   },
- 
+  {
+    name: 'COLOR',
+    type: 'color',
+    label: 'Color del Curso',
+    placeholder: '#3B82F6',
+    showPalettes: true,
+    paletteType: 'material'
+  }
 ];
 
 export const cursosMultiStep = {

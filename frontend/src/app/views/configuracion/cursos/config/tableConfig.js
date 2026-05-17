@@ -14,7 +14,8 @@ export const getTableLevelConfigs = (cursosCrud) => [
     headers: [
       { title: 'CODIGO_CURSO', type: 'string' },
       { title: 'NOMBRE_CURSO', type: 'string' },
-      { title: 'EJE_TEMATICO', type: 'string' }
+      { title: 'EJE_TEMATICO', type: 'string' },
+      { title: 'COLOR', type: 'color' }
     ],
     boundColumn: 'ID_CURSO',
     actions: {

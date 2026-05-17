@@ -281,35 +281,16 @@ const buildCellValue = (codigo, curso, grupo, nombreCompleto, docente, horario, 
   return parts.filter(Boolean).join('\n');
 };
 
-// ─── Core: construir hoja a partir de sesiones ya resueltas ─────────────────
-const buildWorksheetCore = (workbook, nombrePlaza, sesiones, resolvedLookups, opts = {}) => {
-  const { programacionToGrupo, gpcToGrupo, grupoToTurno, turnosConBloques } = resolvedLookups;
+// ─── Filtrar sesiones por turno ──────────────────────────────────────────────
+export const filterSesionesByTurno = (sesiones, turnoId, gpcToGrupo, grupoToTurno) => {
+  return sesiones.filter(s => {
+    const grupoId = gpcToGrupo.get(s.ID_GRUPO_PLAN_CURSO) ?? (s.ID_GRUPO || null);
+    return grupoId && grupoToTurno.get(grupoId) === turnoId;
+  });
+};
 
-  if (turnosConBloques.length === 0) return false;
-
-  // Agrupar por horario
-  const horariosUnicos = new Map();
-  for (const t of turnosConBloques) {
-    if (!horariosUnicos.has(t.horarioId)) {
-      horariosUnicos.set(t.horarioId, { horarioId: t.horarioId, horario: t.horario, turnos: [], bloques: t.bloques });
-    }
-    horariosUnicos.get(t.horarioId).turnos.push(t.turnoNombre);
-  }
-
-  // allBlocks con separadores
-  const allBlocks = [];
-  let horarioIndex = 0;
-  for (const [, horarioData] of horariosUnicos) {
-    horarioIndex++;
-    if (horariosUnicos.size > 1 && allBlocks.length > 0) {
-      allBlocks.push({ type: 'separator', label: `--- ${horarioData.turnos.join(' / ')} ---`, orden: 0, time: '', endTime: '', timeRange: '', turnoNombre: horarioData.turnos.join('/'), horarioIndex });
-    }
-    for (const bloque of horarioData.bloques) {
-      allBlocks.push({ ...bloque, horarioIndex, turnosLabel: horarioData.turnos.join(' / ') });
-    }
-  }
-
-  // Agrupar sesiones por fecha
+// ─── Calcular columnas para un conjunto de sesiones y bloques ────────────────
+export const buildColumnsForSesiones = (sesiones, allBlocks, programacionToGrupo, gpcToGrupo, grupoToTurno) => {
   const sesionesPorFecha = new Map();
   for (const s of sesiones) {
     let fechaStr = s.FECHA;
@@ -318,7 +299,6 @@ const buildWorksheetCore = (workbook, nombrePlaza, sesiones, resolvedLookups, op
     sesionesPorFecha.get(fechaStr).push(s);
   }
 
-  // Firmas por fecha
   const dateInfos = [];
   for (const [fechaStr, sesionesDelDia] of sesionesPorFecha.entries()) {
     const date = parseDate(fechaStr.includes('/') ? fechaStr : fechaStr.split('-').reverse().join('/'));
@@ -334,7 +314,6 @@ const buildWorksheetCore = (workbook, nombrePlaza, sesiones, resolvedLookups, op
 
     const signature = allBlocks.map(cb => {
       if (cb.type === 'break') return '__BREAK__';
-      if (cb.type === 'separator') return '__SEPARATOR__';
       const sesion = sesionesConTurno.find(s => s.ORDEN === cb.orden && s.turnoId === cb.turnoId);
       if (sesion) return `${sesion.CODIGO_AREA || ''}|${sesion.NOMBRE_CURSO || ''}|${sesion.DOCENTE_NOMBRE_COMPLETO || ''}|${sesion.DOCENTE_DISPLAY || 'Sin docente'}|${cb.turnoNombre}|${sesion.NOMBRE_GRUPO || ''}`;
       return null;
@@ -344,7 +323,6 @@ const buildWorksheetCore = (workbook, nombrePlaza, sesiones, resolvedLookups, op
     dateInfos.push({ date, fechaStr, weekday, signature, sigKey });
   }
 
-  // Agrupar por (weekday, sigKey)
   const grouped = new Map();
   for (const info of dateInfos) {
     if (!grouped.has(info.weekday)) grouped.set(info.weekday, new Map());
@@ -361,8 +339,29 @@ const buildWorksheetCore = (workbook, nombrePlaza, sesiones, resolvedLookups, op
     }
   }
   columns.sort((a, b) => a.dates[0] - b.dates[0]);
+  return columns;
+};
 
-  if (columns.length === 0) return false;
+// ─── Core: construir hoja a partir de sesiones ya resueltas ─────────────────
+const buildWorksheetCore = (workbook, nombrePlaza, sesiones, resolvedLookups, opts = {}) => {
+  const { programacionToGrupo, gpcToGrupo, grupoToTurno, turnosConBloques } = resolvedLookups;
+
+  if (turnosConBloques.length === 0) return false;
+
+  // Calcular el ancho máximo de columnas entre todos los turnos (para el merge del header)
+  let maxCols = 1;
+  const turnosData = [];
+  for (const turno of turnosConBloques) {
+    const sesionesDelTurno = filterSesionesByTurno(sesiones, turno.turnoId, gpcToGrupo, grupoToTurno);
+    const allBlocks = turno.bloques.map(b => ({ ...b, turnosLabel: turno.turnoNombre }));
+    const columns = buildColumnsForSesiones(sesionesDelTurno, allBlocks, programacionToGrupo, gpcToGrupo, grupoToTurno);
+    if (columns.length > 0) {
+      turnosData.push({ turno, allBlocks, columns, sesionesDelTurno });
+      if (columns.length + 1 > maxCols) maxCols = columns.length + 1;
+    }
+  }
+
+  if (turnosData.length === 0) return false;
 
   // Crear hoja Excel
   const ws = workbook.addWorksheet(`${nombrePlaza || 'Plaza'}`.slice(0, 31));
@@ -376,7 +375,9 @@ const buildWorksheetCore = (workbook, nombrePlaza, sesiones, resolvedLookups, op
   const eventFont     = { name: 'Arial', size: 9, color: { argb: 'FF1F2937' } };
   const breakFill     = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
   const breakFont     = { name: 'Arial', size: 9, italic: true, color: { argb: 'FF6B7280' } };
-  const sepFill       = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2D366F' } };
+  const infoFill1     = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } };
+  const infoFill2     = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFAFAFA' } };
+  const turnoTitleFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
   const thinBorder    = {
     top:    { style: 'thin', color: { argb: 'FF000000' } },
     bottom: { style: 'thin', color: { argb: 'FF000000' } },
@@ -384,7 +385,17 @@ const buildWorksheetCore = (workbook, nombrePlaza, sesiones, resolvedLookups, op
     right:  { style: 'thin', color: { argb: 'FF000000' } }
   };
 
-  ws.mergeCells(1, 1, 1, columns.length + 1);
+  // Extraer datos del docente de la primera sesión disponible
+  const s0 = sesiones[0] || {};
+  const nombreDocente = s0.DOCENTE_NOMBRE_COMPLETO
+    ? s0.DOCENTE_NOMBRE_COMPLETO
+    : 'Docente no asignado';
+  const periodo = s0.NOMBRE_PERIODO || '';
+  const sede    = s0.NOMBRE_SEDE    || '';
+  const curso   = s0.NOMBRE_CURSO   || '';
+
+  // ── Fila 1: Título general ────────────────────────────────────────────────
+  ws.mergeCells(1, 1, 1, maxCols);
   const titleCell = ws.getCell(1, 1);
   titleCell.value = `HORARIO - ${nombrePlaza || 'Docente'}`;
   titleCell.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -393,148 +404,183 @@ const buildWorksheetCore = (workbook, nombrePlaza, sesiones, resolvedLookups, op
   titleCell.border = thinBorder;
   ws.getRow(1).height = 28;
 
-  const headerA = ws.getCell(2, 1);
-  headerA.value = 'BLOQUE';
-  headerA.font = headerFont;
-  headerA.fill = headerFill;
-  headerA.alignment = { vertical: 'middle', horizontal: 'center' };
-  headerA.border = thinBorder;
-  ws.getCell(3, 1).fill = headerFill;
-  ws.getCell(3, 1).border = thinBorder;
-  ws.mergeCells(2, 1, 3, 1);
+  // ── Fila 2: Nombre docente ────────────────────────────────────────────────
+  ws.mergeCells(2, 1, 2, maxCols);
+  const docenteCell = ws.getCell(2, 1);
+  docenteCell.value = `Docente: ${nombreDocente}`;
+  docenteCell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FF1F2937' } };
+  docenteCell.fill = infoFill1;
+  docenteCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+  docenteCell.border = thinBorder;
+  ws.getRow(2).height = 20;
 
-  columns.forEach((col, idx) => {
-    const colNum = idx + 2;
-    const wdCell = ws.getCell(2, colNum);
-    wdCell.value = col.weekdayName;
-    wdCell.font = headerFont;
-    wdCell.fill = headerFill;
-    wdCell.alignment = { vertical: 'middle', horizontal: 'center' };
-    wdCell.border = thinBorder;
-    const dCell = ws.getCell(3, colNum);
-    dCell.value = col.dates.map(formatDateShort).join('\n');
-    dCell.font = subHeaderFont;
-    dCell.fill = headerFill;
-    dCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-    dCell.border = thinBorder;
-  });
+  // ── Fila 3: Período | Sede | Curso ────────────────────────────────────────
+  ws.mergeCells(3, 1, 3, maxCols);
+  const metaCell = ws.getCell(3, 1);
+  metaCell.value = [periodo && `Período: ${periodo}`, sede && `Sede: ${sede}`, curso && `Curso: ${curso}`].filter(Boolean).join('   |   ');
+  metaCell.font = { name: 'Arial', size: 10, color: { argb: 'FF4B5563' } };
+  metaCell.fill = infoFill2;
+  metaCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+  metaCell.border = thinBorder;
+  ws.getRow(3).height = 18;
 
-  ws.getRow(2).height = 24;
-  ws.getRow(3).height = Math.max(20, Math.max(...columns.map(c => c.dates.length), 1) * 14);
+  let currentRow = 4;
 
-  const signatureToCellContent = (sig) => {
-    return allBlocks.map((cb, i) => {
-      if (cb.type === 'separator') return { type: 'separator', label: cb.label };
-      if (cb.type === 'break') return { type: 'break', label: cb.label, turno: cb.turnosLabel || cb.turnoNombre };
-      if (sig[i] && sig[i] !== '__BREAK__' && sig[i] !== '__SEPARATOR__') {
-        const [codigo, curso, nombreCompleto, docente, turno, grupo] = sig[i].split('|');
-        return { type: 'event', text: `${codigo} ${curso}\n${grupo}\n${nombreCompleto ? nombreCompleto + '\n' : ''}${docente}\n${cb.timeRange}`, key: sig[i], turno, grupo };
-      }
-      return { type: 'empty' };
-    });
-  };
+  // ── Tablas por turno ──────────────────────────────────────────────────────
+  for (let ti = 0; ti < turnosData.length; ti++) {
+    const { turno, allBlocks, columns } = turnosData[ti];
 
-  const computeRuns = (cellInfos) => {
-    const runs = [];
-    let i = 0;
-    while (i < cellInfos.length) {
-      const ci = cellInfos[i];
-      if (ci.type === 'separator' || ci.type !== 'event') { i++; continue; }
-      let end = i;
-      let j = i + 1;
-      while (j < cellInfos.length) {
-        const cj = cellInfos[j];
-        if (cj.type === 'separator' || cj.type === 'break') break;
-        if (cj.type === 'event' && cj.key === ci.key) { end = j; j++; } else break;
-      }
-      runs.push({ start: i, end, key: ci.key });
-      i = end + 1;
-    }
-    return runs;
-  };
-
-  const cellsByColumn = columns.map(col => signatureToCellContent(col.signature));
-  const runsByColumn  = cellsByColumn.map(computeRuns);
-  const findRun = (runs, i) => runs.find(r => i >= r.start && i <= r.end);
-
-  const dataStartRow = 4;
-  let ordenClase = 0;
-
-  for (let i = 0; i < allBlocks.length; i++) {
-    const cb = allBlocks[i];
-    const rowNum = dataStartRow + i;
-    const aCell = ws.getCell(rowNum, 1);
-
-    if (cb.type === 'separator') {
-      ordenClase = 0;
-      ws.mergeCells(rowNum, 1, rowNum, columns.length + 1);
-      aCell.value = cb.label;
-      aCell.fill = sepFill;
-      aCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' }, italic: true };
-      aCell.alignment = { vertical: 'middle', horizontal: 'center' };
-      aCell.border = thinBorder;
-      ws.getRow(rowNum).height = 24;
-      continue;
+    // Separación entre turnos (fila vacía)
+    if (ti > 0) {
+      currentRow++;
     }
 
-    if (cb.type === 'break') {
-      aCell.value = `${cb.label}\n${cb.timeRange}\n(${cb.turnosLabel || cb.turnoNombre})`;
-      aCell.fill = breakFill;
-      aCell.font = breakFont;
-    } else {
-      ordenClase++;
-      aCell.value = `Bloque ${ordenClase}\n${cb.timeRange}\n(${cb.turnosLabel || cb.turnoNombre})`;
-      aCell.fill = blockColFill;
-      aCell.font = blockColFont;
-    }
-    aCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-    aCell.border = thinBorder;
+    // Título del turno
+    ws.mergeCells(currentRow, 1, currentRow, maxCols);
+    const turnoTitleCell = ws.getCell(currentRow, 1);
+    turnoTitleCell.value = `\u2550\u2550\u2550  ${turno.turnoNombre}  \u2550\u2550\u2550`;
+    turnoTitleCell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+    turnoTitleCell.fill = turnoTitleFill;
+    turnoTitleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+    turnoTitleCell.border = thinBorder;
+    ws.getRow(currentRow).height = 22;
+    currentRow++;
+
+    // Encabezado de días — fila superior (día) + inferior (fechas)
+    const daysHeaderRow = currentRow;
+    const datesRow = currentRow + 1;
+
+    const headerA = ws.getCell(daysHeaderRow, 1);
+    headerA.value = 'BLOQUE';
+    headerA.font = headerFont;
+    headerA.fill = headerFill;
+    headerA.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerA.border = thinBorder;
+    ws.getCell(datesRow, 1).fill = headerFill;
+    ws.getCell(datesRow, 1).border = thinBorder;
+    ws.mergeCells(daysHeaderRow, 1, datesRow, 1);
 
     columns.forEach((col, idx) => {
       const colNum = idx + 2;
-      const cellInfo = cellsByColumn[idx][i];
-      const run = findRun(runsByColumn[idx], i);
-      const c = ws.getCell(rowNum, colNum);
+      const wdCell = ws.getCell(daysHeaderRow, colNum);
+      wdCell.value = col.weekdayName;
+      wdCell.font = headerFont;
+      wdCell.fill = headerFill;
+      wdCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      wdCell.border = thinBorder;
+      const dCell = ws.getCell(datesRow, colNum);
+      dCell.value = col.dates.map(formatDateShort).join('\n');
+      dCell.font = subHeaderFont;
+      dCell.fill = headerFill;
+      dCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      dCell.border = thinBorder;
+    });
 
-      if (run) {
-        if (i === run.start) {
-          const startBlock = allBlocks[run.start];
-          const endBlock   = allBlocks[run.end];
-          const combinedRange = `${startBlock.time} - ${endBlock.endTime}`;
-          const [codigo, curso, nombreCompleto, docente, , grupo] = run.key.split('|');
-          c.value = buildCellValue(codigo, curso, grupo, nombreCompleto, docente, combinedRange, opts);
+    ws.getRow(daysHeaderRow).height = 24;
+    ws.getRow(datesRow).height = Math.max(20, Math.max(...columns.map(c => c.dates.length), 1) * 14);
+    currentRow += 2;
+
+    // Contenido de bloques
+    const signatureToCellContent = (sig) => {
+      return allBlocks.map((cb, i) => {
+        if (cb.type === 'break') return { type: 'break', label: cb.label, turno: cb.turnosLabel || cb.turnoNombre };
+        if (sig[i] && sig[i] !== '__BREAK__') {
+          const [codigo, curso, nombreCompleto, docente, turno, grupo] = sig[i].split('|');
+          return { type: 'event', text: `${codigo} ${curso}\n${grupo}\n${nombreCompleto ? nombreCompleto + '\n' : ''}${docente}\n${cb.timeRange}`, key: sig[i], turno, grupo };
+        }
+        return { type: 'empty' };
+      });
+    };
+
+    const computeRuns = (cellInfos) => {
+      const runs = [];
+      let i = 0;
+      while (i < cellInfos.length) {
+        const ci = cellInfos[i];
+        if (ci.type !== 'event') { i++; continue; }
+        let end = i, j = i + 1;
+        while (j < cellInfos.length) {
+          const cj = cellInfos[j];
+          if (cj.type === 'break') break;
+          if (cj.type === 'event' && cj.key === ci.key) { end = j; j++; } else break;
+        }
+        runs.push({ start: i, end, key: ci.key });
+        i = end + 1;
+      }
+      return runs;
+    };
+
+    const cellsByColumn = columns.map(col => signatureToCellContent(col.signature));
+    const runsByColumn  = cellsByColumn.map(computeRuns);
+    const findRun = (runs, i) => runs.find(r => i >= r.start && i <= r.end);
+
+    const dataStartRow = currentRow;
+    let ordenClase = 0;
+
+    for (let i = 0; i < allBlocks.length; i++) {
+      const cb = allBlocks[i];
+      const rowNum = dataStartRow + i;
+      const aCell = ws.getCell(rowNum, 1);
+
+      if (cb.type === 'break') {
+        aCell.value = `${cb.label}\n${cb.timeRange}\n(${cb.turnosLabel || cb.turnoNombre})`;
+        aCell.fill = breakFill;
+        aCell.font = breakFont;
+      } else {
+        ordenClase++;
+        aCell.value = `Bloque ${ordenClase}\n${cb.timeRange}\n(${cb.turnosLabel || cb.turnoNombre})`;
+        aCell.fill = blockColFill;
+        aCell.font = blockColFont;
+      }
+      aCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      aCell.border = thinBorder;
+
+      columns.forEach((col, idx) => {
+        const colNum = idx + 2;
+        const cellInfo = cellsByColumn[idx][i];
+        const run = findRun(runsByColumn[idx], i);
+        const c = ws.getCell(rowNum, colNum);
+
+        if (run) {
+          if (i === run.start) {
+            const startBlock = allBlocks[run.start];
+            const endBlock   = allBlocks[run.end];
+            const combinedRange = `${startBlock.time} - ${endBlock.endTime}`;
+            const [codigo, curso, nombreCompleto, docente, , grupo] = run.key.split('|');
+            c.value = buildCellValue(codigo, curso, grupo, nombreCompleto, docente, combinedRange, opts);
+          } else {
+            c.value = '';
+          }
+          c.fill = eventFill;
+          c.font = eventFont;
+        } else if (cellInfo.type === 'break') {
+          c.value = cellInfo.label;
+          c.fill = breakFill;
+          c.font = breakFont;
         } else {
           c.value = '';
+          c.font = eventFont;
         }
-        c.fill = eventFill;
-        c.font = eventFont;
-      } else if (cellInfo.type === 'break') {
-        c.value = cellInfo.label;
-        c.fill = breakFill;
-        c.font = breakFont;
-      } else if (cellInfo.type === 'separator') {
-        c.value = '';
-        c.fill = sepFill;
-      } else {
-        c.value = '';
-        c.font = eventFont;
-      }
-      c.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-      c.border = thinBorder;
+        c.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+        c.border = thinBorder;
+      });
+
+      ws.getRow(rowNum).height = cb.type === 'break' ? 22 : 48;
+    }
+
+    // Merge de runs
+    columns.forEach((col, idx) => {
+      const colNum = idx + 2;
+      runsByColumn[idx].forEach(r => {
+        if (r.end > r.start) ws.mergeCells(dataStartRow + r.start, colNum, dataStartRow + r.end, colNum);
+      });
     });
 
-    ws.getRow(rowNum).height = cb.type === 'break' ? 22 : 48;
+    currentRow += allBlocks.length;
   }
 
-  columns.forEach((col, idx) => {
-    const colNum = idx + 2;
-    runsByColumn[idx].forEach(r => {
-      if (r.end > r.start) ws.mergeCells(dataStartRow + r.start, colNum, dataStartRow + r.end, colNum);
-    });
-  });
-
   ws.getColumn(1).width = 18;
-  for (let i = 0; i < columns.length; i++) ws.getColumn(i + 2).width = 24;
+  for (let i = 1; i < maxCols; i++) ws.getColumn(i + 1).width = 24;
 
   return true;
 };

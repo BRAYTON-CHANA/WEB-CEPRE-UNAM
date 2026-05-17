@@ -101,31 +101,86 @@ function ProgramacionGrupoConfig() {
         )}
       </div>
       {conflictError && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={handleClearConflict} />
-          <div className="relative bg-white rounded-xl shadow-2xl p-8 w-full max-w-6xl border border-red-200 mx-4">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 bg-red-100">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-lg font-bold text-red-700">
-                  ⚠️ Solapamiento Detectado
-                </p>
-                <p className="text-sm text-gray-600 mt-1">
-                  No se puede asignar - ya existe uso en otro grupo
-                </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClearConflict} />
+          <div className={`relative bg-white rounded-2xl shadow-2xl overflow-hidden mx-4 transition-all duration-300 ${
+            typeof conflictError === 'object' && conflictError?.tipo 
+              ? 'w-full max-w-3xl' 
+              : 'w-full max-w-6xl'
+          }`}>
+            {/* Header del modal */}
+            <div className={`p-6 border-b ${
+              typeof conflictError === 'object' && conflictError?.tipo === 'SOLAPAMIENTO_DOCENTE'
+                ? 'bg-red-50 border-red-200'
+                : typeof conflictError === 'object' && conflictError?.tipo === 'SOLAPAMIENTO_PLAZA'
+                  ? 'bg-orange-50 border-orange-200'
+                  : 'bg-red-50 border-red-200'
+            }`}>
+              <div className="flex items-start gap-4">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  typeof conflictError === 'object' && conflictError?.tipo === 'SOLAPAMIENTO_DOCENTE'
+                    ? 'bg-red-100'
+                    : typeof conflictError === 'object' && conflictError?.tipo === 'SOLAPAMIENTO_PLAZA'
+                      ? 'bg-orange-100'
+                      : 'bg-red-100'
+                }`}>
+                  <svg className={`w-6 h-6 ${
+                    typeof conflictError === 'object' && conflictError?.tipo === 'SOLAPAMIENTO_DOCENTE'
+                      ? 'text-red-600'
+                      : typeof conflictError === 'object' && conflictError?.tipo === 'SOLAPAMIENTO_PLAZA'
+                        ? 'text-orange-600'
+                        : 'text-red-600'
+                  }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className={`text-lg font-bold ${
+                    typeof conflictError === 'object' && conflictError?.tipo === 'SOLAPAMIENTO_DOCENTE'
+                      ? 'text-red-700'
+                      : typeof conflictError === 'object' && conflictError?.tipo === 'SOLAPAMIENTO_PLAZA'
+                        ? 'text-orange-700'
+                        : 'text-red-700'
+                  }`}>
+                    {typeof conflictError === 'object' && conflictError?.titulo 
+                      ? `⚠️ ${conflictError.titulo}`
+                      : '⚠️ Solapamiento Detectado'
+                    }
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {typeof conflictError === 'object' && conflictError?.tipo === 'SOLAPAMIENTO_DOCENTE'
+                      ? 'El docente ya está asignado a otro grupo en este horario'
+                      : typeof conflictError === 'object' && conflictError?.tipo === 'SOLAPAMIENTO_PLAZA'
+                        ? 'La plaza ya está asignada a otro grupo en este horario'
+                        : 'No se puede asignar - ya existe uso en otro grupo'
+                    }
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="rounded-lg border overflow-hidden bg-red-50/50 border-red-200">
+            
+            {/* Contenido del error */}
+            <div className={`rounded-lg border overflow-hidden ${
+              typeof conflictError === 'object' && conflictError?.tipo === 'SOLAPAMIENTO_PLAZA'
+                ? 'bg-orange-50/30 border-orange-200'
+                : 'bg-red-50/30 border-red-200'
+            }`}>
               <ConflictErrorDisplay error={conflictError} />
             </div>
-            <div className="flex justify-end mt-6">
+            
+            {/* Footer con botón */}
+            <div className={`p-4 border-t flex justify-end ${
+              typeof conflictError === 'object' && conflictError?.tipo === 'SOLAPAMIENTO_PLAZA'
+                ? 'bg-orange-50 border-orange-200'
+                : 'bg-red-50 border-red-200'
+            }`}>
               <button
                 onClick={handleClearConflict}
-                className="px-6 py-2.5 text-sm font-semibold rounded-lg text-white transition-colors bg-red-600 hover:bg-red-700"
+                className={`px-6 py-2.5 text-sm font-semibold rounded-lg text-white transition-colors ${
+                  typeof conflictError === 'object' && conflictError?.tipo === 'SOLAPAMIENTO_PLAZA'
+                    ? 'bg-orange-500 hover:bg-orange-600'
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
               >
                 Entendido
               </button>
