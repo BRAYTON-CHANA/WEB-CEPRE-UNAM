@@ -174,6 +174,7 @@ function ReportesPlazas() {
         }
         onConfirm={handleModalConfirm}
         onCancel={() => setExportModalPending(null)}
+        mode="plazas"
       />
       {exportingIndividual && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

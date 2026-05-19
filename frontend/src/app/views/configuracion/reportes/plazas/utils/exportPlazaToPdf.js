@@ -178,7 +178,7 @@ const buildColumnsPdf = (sesiones, allBlocks, programacionToGrupo, gpcToGrupo, g
 
 // ─── Dibujar página de plaza en el PDF ──────────────────────────────────────
 
-const drawPlazaPage = (doc, nombrePlaza, sesiones, resolvedLookups, isFirstPage) => {
+const drawPlazaPage = (doc, nombrePlaza, sesiones, resolvedLookups, isFirstPage, opts = {}) => {
   if (!isFirstPage) doc.addPage('a4', 'landscape');
 
   const { programacionToGrupo, gpcToGrupo, grupoToTurno, turnosConBloques } = resolvedLookups;
@@ -214,6 +214,8 @@ const drawPlazaPage = (doc, nombrePlaza, sesiones, resolvedLookups, isFirstPage)
   // ── Header general ────────────────────────────────────────────────────────
   const s0 = sesiones[0] || {};
   const nombreDocente = s0.DOCENTE_NOMBRE_COMPLETO || 'Docente no asignado';
+  const docenteEmail = s0.DOCENTE_EMAIL || '';
+  const docenteTelefono = s0.DOCENTE_TELEFONO || '';
   const periodo = s0.NOMBRE_PERIODO || '';
   const sede    = s0.NOMBRE_SEDE    || '';
   const curso   = s0.NOMBRE_CURSO   || '';
@@ -226,7 +228,8 @@ const drawPlazaPage = (doc, nombrePlaza, sesiones, resolvedLookups, isFirstPage)
   const infoH1 = 5;
   filledRect(doc, startX, y, totalW, infoH1, C_GRAY_LIGHT, C_BORDER);
   doc.setFontSize(7); doc.setFont('helvetica', 'bold'); setTextColor(doc, C_DARK_TEXT);
-  doc.text(`Docente: ${nombreDocente}`, startX + 3, y + infoH1 * 0.65);
+  const contactoInfo = [docenteEmail && `Email: ${docenteEmail}`, docenteTelefono && `Tel: ${docenteTelefono}`].filter(Boolean).join('   |   ');
+  doc.text(`Docente: ${nombreDocente}${contactoInfo ? '   |   ' + contactoInfo : ''}`, startX + 3, y + infoH1 * 0.65);
   y += infoH1;
 
   const infoH2 = 4.5;
@@ -343,6 +346,7 @@ const drawPlazaPage = (doc, nombrePlaza, sesiones, resolvedLookups, isFirstPage)
 };
 
 // ─── Resolver lookups para plaza individual ─────────────────────────────────
+// OPTIMIZADO: Usa queries batch con IN en lugar de N+1 queries individuales
 
 const resolveIndividual = async (sesiones) => {
   const gpcIds = [...new Set(sesiones.map(s => s.ID_GRUPO_PLAN_CURSO).filter(Boolean))];
@@ -350,11 +354,18 @@ const resolveIndividual = async (sesiones) => {
   const grupoIds = new Set();
   const programacionToGrupo = new Map();
 
-  for (const gpcId of gpcIds) {
-    const rows = await selectAll('GRUPO_PLAN_CURSO', { ID_GRUPO_PLAN_CURSO: gpcId });
-    const r = rows[0];
-    if (r?.ID_GRUPO) { gpcToGrupo.set(gpcId, r.ID_GRUPO); grupoIds.add(r.ID_GRUPO); }
+  // 1. Query batch: GRUPO_PLAN_CURSO por múltiples IDs
+  if (gpcIds.length > 0) {
+    const placeholders = gpcIds.map((_, i) => `$${i + 1}`).join(',');
+    const rows = await db.rawSelect(
+      `SELECT * FROM "GRUPO_PLAN_CURSO" WHERE "ID_GRUPO_PLAN_CURSO" IN (${placeholders})`,
+      ...gpcIds
+    );
+    for (const r of rows) {
+      if (r.ID_GRUPO) { gpcToGrupo.set(r.ID_GRUPO_PLAN_CURSO, r.ID_GRUPO); grupoIds.add(r.ID_GRUPO); }
+    }
   }
+
   for (const s of sesiones) {
     if (s.ID_PROGRAMACION && s.ID_GRUPO) programacionToGrupo.set(s.ID_PROGRAMACION, s.ID_GRUPO);
   }
@@ -363,20 +374,72 @@ const resolveIndividual = async (sesiones) => {
   const grupoToTurno = new Map();
   const turnoIds = new Set();
 
-  for (const gid of allGrupoIds) {
-    const rows = await selectAll('GRUPOS', { ID_GRUPO: gid });
-    const r = rows[0];
-    if (r?.ID_TURNO) { grupoToTurno.set(gid, r.ID_TURNO); turnoIds.add(r.ID_TURNO); }
+  // 2. Query batch: GRUPOS por múltiples IDs
+  const grupoIdsArray = [...allGrupoIds];
+  if (grupoIdsArray.length > 0) {
+    const placeholders = grupoIdsArray.map((_, i) => `$${i + 1}`).join(',');
+    const rows = await db.rawSelect(
+      `SELECT * FROM "GRUPOS" WHERE "ID_GRUPO" IN (${placeholders})`,
+      ...grupoIdsArray
+    );
+    for (const r of rows) {
+      if (r.ID_TURNO) { grupoToTurno.set(r.ID_GRUPO, r.ID_TURNO); turnoIds.add(r.ID_TURNO); }
+    }
   }
 
+  // 3. Query batch: TURNOS por múltiples IDs
+  const turnoIdsArray = [...turnoIds];
+  const turnosMap = new Map();
+  const horarioIds = new Set();
+
+  if (turnoIdsArray.length > 0) {
+    const placeholders = turnoIdsArray.map((_, i) => `$${i + 1}`).join(',');
+    const rows = await db.rawSelect(
+      `SELECT * FROM "TURNOS" WHERE "ID_TURNO" IN (${placeholders})`,
+      ...turnoIdsArray
+    );
+    for (const turno of rows) {
+      if (turno.ID_HORARIO) {
+        turnosMap.set(turno.ID_TURNO, turno);
+        horarioIds.add(turno.ID_HORARIO);
+      }
+    }
+  }
+
+  // 4. Query batch: HORARIOS por múltiples IDs
+  const horarioIdsArray = [...horarioIds];
+  const horariosMap = new Map();
+
+  if (horarioIdsArray.length > 0) {
+    const placeholders = horarioIdsArray.map((_, i) => `$${i + 1}`).join(',');
+    const rows = await db.rawSelect(
+      `SELECT * FROM "HORARIOS" WHERE "ID_HORARIO" IN (${placeholders})`,
+      ...horarioIdsArray
+    );
+    for (const h of rows) {
+      horariosMap.set(h.ID_HORARIO, h);
+    }
+  }
+
+  // 5. Query batch: HORARIO_BLOQUES por múltiples horarios
+  const horarioBloquesMap = new Map();
+  if (horarioIdsArray.length > 0) {
+    const placeholders = horarioIdsArray.map((_, i) => `$${i + 1}`).join(',');
+    const rows = await db.rawSelect(
+      `SELECT * FROM "HORARIO_BLOQUES" WHERE "ID_HORARIO" IN (${placeholders}) ORDER BY "ORDEN"`,
+      ...horarioIdsArray
+    );
+    for (const b of rows) {
+      if (!horarioBloquesMap.has(b.ID_HORARIO)) horarioBloquesMap.set(b.ID_HORARIO, []);
+      horarioBloquesMap.get(b.ID_HORARIO).push(b);
+    }
+  }
+
+  // 6. Construir turnosConBloques
   const turnosConBloques = [];
-  for (const turnoId of turnoIds) {
-    const turnoRows = await selectAll('TURNOS', { ID_TURNO: turnoId });
-    const turno = turnoRows[0];
-    if (!turno?.ID_HORARIO) continue;
-    const horarioRows = await selectAll('HORARIOS', { ID_HORARIO: turno.ID_HORARIO });
-    const horario = horarioRows[0];
-    const bloques = (await selectAll('HORARIO_BLOQUES', { ID_HORARIO: turno.ID_HORARIO })).sort((a, b) => a.ORDEN - b.ORDEN);
+  for (const [turnoId, turno] of turnosMap) {
+    const horario = horariosMap.get(turno.ID_HORARIO);
+    const bloques = horarioBloquesMap.get(turno.ID_HORARIO) || [];
     if (bloques.length === 0) continue;
 
     const _hInit = (horario?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
@@ -449,7 +512,7 @@ export const exportPlazaToPdf = async (idPlaza, nombrePlaza) => {
     }
 
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    drawPlazaPage(doc, nombrePlaza, sesiones, lookups, true);
+    drawPlazaPage(doc, nombrePlaza, sesiones, lookups, true, opts);
     doc.save(`Horario_${nombrePlaza || 'Plaza'}_${new Date().toISOString().split('T')[0]}.pdf`);
   } catch (error) {
     console.error('Error exportando plaza PDF:', error);
@@ -457,7 +520,7 @@ export const exportPlazaToPdf = async (idPlaza, nombrePlaza) => {
   }
 };
 
-export const exportSedeToPdf = async (idSede, nombreSede, idPeriodo, onProgress) => {
+export const exportSedeToPdf = async (idSede, nombreSede, idPeriodo, onProgress, opts = {}) => {
   try {
     const filters = { ID_SEDE: idSede };
     if (idPeriodo) filters.ID_PERIODO = idPeriodo;
@@ -487,7 +550,7 @@ export const exportSedeToPdf = async (idSede, nombreSede, idPeriodo, onProgress)
       const lookups = resolveFromCache(sesiones, cache);
       if (lookups.turnosConBloques.length === 0) { if (onProgress) onProgress(++added, plazas.length); continue; }
 
-      drawPlazaPage(doc, plaza.IDENTIFICADOR_DOCENTE, sesiones, lookups, isFirst);
+      drawPlazaPage(doc, plaza.IDENTIFICADOR_DOCENTE, sesiones, lookups, isFirst, opts);
       isFirst = false;
       added++;
       if (onProgress) onProgress(added, plazas.length);
@@ -505,7 +568,7 @@ export const exportSedeToPdf = async (idSede, nombreSede, idPeriodo, onProgress)
   }
 };
 
-export const exportAllPlazasToPdf = async (idPeriodo, onProgress) => {
+export const exportAllPlazasToPdf = async (idPeriodo, onProgress, opts = {}) => {
   try {
     const filters = {};
     if (idPeriodo) filters.ID_PERIODO = idPeriodo;
@@ -536,7 +599,7 @@ export const exportAllPlazasToPdf = async (idPeriodo, onProgress) => {
       const lookups = resolveFromCache(sesiones, cache);
       if (lookups.turnosConBloques.length === 0) { if (onProgress) onProgress(processed, plazas.length); continue; }
 
-      drawPlazaPage(doc, plaza.IDENTIFICADOR_DOCENTE, sesiones, lookups, isFirst);
+      drawPlazaPage(doc, plaza.IDENTIFICADOR_DOCENTE, sesiones, lookups, isFirst, opts);
       isFirst = false;
 
       if (onProgress) onProgress(processed, plazas.length);

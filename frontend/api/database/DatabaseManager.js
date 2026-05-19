@@ -40,7 +40,7 @@ class DatabaseManager {
 
   /**
    * Ejecutar query genérico con SQL crudo
-   * Interpola parametros ? de forma segura antes de enviar a execute_sql RPC
+   * Interpola parametros ? o $n de forma segura antes de enviar a execute_sql RPC
    */
   static async query(sql, ...params) {
     const supabase = await DatabaseManager.connect();
@@ -53,6 +53,11 @@ class DatabaseManager {
     });
 
     let finalSql = sql;
+    // Reemplazar placeholders $1, $2, ... (PostgreSQL style)
+    for (let i = 0; i < safeParams.length; i++) {
+      finalSql = finalSql.replace(new RegExp(`\\$${i + 1}\\b`, 'g'), safeParams[i]);
+    }
+    // También soportar ? placeholders (MySQL style) para compatibilidad
     for (const param of safeParams) {
       finalSql = finalSql.replace('?', param);
     }

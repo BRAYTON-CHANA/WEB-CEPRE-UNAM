@@ -4,11 +4,12 @@ const DEFAULT_OPTIONS = {
   showCodigo: true,
   showDocente: true,
   showHorario: true,
+  showNombreDocente: true,
 };
 
 export { DEFAULT_OPTIONS };
 
-export default function ExportOptionsModal({ isOpen, onConfirm, onCancel, title = 'Opciones de exportación' }) {
+export default function ExportOptionsModal({ isOpen, onConfirm, onCancel, title = 'Opciones de exportación', mode = 'general' }) {
   const [options, setOptions] = React.useState(DEFAULT_OPTIONS);
 
   if (!isOpen) return null;
@@ -19,6 +20,7 @@ export default function ExportOptionsModal({ isOpen, onConfirm, onCancel, title 
     { key: 'showCodigo',  label: 'Código de área',      desc: 'Ej: MAT, FIS, QUI' },
     { key: 'showDocente', label: 'Plaza docente',         desc: 'Plaza descriptiva del docente' },
     { key: 'showHorario', label: 'Rango horario',        desc: 'Ej: 07:00 - 07:50' },
+    ...(mode === 'plazas' || mode === 'docentes' ? [{ key: 'showNombreDocente', label: 'Nombre docente', desc: 'Mostrar nombre completo del docente en celdas' }] : []),
   ];
 
   return (

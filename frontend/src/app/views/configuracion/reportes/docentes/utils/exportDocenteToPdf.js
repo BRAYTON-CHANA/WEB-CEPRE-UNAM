@@ -120,17 +120,25 @@ const centeredText = (doc, text, x, y, w, h, fontSize, rgb, bold = false) => {
 };
 
 // ─── Resolver lookups para sesiones individuales ─────────────────────────────
+// OPTIMIZADO: Usa queries batch con IN en lugar de N+1 queries individuales
 const resolveLookupsIndividual = async (sesiones) => {
   const gpcIds = [...new Set(sesiones.map(s => s.ID_GRUPO_PLAN_CURSO).filter(Boolean))];
   const gpcToGrupo = new Map();
   const grupoIds = new Set();
   const programacionToGrupo = new Map();
 
-  for (const gpcId of gpcIds) {
-    const rows = await selectAll('GRUPO_PLAN_CURSO', { ID_GRUPO_PLAN_CURSO: gpcId });
-    const r = rows[0];
-    if (r?.ID_GRUPO) { gpcToGrupo.set(gpcId, r.ID_GRUPO); grupoIds.add(r.ID_GRUPO); }
+  // 1. Query batch: GRUPO_PLAN_CURSO por múltiples IDs
+  if (gpcIds.length > 0) {
+    const placeholders = gpcIds.map((_, i) => `$${i + 1}`).join(',');
+    const rows = await db.rawSelect(
+      `SELECT * FROM "GRUPO_PLAN_CURSO" WHERE "ID_GRUPO_PLAN_CURSO" IN (${placeholders})`,
+      ...gpcIds
+    );
+    for (const r of rows) {
+      if (r.ID_GRUPO) { gpcToGrupo.set(r.ID_GRUPO_PLAN_CURSO, r.ID_GRUPO); grupoIds.add(r.ID_GRUPO); }
+    }
   }
+
   for (const s of sesiones) {
     if (s.ID_PROGRAMACION && s.ID_GRUPO) programacionToGrupo.set(s.ID_PROGRAMACION, s.ID_GRUPO);
   }
@@ -139,20 +147,72 @@ const resolveLookupsIndividual = async (sesiones) => {
   const grupoToTurno = new Map();
   const turnoIds = new Set();
 
-  for (const gid of allGrupoIds) {
-    const rows = await selectAll('GRUPOS', { ID_GRUPO: gid });
-    const r = rows[0];
-    if (r?.ID_TURNO) { grupoToTurno.set(gid, r.ID_TURNO); turnoIds.add(r.ID_TURNO); }
+  // 2. Query batch: GRUPOS por múltiples IDs
+  const grupoIdsArray = [...allGrupoIds];
+  if (grupoIdsArray.length > 0) {
+    const placeholders = grupoIdsArray.map((_, i) => `$${i + 1}`).join(',');
+    const rows = await db.rawSelect(
+      `SELECT * FROM "GRUPOS" WHERE "ID_GRUPO" IN (${placeholders})`,
+      ...grupoIdsArray
+    );
+    for (const r of rows) {
+      if (r.ID_TURNO) { grupoToTurno.set(r.ID_GRUPO, r.ID_TURNO); turnoIds.add(r.ID_TURNO); }
+    }
   }
 
+  // 3. Query batch: TURNOS por múltiples IDs
+  const turnoIdsArray = [...turnoIds];
+  const turnosMap = new Map();
+  const horarioIds = new Set();
+
+  if (turnoIdsArray.length > 0) {
+    const placeholders = turnoIdsArray.map((_, i) => `$${i + 1}`).join(',');
+    const rows = await db.rawSelect(
+      `SELECT * FROM "TURNOS" WHERE "ID_TURNO" IN (${placeholders})`,
+      ...turnoIdsArray
+    );
+    for (const turno of rows) {
+      if (turno.ID_HORARIO) {
+        turnosMap.set(turno.ID_TURNO, turno);
+        horarioIds.add(turno.ID_HORARIO);
+      }
+    }
+  }
+
+  // 4. Query batch: HORARIOS por múltiples IDs
+  const horarioIdsArray = [...horarioIds];
+  const horariosMap = new Map();
+
+  if (horarioIdsArray.length > 0) {
+    const placeholders = horarioIdsArray.map((_, i) => `$${i + 1}`).join(',');
+    const rows = await db.rawSelect(
+      `SELECT * FROM "HORARIOS" WHERE "ID_HORARIO" IN (${placeholders})`,
+      ...horarioIdsArray
+    );
+    for (const h of rows) {
+      horariosMap.set(h.ID_HORARIO, h);
+    }
+  }
+
+  // 5. Query batch: HORARIO_BLOQUES por múltiples horarios
+  const horarioBloquesMap = new Map();
+  if (horarioIdsArray.length > 0) {
+    const placeholders = horarioIdsArray.map((_, i) => `$${i + 1}`).join(',');
+    const rows = await db.rawSelect(
+      `SELECT * FROM "HORARIO_BLOQUES" WHERE "ID_HORARIO" IN (${placeholders}) ORDER BY "ORDEN"`,
+      ...horarioIdsArray
+    );
+    for (const b of rows) {
+      if (!horarioBloquesMap.has(b.ID_HORARIO)) horarioBloquesMap.set(b.ID_HORARIO, []);
+      horarioBloquesMap.get(b.ID_HORARIO).push(b);
+    }
+  }
+
+  // 6. Construir turnosConBloques
   const turnosConBloques = [];
-  for (const turnoId of turnoIds) {
-    const turnoRows = await selectAll('TURNOS', { ID_TURNO: turnoId });
-    const turno = turnoRows[0];
-    if (!turno?.ID_HORARIO) continue;
-    const horarioRows = await selectAll('HORARIOS', { ID_HORARIO: turno.ID_HORARIO });
-    const horario = horarioRows[0];
-    const bloques = (await selectAll('HORARIO_BLOQUES', { ID_HORARIO: turno.ID_HORARIO })).sort((a, b) => a.ORDEN - b.ORDEN);
+  for (const [turnoId, turno] of turnosMap) {
+    const horario = horariosMap.get(turno.ID_HORARIO);
+    const bloques = horarioBloquesMap.get(turno.ID_HORARIO) || [];
     if (bloques.length === 0) continue;
 
     const _hInit = (horario?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
@@ -221,7 +281,7 @@ const computeRuns = (sig) => {
 };
 
 // ─── Dibujar página de docente en el PDF ────────────────────────────────────
-const drawDocentePage = (doc, nombreDocente, sesiones, lookups, isFirstPage) => {
+const drawDocentePage = (doc, nombreDocente, sesiones, lookups, isFirstPage, opts = {}) => {
   if (!isFirstPage) doc.addPage('a4', 'landscape');
 
   const { programacionToGrupo, gpcToGrupo, grupoToTurno, turnosConBloques } = lookups;
@@ -277,6 +337,8 @@ const drawDocentePage = (doc, nombreDocente, sesiones, lookups, isFirstPage) => 
   const s0 = sesiones[0] || {};
   const periodo = s0.NOMBRE_PERIODO || '';
   const dni     = s0.DOCENTE_DNI    || '';
+  const email   = s0.DOCENTE_EMAIL  || '';
+  const telefono = s0.DOCENTE_TELEFONO || '';
 
   let y = 6;
 
@@ -288,7 +350,10 @@ const drawDocentePage = (doc, nombreDocente, sesiones, lookups, isFirstPage) => 
 
   const infoH = 4.5;
   filledRect(doc, startX, y, totalW, infoH, C_GRAY_LIGHT, C_BORDER);
-  const infoLine = [dni && `DNI: ${dni}`, periodo && `Período: ${periodo}`].filter(Boolean).join('   |   ');
+  const contactoParts = [email && `Email: ${email}`, telefono && `Tel: ${telefono}`].filter(Boolean);
+  const infoParts = [dni && `DNI: ${dni}`, periodo && `Período: ${periodo}`];
+  if (contactoParts.length > 0) infoParts.push(contactoParts.join(' | '));
+  const infoLine = infoParts.join('   |   ');
   doc.setFontSize(6); doc.setFont('helvetica', 'normal'); setTextColor(doc, C_GRAY_TEXT);
   doc.text(infoLine, startX + 3, y + infoH * 0.72);
   y += infoH;
@@ -387,7 +452,14 @@ const drawDocentePage = (doc, nombreDocente, sesiones, lookups, isFirstPage) => 
               const startB = allBlocks[run.start];
               const endB   = allBlocks[run.end];
               const tr = startB.time && endB.endTime ? `${startB.time} - ${endB.endTime}` : '';
-              const cellLines = [codigo ? `${codigo} ${curso}` : curso, grupo, nombreCompleto, docente, tr].filter(Boolean).join('\n');
+              const cellParts = [];
+              if (opts.showCodigo !== false && codigo) cellParts.push(`${codigo} ${curso}`);
+              else cellParts.push(curso);
+              cellParts.push(grupo);
+              if (opts.showNombreDocente !== false && nombreCompleto) cellParts.push(nombreCompleto);
+              if (opts.showDocente !== false) cellParts.push(docente);
+              if (opts.showHorario !== false) cellParts.push(tr);
+              const cellLines = cellParts.filter(Boolean).join('\n');
               centeredText(doc, cellLines, cx, ry, dataColW, runH, 4, C_DARK_TEXT, false);
             }
           } else if (sig === '__BREAK__') {
@@ -410,7 +482,7 @@ const drawDocentePage = (doc, nombreDocente, sesiones, lookups, isFirstPage) => 
 /**
  * Exporta 1 docente a PDF
  */
-export const exportDocenteToPdf = async (idDocente, nombreDocente) => {
+export const exportDocenteToPdf = async (idDocente, nombreDocente, opts = {}) => {
   try {
     const sesionesResult = await db.select('VW_SESIONES_AGRUPADAS_DESGLOSE', { ID_DOCENTE: idDocente });
     const sesiones = sesionesResult?.data?.records || sesionesResult || [];
@@ -426,7 +498,7 @@ export const exportDocenteToPdf = async (idDocente, nombreDocente) => {
     }
 
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    drawDocentePage(doc, nombreDocente, sesiones, lookups, true);
+    drawDocentePage(doc, nombreDocente, sesiones, lookups, true, opts);
     doc.save(`Horario_${nombreDocente || 'Docente'}_${new Date().toISOString().split('T')[0]}.pdf`);
   } catch (error) {
     console.error('Error exportando docente a PDF:', error);
@@ -437,7 +509,7 @@ export const exportDocenteToPdf = async (idDocente, nombreDocente) => {
 /**
  * Exporta todos los docentes del período (1 página por docente)
  */
-export const exportAllDocentesToPdf = async (idPeriodo, onProgress) => {
+export const exportAllDocentesToPdf = async (idPeriodo, onProgress, opts = {}) => {
   try {
     const cache = await buildBulkCache(idPeriodo);
     if (!cache) {
@@ -471,7 +543,7 @@ export const exportAllDocentesToPdf = async (idPeriodo, onProgress) => {
       const lookups = resolveLookupsFromCache(sesiones, cache);
       if (lookups.turnosConBloques.length > 0) {
         const nombreDocente = sesiones[0]?.DOCENTE_NOMBRE_COMPLETO || `Docente ${idDocente}`;
-        drawDocentePage(doc, nombreDocente, sesiones, lookups, isFirst);
+        drawDocentePage(doc, nombreDocente, sesiones, lookups, isFirst, opts);
         isFirst = false;
       }
       processed++;

@@ -74,62 +74,133 @@ const buildCustomBlocks = (turno, horario, bloques) => {
 };
 
 // ─── Resolución de lookups sin cache (modo individual) ──────────────────────
+// OPTIMIZADO: Usa queries batch con IN en lugar de N+1 queries individuales
 const resolveLookupsIndividual = async (sesiones) => {
   const programacionIds = [...new Set(sesiones.map(s => s.ID_PROGRAMACION).filter(Boolean))];
+  const gpcIds = [...new Set(sesiones.map(s => s.ID_GRUPO_PLAN_CURSO).filter(Boolean))];
   const grupoIds = new Set();
   const programacionToGrupo = new Map();
+  const gpcToGrupo = new Map();
 
-  for (const progId of programacionIds) {
-    const rows = await selectAll('PROGRAMACION_GRUPO', { ID_PROGRAMACION: progId });
-    const prog = rows[0];
-    if (prog?.ID_GRUPO) {
-      grupoIds.add(prog.ID_GRUPO);
-      programacionToGrupo.set(progId, prog.ID_GRUPO);
+  // 1. Query batch: PROGRAMACION_GRUPO por múltiples IDs
+  if (programacionIds.length > 0) {
+    const placeholders = programacionIds.map((_, i) => `$${i + 1}`).join(',');
+    const progRows = await db.rawSelect(
+      `SELECT * FROM "PROGRAMACION_GRUPO" WHERE "ID_PROGRAMACION" IN (${placeholders})`,
+      ...programacionIds
+    );
+    for (const prog of progRows) {
+      if (prog.ID_GRUPO) {
+        grupoIds.add(prog.ID_GRUPO);
+        programacionToGrupo.set(prog.ID_PROGRAMACION, prog.ID_GRUPO);
+      }
     }
   }
 
-  const gpcIds = [...new Set(sesiones.map(s => s.ID_GRUPO_PLAN_CURSO).filter(Boolean))];
-  const gpcToGrupo = new Map();
-
-  for (const gpcId of gpcIds) {
-    const rows = await selectAll('GRUPO_PLAN_CURSO', { ID_GRUPO_PLAN_CURSO: gpcId });
-    const gpc = rows[0];
-    if (gpc?.ID_GRUPO) {
-      grupoIds.add(gpc.ID_GRUPO);
-      gpcToGrupo.set(gpcId, gpc.ID_GRUPO);
+  // 2. Query batch: GRUPO_PLAN_CURSO por múltiples IDs
+  if (gpcIds.length > 0) {
+    const placeholders = gpcIds.map((_, i) => `$${i + 1}`).join(',');
+    const gpcRows = await db.rawSelect(
+      `SELECT * FROM "GRUPO_PLAN_CURSO" WHERE "ID_GRUPO_PLAN_CURSO" IN (${placeholders})`,
+      ...gpcIds
+    );
+    for (const gpc of gpcRows) {
+      if (gpc.ID_GRUPO) {
+        grupoIds.add(gpc.ID_GRUPO);
+        gpcToGrupo.set(gpc.ID_GRUPO_PLAN_CURSO, gpc.ID_GRUPO);
+      }
     }
   }
 
   if (grupoIds.size === 0) return null;
 
-  const turnoIds = new Set();
+  // 3. Query batch: GRUPOS por múltiples IDs
+  const grupoIdsArray = [...grupoIds];
   const grupoToTurno = new Map();
+  const turnoIds = new Set();
 
-  for (const grupoId of grupoIds) {
-    const rows = await selectAll('GRUPOS', { ID_GRUPO: grupoId });
-    const grupo = rows[0];
-    if (grupo?.ID_TURNO) {
-      turnoIds.add(grupo.ID_TURNO);
-      grupoToTurno.set(grupoId, grupo.ID_TURNO);
+  if (grupoIdsArray.length > 0) {
+    const placeholders = grupoIdsArray.map((_, i) => `$${i + 1}`).join(',');
+    const grupoRows = await db.rawSelect(
+      `SELECT * FROM "GRUPOS" WHERE "ID_GRUPO" IN (${placeholders})`,
+      ...grupoIdsArray
+    );
+    for (const grupo of grupoRows) {
+      if (grupo.ID_TURNO) {
+        turnoIds.add(grupo.ID_TURNO);
+        grupoToTurno.set(grupo.ID_GRUPO, grupo.ID_TURNO);
+      }
     }
   }
 
   if (turnoIds.size === 0) return null;
 
+  // 4. Query batch: TURNOS por múltiples IDs
+  const turnoIdsArray = [...turnoIds];
+  const horarioIds = new Set();
+  const turnosMap = new Map();
+
+  if (turnoIdsArray.length > 0) {
+    const placeholders = turnoIdsArray.map((_, i) => `$${i + 1}`).join(',');
+    const turnoRows = await db.rawSelect(
+      `SELECT * FROM "TURNOS" WHERE "ID_TURNO" IN (${placeholders})`,
+      ...turnoIdsArray
+    );
+    for (const turno of turnoRows) {
+      if (turno.ID_HORARIO) {
+        horarioIds.add(turno.ID_HORARIO);
+        turnosMap.set(turno.ID_TURNO, turno);
+      }
+    }
+  }
+
+  if (horarioIds.size === 0) return null;
+
+  // 5. Query batch: HORARIOS por múltiples IDs
+  const horarioIdsArray = [...horarioIds];
+  const horariosMap = new Map();
+
+  if (horarioIdsArray.length > 0) {
+    const placeholders = horarioIdsArray.map((_, i) => `$${i + 1}`).join(',');
+    const horarioRows = await db.rawSelect(
+      `SELECT * FROM "HORARIOS" WHERE "ID_HORARIO" IN (${placeholders})`,
+      ...horarioIdsArray
+    );
+    for (const h of horarioRows) {
+      horariosMap.set(h.ID_HORARIO, h);
+    }
+  }
+
+  // 6. Query batch: HORARIO_BLOQUES por múltiples horarios
+  const horarioBloquesMap = new Map();
+  if (horarioIdsArray.length > 0) {
+    const placeholders = horarioIdsArray.map((_, i) => `$${i + 1}`).join(',');
+    const bloqueRows = await db.rawSelect(
+      `SELECT * FROM "HORARIO_BLOQUES" WHERE "ID_HORARIO" IN (${placeholders}) ORDER BY "ORDEN"`,
+      ...horarioIdsArray
+    );
+    for (const b of bloqueRows) {
+      if (!horarioBloquesMap.has(b.ID_HORARIO)) {
+        horarioBloquesMap.set(b.ID_HORARIO, []);
+      }
+      horarioBloquesMap.get(b.ID_HORARIO).push(b);
+    }
+  }
+
+  // 7. Construir turnosConBloques
   const turnosConBloques = [];
-  for (const turnoId of turnoIds) {
-    const turnoRows = await selectAll('TURNOS', { ID_TURNO: turnoId });
-    const turno = turnoRows[0];
-    if (!turno || !turno.ID_HORARIO) continue;
-
-    const horarioRows = await selectAll('HORARIOS', { ID_HORARIO: turno.ID_HORARIO });
-    const horario = horarioRows[0];
-
-    const bloques = (await selectAll('HORARIO_BLOQUES', { ID_HORARIO: turno.ID_HORARIO })).sort((a, b) => a.ORDEN - b.ORDEN);
-
+  for (const [turnoId, turno] of turnosMap) {
+    const horario = horariosMap.get(turno.ID_HORARIO);
+    const bloques = horarioBloquesMap.get(turno.ID_HORARIO) || [];
     if (bloques.length > 0) {
       const customBlocks = buildCustomBlocks(turno, horario, bloques);
-      turnosConBloques.push({ turnoId: turno.ID_TURNO, turnoNombre: turno.NOMBRE_TURNO, horarioId: turno.ID_HORARIO, horario, bloques: customBlocks });
+      turnosConBloques.push({
+        turnoId: turno.ID_TURNO,
+        turnoNombre: turno.NOMBRE_TURNO,
+        horarioId: turno.ID_HORARIO,
+        horario,
+        bloques: customBlocks
+      });
     }
   }
 
@@ -275,7 +346,7 @@ const buildCellValue = (codigo, curso, grupo, nombreCompleto, docente, horario, 
   if (opts.showCodigo !== false && codigo) parts.push(codigo);
   parts.push(curso);
   if (grupo) parts.push(grupo);
-  if (nombreCompleto) parts.push(nombreCompleto);
+  if (opts.showNombreDocente !== false && nombreCompleto) parts.push(nombreCompleto);
   if (opts.showDocente !== false) parts.push(docente);
   if (opts.showHorario !== false) parts.push(horario);
   return parts.filter(Boolean).join('\n');
@@ -390,6 +461,8 @@ const buildWorksheetCore = (workbook, nombrePlaza, sesiones, resolvedLookups, op
   const nombreDocente = s0.DOCENTE_NOMBRE_COMPLETO
     ? s0.DOCENTE_NOMBRE_COMPLETO
     : 'Docente no asignado';
+  const docenteEmail = s0.DOCENTE_EMAIL || '';
+  const docenteTelefono = s0.DOCENTE_TELEFONO || '';
   const periodo = s0.NOMBRE_PERIODO || '';
   const sede    = s0.NOMBRE_SEDE    || '';
   const curso   = s0.NOMBRE_CURSO   || '';
@@ -404,15 +477,16 @@ const buildWorksheetCore = (workbook, nombrePlaza, sesiones, resolvedLookups, op
   titleCell.border = thinBorder;
   ws.getRow(1).height = 28;
 
-  // ── Fila 2: Nombre docente ────────────────────────────────────────────────
+  // ── Fila 2: Nombre docente + contacto ────────────────────────────────────────
   ws.mergeCells(2, 1, 2, maxCols);
   const docenteCell = ws.getCell(2, 1);
-  docenteCell.value = `Docente: ${nombreDocente}`;
+  const contactoInfo = [docenteEmail && `Email: ${docenteEmail}`, docenteTelefono && `Tel: ${docenteTelefono}`].filter(Boolean).join('   |   ');
+  docenteCell.value = `Docente: ${nombreDocente}${contactoInfo ? '   |   ' + contactoInfo : ''}`;
   docenteCell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FF1F2937' } };
   docenteCell.fill = infoFill1;
   docenteCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
   docenteCell.border = thinBorder;
-  ws.getRow(2).height = 20;
+  ws.getRow(2).height = contactoInfo ? 24 : 20;
 
   // ── Fila 3: Período | Sede | Curso ────────────────────────────────────────
   ws.mergeCells(3, 1, 3, maxCols);

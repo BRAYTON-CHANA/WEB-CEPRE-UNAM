@@ -43,18 +43,25 @@ const downloadWorkbook = async (workbook, fileName) => {
 };
 
 // ─── Resolver lookups para un conjunto de sesiones (individual) ─────────────
+// OPTIMIZADO: Usa queries batch con IN en lugar de N+1 queries individuales
 const resolveLookupsForSesiones = async (sesiones) => {
   const gpcIds = [...new Set(sesiones.map(s => s.ID_GRUPO_PLAN_CURSO).filter(Boolean))];
   const gpcToGrupo = new Map();
   const grupoIds = new Set();
+  const programacionToGrupo = new Map();
 
-  for (const gpcId of gpcIds) {
-    const rows = await selectAll('GRUPO_PLAN_CURSO', { ID_GRUPO_PLAN_CURSO: gpcId });
-    const r = rows[0];
-    if (r?.ID_GRUPO) { gpcToGrupo.set(gpcId, r.ID_GRUPO); grupoIds.add(r.ID_GRUPO); }
+  // 1. Query batch: GRUPO_PLAN_CURSO por múltiples IDs
+  if (gpcIds.length > 0) {
+    const placeholders = gpcIds.map((_, i) => `$${i + 1}`).join(',');
+    const rows = await db.rawSelect(
+      `SELECT * FROM "GRUPO_PLAN_CURSO" WHERE "ID_GRUPO_PLAN_CURSO" IN (${placeholders})`,
+      ...gpcIds
+    );
+    for (const r of rows) {
+      if (r.ID_GRUPO) { gpcToGrupo.set(r.ID_GRUPO_PLAN_CURSO, r.ID_GRUPO); grupoIds.add(r.ID_GRUPO); }
+    }
   }
 
-  const programacionToGrupo = new Map();
   for (const s of sesiones) {
     if (s.ID_PROGRAMACION && s.ID_GRUPO) programacionToGrupo.set(s.ID_PROGRAMACION, s.ID_GRUPO);
   }
@@ -63,20 +70,72 @@ const resolveLookupsForSesiones = async (sesiones) => {
   const grupoToTurno = new Map();
   const turnoIds = new Set();
 
-  for (const gid of allGrupoIds) {
-    const rows = await selectAll('GRUPOS', { ID_GRUPO: gid });
-    const r = rows[0];
-    if (r?.ID_TURNO) { grupoToTurno.set(gid, r.ID_TURNO); turnoIds.add(r.ID_TURNO); }
+  // 2. Query batch: GRUPOS por múltiples IDs
+  const grupoIdsArray = [...allGrupoIds];
+  if (grupoIdsArray.length > 0) {
+    const placeholders = grupoIdsArray.map((_, i) => `$${i + 1}`).join(',');
+    const rows = await db.rawSelect(
+      `SELECT * FROM "GRUPOS" WHERE "ID_GRUPO" IN (${placeholders})`,
+      ...grupoIdsArray
+    );
+    for (const r of rows) {
+      if (r.ID_TURNO) { grupoToTurno.set(r.ID_GRUPO, r.ID_TURNO); turnoIds.add(r.ID_TURNO); }
+    }
   }
 
+  // 3. Query batch: TURNOS por múltiples IDs
+  const turnoIdsArray = [...turnoIds];
+  const turnosMap = new Map();
+  const horarioIds = new Set();
+
+  if (turnoIdsArray.length > 0) {
+    const placeholders = turnoIdsArray.map((_, i) => `$${i + 1}`).join(',');
+    const rows = await db.rawSelect(
+      `SELECT * FROM "TURNOS" WHERE "ID_TURNO" IN (${placeholders})`,
+      ...turnoIdsArray
+    );
+    for (const turno of rows) {
+      if (turno.ID_HORARIO) {
+        turnosMap.set(turno.ID_TURNO, turno);
+        horarioIds.add(turno.ID_HORARIO);
+      }
+    }
+  }
+
+  // 4. Query batch: HORARIOS por múltiples IDs
+  const horarioIdsArray = [...horarioIds];
+  const horariosMap = new Map();
+
+  if (horarioIdsArray.length > 0) {
+    const placeholders = horarioIdsArray.map((_, i) => `$${i + 1}`).join(',');
+    const rows = await db.rawSelect(
+      `SELECT * FROM "HORARIOS" WHERE "ID_HORARIO" IN (${placeholders})`,
+      ...horarioIdsArray
+    );
+    for (const h of rows) {
+      horariosMap.set(h.ID_HORARIO, h);
+    }
+  }
+
+  // 5. Query batch: HORARIO_BLOQUES por múltiples horarios
+  const horarioBloquesMap = new Map();
+  if (horarioIdsArray.length > 0) {
+    const placeholders = horarioIdsArray.map((_, i) => `$${i + 1}`).join(',');
+    const rows = await db.rawSelect(
+      `SELECT * FROM "HORARIO_BLOQUES" WHERE "ID_HORARIO" IN (${placeholders}) ORDER BY "ORDEN"`,
+      ...horarioIdsArray
+    );
+    for (const b of rows) {
+      if (!horarioBloquesMap.has(b.ID_HORARIO)) horarioBloquesMap.set(b.ID_HORARIO, []);
+      horarioBloquesMap.get(b.ID_HORARIO).push(b);
+    }
+  }
+
+  // 6. Construir turnosConBloques
   const turnosConBloques = [];
-  for (const turnoId of turnoIds) {
-    const turnoRows = await selectAll('TURNOS', { ID_TURNO: turnoId });
-    const turno = turnoRows[0];
-    if (!turno?.ID_HORARIO) continue;
-    const horarioRows = await selectAll('HORARIOS', { ID_HORARIO: turno.ID_HORARIO });
-    const horario = horarioRows[0];
-    const bloques = (await selectAll('HORARIO_BLOQUES', { ID_HORARIO: turno.ID_HORARIO })).sort((a, b) => a.ORDEN - b.ORDEN);
+  for (const [turnoId, turno] of turnosMap) {
+    const horario = horariosMap.get(turno.ID_HORARIO);
+    const bloques = horarioBloquesMap.get(turno.ID_HORARIO) || [];
     if (bloques.length === 0) continue;
 
     const _hInit = (horario?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
@@ -129,7 +188,7 @@ const resolveLookupsFromCache = (sesiones, cache) => {
 };
 
 // ─── Core: construir hoja para un docente ───────────────────────────────────
-const buildDocenteWorksheet = (workbook, nombreDocente, sesiones, lookups) => {
+const buildDocenteWorksheet = (workbook, nombreDocente, sesiones, lookups, opts = {}) => {
   const { programacionToGrupo, gpcToGrupo, grupoToTurno, turnosConBloques } = lookups;
 
   if (turnosConBloques.length === 0) return false;
@@ -194,6 +253,8 @@ const buildDocenteWorksheet = (workbook, nombreDocente, sesiones, lookups) => {
   const s0 = sesiones[0] || {};
   const periodo = s0.NOMBRE_PERIODO || '';
   const dni     = s0.DOCENTE_DNI    || '';
+  const email   = s0.DOCENTE_EMAIL  || '';
+  const telefono = s0.DOCENTE_TELEFONO || '';
 
   const sheetName = `${nombreDocente || 'Docente'}`.slice(0, 31);
   const ws = workbook.addWorksheet(sheetName);
@@ -208,15 +269,18 @@ const buildDocenteWorksheet = (workbook, nombreDocente, sesiones, lookups) => {
   titleCell.border = thinBorder;
   ws.getRow(1).height = 28;
 
-  // ── Fila 2: DNI | Período ─────────────────────────────────────────────────
+  // ── Fila 2: DNI | Período | Contacto ──────────────────────────────────────
   ws.mergeCells(2, 1, 2, maxCols);
   const infoCell = ws.getCell(2, 1);
-  infoCell.value = [dni && `DNI: ${dni}`, periodo && `Período: ${periodo}`].filter(Boolean).join('   |   ');
+  const contactoParts = [email && `Email: ${email}`, telefono && `Tel: ${telefono}`].filter(Boolean);
+  const infoParts = [dni && `DNI: ${dni}`, periodo && `Período: ${periodo}`];
+  if (contactoParts.length > 0) infoParts.push(contactoParts.join(' | '));
+  infoCell.value = infoParts.join('   |   ');
   infoCell.font = { name: 'Arial', size: 10, color: { argb: 'FF4B5563' } };
   infoCell.fill = infoFill;
   infoCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
   infoCell.border = thinBorder;
-  ws.getRow(2).height = 18;
+  ws.getRow(2).height = contactoParts.length > 0 ? 24 : 18;
 
   let currentRow = 3;
 
@@ -354,12 +418,12 @@ const buildDocenteWorksheet = (workbook, nombreDocente, sesiones, lookups) => {
               const timeRange  = `${startBlock.time} - ${endBlock.endTime}`;
               const [codigo, cursoV, nombreCompleto, docente, , grupo] = run.key.split('|');
               const parts = [];
-              if (codigo) parts.push(codigo);
+              if (opts.showCodigo !== false && codigo) parts.push(codigo);
               parts.push(cursoV);
               if (grupo) parts.push(grupo);
-              if (nombreCompleto) parts.push(nombreCompleto);
-              parts.push(docente);
-              parts.push(timeRange);
+              if (opts.showNombreDocente !== false && nombreCompleto) parts.push(nombreCompleto);
+              if (opts.showDocente !== false) parts.push(docente);
+              if (opts.showHorario !== false) parts.push(timeRange);
               c.value = parts.filter(Boolean).join('\n');
             } else {
               c.value = '';
@@ -405,7 +469,7 @@ const buildDocenteWorksheet = (workbook, nombreDocente, sesiones, lookups) => {
 /**
  * Exporta 1 docente a Excel (queries directas)
  */
-export const exportDocenteToExcel = async (idDocente, nombreDocente) => {
+export const exportDocenteToExcel = async (idDocente, nombreDocente, opts = {}) => {
   try {
     const sesionesResult = await db.select('VW_SESIONES_AGRUPADAS_DESGLOSE', { ID_DOCENTE: idDocente });
     const sesiones = sesionesResult?.data?.records || sesionesResult || [];
@@ -424,7 +488,7 @@ export const exportDocenteToExcel = async (idDocente, nombreDocente) => {
     workbook.creator = 'Sistema Horarios';
     workbook.created = new Date();
 
-    const added = buildDocenteWorksheet(workbook, nombreDocente, sesiones, lookups);
+    const added = buildDocenteWorksheet(workbook, nombreDocente, sesiones, lookups, opts);
     if (!added) {
       alert('No se encontraron sesiones para exportar');
       return;
@@ -439,9 +503,9 @@ export const exportDocenteToExcel = async (idDocente, nombreDocente) => {
 };
 
 /**
- * Exporta todos los docentes del período (1 hoja por docente)
+ * Exporta todos los docentes del período (modo bulk — 1 carga de sesiones total)
  */
-export const exportAllDocentesToExcel = async (idPeriodo, onProgress) => {
+export const exportAllDocentesToExcel = async (idPeriodo, onProgress, opts = {}) => {
   try {
     const cache = await buildBulkCache(idPeriodo);
     if (!cache) {
@@ -479,7 +543,7 @@ export const exportAllDocentesToExcel = async (idPeriodo, onProgress) => {
       const lookups = resolveLookupsFromCache(sesiones, cache);
       if (lookups.turnosConBloques.length > 0) {
         const nombreDocente = sesiones[0]?.DOCENTE_NOMBRE_COMPLETO || `Docente ${idDocente}`;
-        const ok = buildDocenteWorksheet(workbook, nombreDocente, sesiones, lookups);
+        const ok = buildDocenteWorksheet(workbook, nombreDocente, sesiones, lookups, opts);
         if (ok) added++;
       }
       processed++;

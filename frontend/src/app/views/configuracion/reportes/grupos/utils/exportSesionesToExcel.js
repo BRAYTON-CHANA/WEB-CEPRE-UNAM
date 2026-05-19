@@ -401,11 +401,19 @@ export const exportAllSesionesToExcel = async (grupos, opts = {}) => {
       return;
     }
 
-    // ── 1. Sesiones por grupo (paginado, 1 query por grupo) ──────────────
+    // ── 1. Sesiones por grupo (OPTIMIZADO: 1 query con IN) ──────────────
     const sesionesPorGrupo = new Map();
-    for (const idGrupo of grupoIds) {
-      const rows = await selectAll('VW_SESIONES_AGRUPADAS_DESGLOSE', { ID_GRUPO: idGrupo });
-      sesionesPorGrupo.set(idGrupo, rows);
+    if (grupoIds.length > 0) {
+      const placeholders = grupoIds.map((_, i) => `$${i + 1}`).join(',');
+      const allSesiones = await db.rawSelect(
+        `SELECT * FROM "VW_SESIONES_AGRUPADAS_DESGLOSE" WHERE "ID_GRUPO" IN (${placeholders})`,
+        ...grupoIds
+      );
+      for (const s of allSesiones) {
+        const gid = s.ID_GRUPO;
+        if (!sesionesPorGrupo.has(gid)) sesionesPorGrupo.set(gid, []);
+        sesionesPorGrupo.get(gid).push(s);
+      }
     }
 
     // ── 2. GRUPOS completa → filtrar en memoria ───────────────────────────

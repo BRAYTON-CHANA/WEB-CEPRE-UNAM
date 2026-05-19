@@ -236,6 +236,8 @@ const drawHorarioPage = (doc, grupoNombre, nombrePeriodo, columns, customBlocks,
 };
 
 // ─── Fetch datos de un grupo ─────────────────────────────────────────────────
+// NOTA: Para export individual, las queries son necesariamente por ID único
+// El modo bulk (exportAllSesionesToPdf) ya está optimizado con queries batch
 
 const fetchGrupoData = async (idGrupo) => {
   const sesionesResult = await db.select('VW_SESIONES_AGRUPADAS_DESGLOSE', { ID_GRUPO: idGrupo });
@@ -323,7 +325,22 @@ export const exportAllSesionesToPdf = async (grupos) => {
     const grupoIds = grupos.map(g => g.ID_GRUPO).filter(Boolean);
     if (grupoIds.length === 0) return;
 
-    // Cargar tablas de lookup completas
+    // ── 1. Sesiones por grupo (OPTIMIZADO: 1 query con IN) ───────────────
+    const sesionesPorGrupo = new Map();
+    if (grupoIds.length > 0) {
+      const placeholders = grupoIds.map((_, i) => `$${i + 1}`).join(',');
+      const allSesiones = await db.rawSelect(
+        `SELECT * FROM "VW_SESIONES_AGRUPADAS_DESGLOSE" WHERE "ID_GRUPO" IN (${placeholders})`,
+        ...grupoIds
+      );
+      for (const s of allSesiones) {
+        const gid = s.ID_GRUPO;
+        if (!sesionesPorGrupo.has(gid)) sesionesPorGrupo.set(gid, []);
+        sesionesPorGrupo.get(gid).push(s);
+      }
+    }
+
+    // ── 2. GRUPOS completa → filtrar en memoria ───────────────────────────
     const grupoIdsSet = new Set(grupoIds);
     const allGruposRows = await selectAll('GRUPOS');
     const gruposMap = new Map();
@@ -331,6 +348,7 @@ export const exportAllSesionesToPdf = async (grupos) => {
       if (grupoIdsSet.has(r.ID_GRUPO)) gruposMap.set(r.ID_GRUPO, r);
     }
 
+    // ── 3. TURNOS completa → filtrar en memoria ────────────────────────────
     const turnoIdsSet = new Set([...gruposMap.values()].map(g => g.ID_TURNO).filter(Boolean));
     const allTurnosRows = await selectAll('TURNOS');
     const turnosMap = new Map();
@@ -338,6 +356,7 @@ export const exportAllSesionesToPdf = async (grupos) => {
       if (turnoIdsSet.has(r.ID_TURNO)) turnosMap.set(r.ID_TURNO, r);
     }
 
+    // ── 4. HORARIOS + BLOQUES completas → filtrar en memoria ──────────────
     const horarioIdsSet = new Set([...turnosMap.values()].map(t => t.ID_HORARIO).filter(Boolean));
     const allHorariosRows = await selectAll('HORARIOS');
     const horariosMap = new Map();
@@ -390,7 +409,7 @@ export const exportAllSesionesToPdf = async (grupos) => {
       const idGrupo = grupo.ID_GRUPO;
       if (!idGrupo) continue;
       const nombreGrupo = grupo.NOMBRE_GRUPO || grupo.CODIGO_GRUPO || `Grupo_${idGrupo}`;
-      const sesiones = await selectAll('VW_SESIONES_AGRUPADAS_DESGLOSE', { ID_GRUPO: idGrupo });
+      const sesiones = sesionesPorGrupo.get(idGrupo) || [];
       if (sesiones.length === 0) continue;
 
       const grupoInfo = gruposMap.get(idGrupo);

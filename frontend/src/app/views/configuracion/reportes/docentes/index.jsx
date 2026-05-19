@@ -129,7 +129,7 @@ function ReportesDocentes() {
   const handlePeriodoChange = (_, value) => { setSelectedPeriodo(value); setPage(1); setSearch(''); };
   const handleSearch = (e) => { setSearch(e.target.value); setPage(1); };
 
-  const handleModalConfirm = async () => {
+  const handleModalConfirm = async (opts) => {
     const pending = exportModalPending;
     setExportModalPending(null);
     if (!pending) return;
@@ -139,11 +139,11 @@ function ReportesDocentes() {
       const row = pending.row;
       if (isPdf) {
         setExportingIndividualPdf(row.ID_DOCENTE);
-        try { await exportDocenteToPdf(row.ID_DOCENTE, row.NOMBRE_COMPLETO); }
+        try { await exportDocenteToPdf(row.ID_DOCENTE, row.NOMBRE_COMPLETO, opts); }
         finally { setExportingIndividualPdf(null); }
       } else {
         setExportingIndividual(row.ID_DOCENTE);
-        try { await exportDocenteToExcel(row.ID_DOCENTE, row.NOMBRE_COMPLETO); }
+        try { await exportDocenteToExcel(row.ID_DOCENTE, row.NOMBRE_COMPLETO, opts); }
         finally { setExportingIndividual(null); }
       }
     } else if (pending.type === 'all') {
@@ -151,13 +151,13 @@ function ReportesDocentes() {
         setExportingPdf(true);
         setExportPdfProgress({ current: 0, total: 0 });
         try {
-          await exportAllDocentesToPdf(selectedPeriodo, (current, total) => setExportPdfProgress({ current, total }));
+          await exportAllDocentesToPdf(selectedPeriodo, (current, total) => setExportPdfProgress({ current, total }), opts);
         } finally { setExportingPdf(false); setExportPdfProgress(null); }
       } else {
         setExportingAll(true);
         setExportAllProgress({ current: 0, total: 0 });
         try {
-          await exportAllDocentesToExcel(selectedPeriodo, (current, total) => setExportAllProgress({ current, total }));
+          await exportAllDocentesToExcel(selectedPeriodo, (current, total) => setExportAllProgress({ current, total }), opts);
         } finally { setExportingAll(false); setExportAllProgress({ current: 0, total: 0 }); }
       }
     }
@@ -345,6 +345,7 @@ function ReportesDocentes() {
         }
         onConfirm={handleModalConfirm}
         onCancel={() => setExportModalPending(null)}
+        mode="docentes"
       />
     </LayoutWithSidebar>
   );

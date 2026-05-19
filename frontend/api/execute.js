@@ -43,13 +43,19 @@ export default async function handler(req, res) {
     await DatabaseManager.connect();
 
     // Ejecutar función
-    const args = Object.values(params || {});
+    // Para rawSelect/query, expandir el array 'params' como argumentos individuales
+    let args;
+    if ((functionName === 'rawSelect' || functionName === 'query') && params.params && Array.isArray(params.params)) {
+      args = [params.sql, ...params.params];
+    } else {
+      args = Object.values(params || {});
+    }
     console.log(`[DEBUG execute.js] ===== Función: ${functionName} =====`);
     console.log(`[DEBUG execute.js] Args:`, args);
-    
+
     // NOTA: Eliminado el DELETE manual de sesiones porque el trigger fn_trg_programacion_grupo_sesiones
     // ya maneja el DELETE + INSERT automáticamente. Hacerlo aquí causa conflicto de concurrencia.
-    
+
     console.log(`[DEBUG execute.js] Ejecutando ${functionName}...`);
     const result = await func(...args);
     console.log(`[DEBUG execute.js] ${functionName} resultado:`, result);
