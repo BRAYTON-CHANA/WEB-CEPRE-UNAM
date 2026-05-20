@@ -1,0 +1,1 @@
+export { AsistenciaForm } from './AsistenciaForm';
