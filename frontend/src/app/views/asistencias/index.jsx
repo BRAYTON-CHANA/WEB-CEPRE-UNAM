@@ -20,6 +20,24 @@ const MODULES = [
     ),
   },
   {
+    to: '/asistencias/fechas',
+    title: 'Asistencias Por Fecha',
+    description: 'Vista cronológica de todas las clases. Organizado por fechas con filtros rápidos y resumen diario.',
+    accent: 'from-amber-400 to-orange-500',
+    iconBg: 'bg-amber-50',
+    iconStroke: '#f59e0b',
+    labelColor: 'text-amber-600',
+    borderHover: 'hover:border-amber-300',
+    icon: (
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+    ),
+  },
+  {
     to: '/asistencias/docentes',
     title: 'Asistencias Docentes',
     description: 'Registro y seguimiento de asistencia de la plana docente. Reportes por docente, período y curso asignado.',
@@ -70,8 +88,8 @@ function Asistencias() {
             </p>
           </div>
 
-          {/* 3 tarjetas */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          {/* 4 tarjetas */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {MODULES.map(m => (
               <Link
                 key={m.to}

@@ -36,6 +36,7 @@ import ReportesDocentes from '@/app/views/configuracion/reportes/docentes';
 
 import Asistencias from '@/app/views/asistencias';
 import AsistenciasGrupos from '@/app/views/asistencias/grupos';
+import AsistenciasPorFecha from '@/app/views/asistencias/fechas';
 import AsistenciasDocentes from '@/app/views/asistencias/docentes';
 import AsistenciasEstudiantes from '@/app/views/asistencias/estudiantes';
 import Configuracion from '@/app/views/configuracion';
@@ -58,6 +59,7 @@ function App() {
 
       <Route path="/asistencias" element={<Asistencias />} />
       <Route path="/asistencias/grupos" element={<AsistenciasGrupos />} />
+      <Route path="/asistencias/fechas" element={<AsistenciasPorFecha />} />
       <Route path="/asistencias/docentes" element={<AsistenciasDocentes />} />
       <Route path="/asistencias/estudiantes" element={<AsistenciasEstudiantes />} />
 
