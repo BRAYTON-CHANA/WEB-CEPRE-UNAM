@@ -62,6 +62,13 @@ const ConfigSidebar = () => {
     </svg>
   );
 
+  const CarrerasIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+      <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+    </svg>
+  );
+
   const ChevronDownIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="6 9 12 15 18 9"></polyline>
@@ -147,6 +154,13 @@ const ConfigSidebar = () => {
           active: location.pathname === '/configuracion/areas_cursos'
         },
         {
+          id: 'carreras',
+          name: 'Carreras',
+          icon: <CarrerasIcon />,
+          href: '/configuracion/carreras',
+          active: location.pathname === '/configuracion/carreras'
+        },
+        {
           id: 'docentes_cursos',
           name: 'Docentes y Cursos',
           icon: <UserIcon />,
@@ -211,6 +225,13 @@ const ConfigSidebar = () => {
           icon: <UsersIcon />,
           href: '/configuracion/grupos',
           active: location.pathname === '/configuracion/grupos'
+        },
+        {
+          id: 'postulantes',
+          name: 'Postulantes',
+          icon: <UserIcon />,
+          href: '/configuracion/postulantes',
+          active: location.pathname === '/configuracion/postulantes'
         },
         {
           id: 'programacion_grupo',

@@ -24,6 +24,8 @@ import ConfigTurnosPage from '@/app/views/configuracion/turnos';
 import PlanesAcademicosConfig from '@/app/views/configuracion/planes_academicos';
 import PlazasDocentesConfig from '@/app/views/configuracion/plazas_docentes';
 import GruposConfig from '@/app/views/configuracion/grupos';
+import PostulantesConfig from '@/app/views/configuracion/postulantes';
+import CarrerasConfig from '@/app/views/configuracion/carreras';
 import ProgramacionGrupoConfig from '@/app/views/configuracion/programacion_grupo';
 // import ProgramacionPlazasDocentes from '@/app/views/configuracion/programacion_plazas_docentes'; // TEMP: En mantenimiento
 import ReportesIndex from '@/app/views/configuracion/reportes';
@@ -65,6 +67,7 @@ function App() {
      
       <Route path="/configuracion/cursos" element={<CursosConfig />} />
       <Route path="/configuracion/areas_cursos" element={<AreasYCursosConfig />} />
+      <Route path="/configuracion/carreras" element={<CarrerasConfig />} />
       <Route path="/configuracion/docentes_cursos" element={<DocentesYCursosConfig />} />
       <Route path="/configuracion/planes_academicos" element={<PlanesAcademicosConfig />} />
      
@@ -72,6 +75,7 @@ function App() {
       <Route path="/configuracion/turnos" element={<ConfigTurnosPage />} />
       <Route path="/configuracion/plazas_docentes" element={<PlazasDocentesConfig />} />
       <Route path="/configuracion/grupos" element={<GruposConfig />} />
+      <Route path="/configuracion/postulantes" element={<PostulantesConfig />} />
 
       <Route path="/configuracion/periodos" element={<PeriodosConfig />} />
       <Route path="/configuracion/programacion_grupo" element={<ProgramacionGrupoConfig />} />

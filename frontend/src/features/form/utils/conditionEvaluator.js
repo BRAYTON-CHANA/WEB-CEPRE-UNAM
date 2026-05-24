@@ -166,6 +166,7 @@ export const evaluateOperatorSet = (config, formData) => {
  */
 export const evaluateHidden = (hidden, formData) => {
   if (!hidden) return false;
+  if (hidden === true) return true;
   return evaluateOperatorSet(hidden, formData);
 };
 
