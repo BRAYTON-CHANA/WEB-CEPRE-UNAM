@@ -151,6 +151,7 @@ export default function CsvImportModal({ isOpen, onClose, onSuccess }) {
                       <th className="px-2 py-2 text-left">Nombres</th>
                       <th className="px-2 py-2 text-left">Carrera</th>
                       <th className="px-2 py-2 text-left">Grupo</th>
+                      <th className="px-2 py-2 text-left">ID Grupo</th>
                       <th className="px-2 py-2 text-left">Libre</th>
                       <th className="px-2 py-2 text-left">Estado</th>
                     </tr>
@@ -165,7 +166,8 @@ export default function CsvImportModal({ isOpen, onClose, onSuccess }) {
                           <td className="px-2 py-2">{row.APELLIDOS}</td>
                           <td className="px-2 py-2">{row.NOMBRES}</td>
                           <td className="px-2 py-2">{row.NOMBRE_CARRERA || '-'}</td>
-                          <td className="px-2 py-2">{row.NOMBRE_GRUPO || row.ID_GRUPO || '-'}</td>
+                          <td className="px-2 py-2">{row.nombreGrupo || row.CODIGO_GRUPO || '-'}</td>
+                          <td className="px-2 py-2">{row.idGrupo || '-'}</td>
                           <td className="px-2 py-2">{row.ALUMNO_LIBRE}</td>
                           <td className="px-2 py-2 text-xs">
                             {row.error ? (
@@ -210,23 +212,39 @@ export default function CsvImportModal({ isOpen, onClose, onSuccess }) {
                   Error: {result.error}
                 </span>
               )}
-              <button
-                onClick={handleImport}
-                disabled={importing || previewData?.errors.length > 0}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {importing ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                    </svg>
-                    Importando... {progress.current}/{progress.total}
-                  </>
-                ) : (
-                  <>Importar {previewData?.stats.ready + previewData?.stats.new} postulantes</>
+              <div className="flex flex-col items-end gap-2">
+                {importing && (
+                  <div className="w-64">
+                    <div className="flex justify-between text-xs text-gray-600 mb-1">
+                      <span>{progress.label || `Grupo ${progress.current} de ${progress.total}`}</span>
+                      <span>{Math.round((progress.current / progress.total) * 100)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
                 )}
-              </button>
+                <button
+                  onClick={handleImport}
+                  disabled={importing || previewData?.errors.length > 0}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {importing ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                      </svg>
+                      Importando...
+                    </>
+                  ) : (
+                    <>Importar {previewData?.stats.ready + previewData?.stats.new} postulantes</>
+                  )}
+                </button>
+              </div>
             </div>
           )}
         </div>

@@ -3,14 +3,16 @@ import { GruposTabs } from './components/GruposTabs';
 import { TablaSesionesFecha } from './components/TablaSesionesFecha';
 import { useSesionesPorFecha } from './hooks/useSesionesPorFecha';
 import { ModalMarcarAsistencia } from '../grupos/components/vista-grupo/ModalMarcarAsistencia';
+import { ModalAsistenciaEstudiantes } from '../shared/components';
 
 const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-export function VistaFecha({ fecha, onVolver }) {
-  const { grupos, loading, error, recargar } = useSesionesPorFecha(fecha);
+export function VistaFecha({ fecha, idSede, onVolver }) {
+  const { grupos, loading, error, recargar } = useSesionesPorFecha(fecha, idSede);
   const [grupoActivo, setGrupoActivo] = useState(null);
   const [modalAsistencia, setModalAsistencia] = useState(null);
+  const [sesionEstudiantes, setSesionEstudiantes] = useState(null);
 
   // Seleccionar primer grupo por defecto
   React.useEffect(() => {
@@ -41,6 +43,10 @@ export function VistaFecha({ fecha, onVolver }) {
   const handleAsistenciaGuardada = () => {
     setModalAsistencia(null);
     recargar();
+  };
+
+  const handleMarcarEstudiantes = (sesion) => {
+    setSesionEstudiantes(sesion);
   };
 
   if (loading) {
@@ -116,10 +122,11 @@ export function VistaFecha({ fecha, onVolver }) {
         <TablaSesionesFecha 
           sesiones={grupoSeleccionado?.sesiones || []}
           onMarcarAsistencia={handleMarcarAsistencia}
+          onMarcarEstudiantes={handleMarcarEstudiantes}
         />
       </div>
 
-      {/* Modal de asistencia */}
+      {/* Modal asistencia docente */}
       {modalAsistencia && (
         <ModalMarcarAsistencia
           onClose={() => setModalAsistencia(null)}
@@ -127,6 +134,13 @@ export function VistaFecha({ fecha, onVolver }) {
           onSuccess={handleAsistenciaGuardada}
         />
       )}
+
+      {/* Modal asistencia estudiantes */}
+      <ModalAsistenciaEstudiantes
+        sesion={sesionEstudiantes}
+        onClose={() => setSesionEstudiantes(null)}
+        onSuccess={recargar}
+      />
     </div>
   );
 }

@@ -1,20 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/shared/api';
 
-export function useSesionesPorFecha(fecha) {
+export function useSesionesPorFecha(fecha, idSede) {
   const [sesiones, setSesiones] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const cargarSesiones = useCallback(async () => {
-    if (!fecha) return;
+    if (!fecha || !idSede) return;
     
     setLoading(true);
     setError(null);
     try {
-      const data = await db.select('VW_SESIONES_COMPLETA', { 
-        FECHA: fecha 
-      });
+      const filters = { FECHA: fecha, ID_SEDE: idSede };
+      const data = await db.select('VW_SESIONES_COMPLETA', filters);
       
       // Agrupar por grupo
       const gruposMap = new Map();
@@ -48,7 +47,7 @@ export function useSesionesPorFecha(fecha) {
     } finally {
       setLoading(false);
     }
-  }, [fecha]);
+  }, [fecha, idSede]);
 
   useEffect(() => {
     cargarSesiones();

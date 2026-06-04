@@ -440,6 +440,22 @@ class DatabaseManager {
   }
 
   /**
+   * Ejecutar batch de statements SQL en transacción PostgreSQL
+   * Llama a la función RPC execute_batch_transaction
+   */
+  static async execute_batch_transaction(sql_statements) {
+    console.log('[DatabaseManager] execute_batch_transaction:', sql_statements.length, 'statements');
+    const supabase = await DatabaseManager.connect();
+    const { data, error } = await supabase.rpc('execute_batch_transaction', { sql_statements });
+    if (error) {
+      console.error('[DatabaseManager] Error:', error);
+      throw error;
+    }
+    console.log('[DatabaseManager] Resultado:', data);
+    return data;
+  }
+
+  /**
    * Listar funciones SQL disponibles
    */
   static async listFunctions() {

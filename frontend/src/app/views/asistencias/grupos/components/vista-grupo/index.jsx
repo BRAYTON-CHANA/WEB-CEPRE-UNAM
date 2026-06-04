@@ -5,6 +5,7 @@ import { CursoTabs } from './CursoTabs';
 import { StatsBar } from './StatsBar';
 import { TablaSesiones } from './TablaSesiones';
 import { ModalMarcarAsistencia } from './ModalMarcarAsistencia';
+import { ModalAsistenciaEstudiantes } from '../../../shared/components';
 
 export function VistaGrupo({ grupo, onVolver, idUsuario = 1 }) {
   const {
@@ -18,7 +19,9 @@ export function VistaGrupo({ grupo, onVolver, idUsuario = 1 }) {
   } = useSesionesGrupo(grupo.ID_GRUPO);
 
   const [sesionModal, setSesionModal] = useState(null);
+  const [sesionEstudiantes, setSesionEstudiantes] = useState(null);
   const handleMarcar = useCallback((s) => setSesionModal(s), []);
+  const handleMarcarEstudiantes = useCallback((s) => setSesionEstudiantes(s), []);
   const handleSuccess = useCallback(() => {
     refetch();
   }, [refetch]);
@@ -30,6 +33,11 @@ export function VistaGrupo({ grupo, onVolver, idUsuario = 1 }) {
         onClose={() => setSesionModal(null)}
         onSuccess={handleSuccess}
         idUsuario={idUsuario}
+      />
+      <ModalAsistenciaEstudiantes
+        sesion={sesionEstudiantes}
+        onClose={() => setSesionEstudiantes(null)}
+        onSuccess={handleSuccess}
       />
       <div>
         <Header grupo={grupo} onVolver={onVolver} />
@@ -73,7 +81,7 @@ export function VistaGrupo({ grupo, onVolver, idUsuario = 1 }) {
 
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
               <StatsBar sesiones={sesionesDelCurso} />
-              <TablaSesiones sesiones={sesionesDelCurso} onMarcar={handleMarcar} />
+              <TablaSesiones sesiones={sesionesDelCurso} onMarcar={handleMarcar} onMarcarEstudiantes={handleMarcarEstudiantes} />
             </div>
           </div>
         )}

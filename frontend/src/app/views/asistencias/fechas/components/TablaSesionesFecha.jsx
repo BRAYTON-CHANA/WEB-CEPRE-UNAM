@@ -6,7 +6,7 @@ function formatHora(horaStr) {
   return `${horas}:${minutos}`;
 }
 
-export function TablaSesionesFecha({ sesiones, onMarcarAsistencia }) {
+export function TablaSesionesFecha({ sesiones, onMarcarAsistencia, onMarcarEstudiantes }) {
   if (!sesiones || sesiones.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
@@ -25,7 +25,7 @@ export function TablaSesionesFecha({ sesiones, onMarcarAsistencia }) {
             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Área</th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Docente</th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Estado</th>
-            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Acción</th>
+            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Acciones</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
@@ -74,12 +74,20 @@ export function TablaSesionesFecha({ sesiones, onMarcarAsistencia }) {
                   )}
                 </td>
                 <td className="px-4 py-3 text-center">
-                  <button
-                    onClick={() => onMarcarAsistencia(sesion)}
-                    className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-lg transition-colors"
-                  >
-                    {asistenciaMarcada ? 'Editar' : 'Marcar'}
-                  </button>
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => onMarcarAsistencia(sesion)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-lg transition-colors"
+                    >
+                      {asistenciaMarcada ? 'Editar docente' : 'Marcar docente'}
+                    </button>
+                    <button
+                      onClick={() => onMarcarEstudiantes(sesion)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium rounded-lg transition-colors"
+                    >
+                      Marcar estudiantes
+                    </button>
+                  </div>
                 </td>
               </tr>
             );

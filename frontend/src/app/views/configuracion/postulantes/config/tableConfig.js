@@ -1,11 +1,12 @@
 /**
  * Configuración de tabla multinivel para Postulantes
- * 2 niveles: Grupo (con conteo) → Postulantes
+ * 3 niveles: Sede → Grupo → Postulantes
  * Selector de período en el componente padre
  * 
  * Usa VW_GRUPOS_POSTULANTES que tiene todos los datos:
- * - Grupos con conteo de postulantes (nivel 1)
- * - Postulantes del grupo (nivel 2)
+ * - Sedes con grupos (nivel 1)
+ * - Grupos con conteo de postulantes (nivel 2)
+ * - Postulantes del grupo (nivel 3)
  */
 export const tableConfig = {
   tableName: 'VW_GRUPOS_POSTULANTES'
@@ -13,18 +14,22 @@ export const tableConfig = {
 
 /**
  * Genera los levelConfigs para TableMultiLevelRender.
- * Nivel 1: Grupo con conteo de postulantes (botón "+" para añadir postulante)
- * Nivel 2: Postulantes del grupo (CRUD: editar, eliminar)
+ * Nivel 1: Sede con conteo de grupos
+ * Nivel 2: Grupo con conteo de postulantes (botón "+" para añadir postulante)
+ * Nivel 3: Postulantes del grupo (CRUD: editar, eliminar)
  */
 export const getTableLevelConfigs = (postulantesCrud, handleAddPostulante) => [
   {
     level: 1,
+    field: 'NOMBRE_SEDE',
+    headers: [],
+    boundColumn: 'ID_SEDE',
+    childCountLabel: { singular: 'grupo', plural: 'grupos' }
+  },
+  {
+    level: 2,
     field: 'CODIGO_GRUPO',
     headers: [
-      //{ title: 'NOMBRE_GRUPO', type: 'string' },
-      { title: 'NOMBRE_SEDE', type: 'string' },
-      //{ title: 'NOMBRE_AREA', type: 'string' },
-      //{ title: 'NOMBRE_TURNO', type: 'string' },
       { title: 'CAPACIDAD_MAXIMA', type: 'number' },
       { title: 'TOTAL_POSTULANTES', type: 'number' }
     ],
@@ -41,13 +46,12 @@ export const getTableLevelConfigs = (postulantesCrud, handleAddPostulante) => [
     }
   },
   {
-    level: 2,
+    level: 3,
     headers: [
       { title: 'APELLIDOS', type: 'string' },
       { title: 'NOMBRES', type: 'string' },
       { title: 'NOMBRE_CARRERA', type: 'string' },
-      { title: 'ALUMNO_LIBRE', type: 'boolean' },
-      //{ title: 'POSTULANTE_ACTIVO', type: 'boolean' }
+      { title: 'ALUMNO_LIBRE', type: 'boolean' }
     ],
     boundColumn: 'ID_POSTULANTE',
     actions: {

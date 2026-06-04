@@ -6,12 +6,14 @@ import { GruposGrid } from './GruposGrid';
 import { TablaSesiones } from './TablaSesiones';
 import { Header } from './Header';
 import { ModalMarcarAsistencia } from '../../../grupos/components/vista-grupo/ModalMarcarAsistencia';
+import { ModalAsistenciaEstudiantes } from '../../../shared/components';
 
 export function VistaDocente({ docente, idPeriodo, idSede, onVolver, idUsuario = 1 }) {
   const { plazas, cursos, loading: loadingPlazas } = usePlazasDocente(idPeriodo, idSede, docente.ID_DOCENTE);
   
   const [plazaActiva, setPlazaActiva] = useState(null);
   const [sesionModal, setSesionModal] = useState(null);
+  const [sesionEstudiantes, setSesionEstudiantes] = useState(null);
 
   // Cuando cambian las plazas, seleccionar la primera por defecto
   React.useEffect(() => {
@@ -36,6 +38,7 @@ export function VistaDocente({ docente, idPeriodo, idSede, onVolver, idUsuario =
   }, [refetch]);
 
   const handleMarcar = useCallback((s) => setSesionModal(s), []);
+  const handleMarcarEstudiantes = useCallback((s) => setSesionEstudiantes(s), []);
 
   return (
     <>
@@ -44,6 +47,11 @@ export function VistaDocente({ docente, idPeriodo, idSede, onVolver, idUsuario =
         onClose={() => setSesionModal(null)}
         onSuccess={handleSuccess}
         idUsuario={idUsuario}
+      />
+      <ModalAsistenciaEstudiantes
+        sesion={sesionEstudiantes}
+        onClose={() => setSesionEstudiantes(null)}
+        onSuccess={handleSuccess}
       />
       <div>
         <Header docente={docente} onVolver={onVolver} />
@@ -100,6 +108,7 @@ export function VistaDocente({ docente, idPeriodo, idSede, onVolver, idUsuario =
                 <TablaSesiones 
                   sesiones={sesionesDelGrupo} 
                   onMarcar={handleMarcar}
+                  onMarcarEstudiantes={handleMarcarEstudiantes}
                   nombreCurso={plazaSeleccionada?.NOMBRE_CURSO}
                 />
               </div>

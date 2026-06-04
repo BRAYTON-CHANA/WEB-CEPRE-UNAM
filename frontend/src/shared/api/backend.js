@@ -5,6 +5,8 @@ const API_BASE_URL = '/api';
  * Ejecutar cualquier función del backend via HTTP
  */
 export async function executeFunction(functionName, params = {}) {
+  console.log(`[BACKEND] Llamando función: ${functionName}`, params);
+  
   const response = await fetch(`${API_BASE_URL}/execute`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -12,11 +14,16 @@ export async function executeFunction(functionName, params = {}) {
   });
 
   const result = await response.json();
+  console.log(`[BACKEND] Respuesta de ${functionName}:`, result);
+  
   if (!result.success) {
-    const error = new Error(result.message);
+    console.error(`[BACKEND] Error en ${functionName}:`, result);
+    const errorMsg = `[${functionName}] ${result.message || 'Error desconocido'}`;
+    const error = new Error(errorMsg);
     error.code = result.code;
     error.details = result.details;
     error.hint = result.hint;
+    error.functionName = functionName;
     throw error;
   }
   return result.data;
@@ -104,7 +111,12 @@ export const backend = {
   
   // Connection
   connect: () => executeFunction('connect', {}),
-  close: () => executeFunction('close', {})
+  close: () => executeFunction('close', {}),
+  
+  // Ejecutar batch de SQL statements en transacción
+  // Retorna: { success: true, results: [[{...}], [{...}]] }
+  executeBatchTransaction: (sqlStatements) => 
+    executeFunction('execute_batch_transaction', { sql_statements: sqlStatements })
 };
 
 export default backend;

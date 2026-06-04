@@ -1,21 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/shared/api';
 
-// Cargar todos los registros con paginación (lotes de 1000)
-async function cargarTodasLasSesiones() {
+async function cargarSesionesPorPeriodo(idPeriodo) {
   const todasLasSesiones = [];
   let offset = 0;
   const limit = 1000;
   let hasMore = true;
 
   while (hasMore) {
-    const batch = await db.selectWithLimit('VW_SESIONES_COMPLETA', limit, offset);
-    
+    const batch = await db.selectWithLimit('VW_SESIONES_COMPLETA', limit, offset, { ID_PERIODO: idPeriodo });
+
     if (!batch || batch.length === 0) {
       hasMore = false;
     } else {
       todasLasSesiones.push(...batch);
-      // Si recibimos menos de 1000, es el último lote
       if (batch.length < limit) {
         hasMore = false;
       } else {
@@ -27,17 +25,20 @@ async function cargarTodasLasSesiones() {
   return todasLasSesiones;
 }
 
-export function useFechasConClases() {
+export function useFechasConClases(idPeriodo) {
   const [fechas, setFechas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const cargarFechas = useCallback(async () => {
+    if (!idPeriodo) {
+      setFechas([]);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      // Cargar todas las sesiones con paginación
-      const data = await cargarTodasLasSesiones();
+      const data = await cargarSesionesPorPeriodo(idPeriodo);
       
       // Agrupar por fecha y contar clases
       const fechasMap = new Map();
@@ -73,7 +74,7 @@ export function useFechasConClases() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [idPeriodo]);
 
   useEffect(() => {
     cargarFechas();

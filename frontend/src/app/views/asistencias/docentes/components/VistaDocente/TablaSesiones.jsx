@@ -17,7 +17,7 @@ function EstadoSesionBadge({ estado }) {
   );
 }
 
-export function TablaSesiones({ sesiones, onMarcar, nombreCurso }) {
+export function TablaSesiones({ sesiones, onMarcar, onMarcarEstudiantes, nombreCurso }) {
   if (!sesiones.length) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -36,7 +36,7 @@ export function TablaSesiones({ sesiones, onMarcar, nombreCurso }) {
     );
   }
 
-  const headers = ['#', 'Fecha', 'Horario', 'Estado', 'Docente programado', '¿Asistió?', 'Docente asistió', 'Entrada', 'Salida', 'Motivo', 'Observaciones', 'Acción'];
+  const headers = ['#', 'Fecha', 'Horario', 'Docente programado', '¿Asistió?', 'Docente asistió', 'Entrada', 'Salida', 'Observaciones', 'Acciones'];
 
   return (
     <div className="w-full overflow-x-auto">
@@ -63,9 +63,6 @@ export function TablaSesiones({ sesiones, onMarcar, nombreCurso }) {
                 <span className="font-mono text-gray-600 text-sm tracking-tight">
                   {formatHora(s.HORA_INICIO)}<span className="text-gray-300 mx-1">–</span>{formatHora(s.HORA_FIN)}
                 </span>
-              </td>
-              <td className="px-4 py-3.5 whitespace-nowrap">
-                <EstadoSesionBadge estado={s.ESTADO} />
               </td>
               <td className="px-4 py-3.5 whitespace-nowrap">
                 <span className="text-gray-700 text-sm">
@@ -96,29 +93,36 @@ export function TablaSesiones({ sesiones, onMarcar, nombreCurso }) {
               <td className="px-4 py-3.5 whitespace-nowrap">
                 <span className="font-mono text-gray-500 text-sm">{formatHora(s.HORA_SALIDA_REAL)}</span>
               </td>
-              <td className="px-4 py-3.5 whitespace-nowrap">
-                {s.MOTIVO_FALTA ? (
-                  <span className="capitalize text-red-600 text-sm font-medium">{s.MOTIVO_FALTA}</span>
-                ) : (
-                  <span className="text-gray-300">—</span>
-                )}
-              </td>
               <td className="px-4 py-3.5 max-w-[180px]">
                 <span className="text-gray-400 text-sm truncate block" title={s.OBSERVACIONES ?? ''}>
                   {s.OBSERVACIONES ?? '—'}
                 </span>
               </td>
               <td className="px-4 py-3.5 whitespace-nowrap">
-                <button
-                  onClick={() => onMarcar(s)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100 hover:border-blue-200 transition-all"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                  </svg>
-                  Marcar
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => onMarcar(s)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100 hover:border-blue-200 transition-all"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Marcar docente
+                  </button>
+                  <button
+                    onClick={() => onMarcarEstudiantes(s)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 hover:border-emerald-200 transition-all"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                      <circle cx="9" cy="7" r="4"/>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    Marcar estudiantes
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

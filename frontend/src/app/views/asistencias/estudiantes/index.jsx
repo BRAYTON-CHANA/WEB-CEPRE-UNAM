@@ -1,38 +1,223 @@
-import React from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Layout from '@/shared/components/layout/Layout';
 import { Link } from 'react-router-dom';
+import { usePeriodos } from '../grupos/hooks/usePeriodos';
+import { useGrupos } from '../grupos/hooks/useGrupos';
+import { SedeTabs } from '../grupos/components/SedeTabs';
+import { useEstudiantesPorGrupo } from './hooks/useEstudiantesPorGrupo';
+import { TablaEstudiantes } from './components/TablaEstudiantes';
+import { ModalHistorialEstudiante } from './components/ModalHistorialEstudiante';
 
 function AsistenciasEstudiantes() {
+  const { periodos, periodoActivo, setPeriodoActivo, loading: loadingPeriodos } = usePeriodos();
+  const { grupos, loading: loadingGrupos } = useGrupos(periodoActivo);
+
+  const [sedeActiva, setSedeActiva] = useState(null);
+  const [grupoActivo, setGrupoActivo] = useState(null);
+  const [estudianteModal, setEstudianteModal] = useState(null);
+
+  // Extraer sedes — Moquegua primero
+  const sedes = useMemo(() => {
+    const map = new Map();
+    grupos.forEach(g => {
+      if (g.ID_SEDE && !map.has(g.ID_SEDE)) {
+        map.set(g.ID_SEDE, { ID_SEDE: g.ID_SEDE, NOMBRE_SEDE: g.NOMBRE_SEDE });
+      }
+    });
+    return [...map.values()].sort((a, b) => {
+      const aMoq = a.NOMBRE_SEDE?.toLowerCase().includes('moquegua');
+      const bMoq = b.NOMBRE_SEDE?.toLowerCase().includes('moquegua');
+      if (aMoq && !bMoq) return -1;
+      if (!aMoq && bMoq) return 1;
+      return a.NOMBRE_SEDE.localeCompare(b.NOMBRE_SEDE);
+    });
+  }, [grupos]);
+
+  // Reset al cambiar período
+  useEffect(() => {
+    setSedeActiva(null);
+    setGrupoActivo(null);
+  }, [periodoActivo]);
+
+  // Auto-seleccionar primera sede
+  useEffect(() => {
+    if (sedes.length > 0 && !sedeActiva) {
+      setSedeActiva(sedes[0].ID_SEDE);
+    }
+  }, [sedes, sedeActiva]);
+
+  // Grupos de la sede activa
+  const gruposDeSede = useMemo(() => {
+    if (!sedeActiva) return [];
+    return grupos
+      .filter(g => g.ID_SEDE === sedeActiva)
+      .sort((a, b) => a.NOMBRE_GRUPO.localeCompare(b.NOMBRE_GRUPO));
+  }, [grupos, sedeActiva]);
+
+  // Auto-seleccionar primer grupo
+  useEffect(() => {
+    if (gruposDeSede.length > 0 && !grupoActivo) {
+      setGrupoActivo(gruposDeSede[0].ID_GRUPO);
+    }
+    if (gruposDeSede.length > 0 && grupoActivo && !gruposDeSede.find(g => g.ID_GRUPO === grupoActivo)) {
+      setGrupoActivo(gruposDeSede[0].ID_GRUPO);
+    }
+  }, [gruposDeSede, grupoActivo]);
+
+  // Contar grupos por sede para SedeTabs
+  const totalPorSede = useMemo(() => {
+    const counts = {};
+    sedes.forEach(s => {
+      counts[s.ID_SEDE] = grupos.filter(g => g.ID_SEDE === s.ID_SEDE).length;
+    });
+    return counts;
+  }, [grupos, sedes]);
+
+  const grupoSeleccionado = gruposDeSede.find(g => g.ID_GRUPO === grupoActivo);
+
+  const { estudiantes, loading: loadingEst, refetch } = useEstudiantesPorGrupo(grupoActivo);
+
   return (
     <Layout>
       <div className="min-h-screen py-10" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
         <div className="max-w-screen-2xl mx-auto px-6">
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-1">
-              <Link to="/asistencias" className="text-xs font-semibold text-emerald-400 hover:text-emerald-600 uppercase tracking-widest transition-colors">Asistencias</Link>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-              <span className="text-xs font-semibold text-emerald-600 uppercase tracking-widest">Estudiantes</span>
+
+          {/* Header */}
+          <div className="mb-8 flex items-end justify-between gap-4 flex-wrap">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Link to="/asistencias" className="text-xs font-semibold text-emerald-400 hover:text-emerald-600 uppercase tracking-widest transition-colors">Asistencias</Link>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                <span className="text-xs font-semibold text-emerald-600 uppercase tracking-widest">Estudiantes</span>
+              </div>
+              <h1 className="text-4xl font-black text-gray-900 tracking-tight">Asistencias Estudiantes</h1>
+              <p className="text-gray-400 mt-1 text-sm">Seguimiento de asistencia del alumnado por grupo y sesión</p>
             </div>
-            <h1 className="text-4xl font-black text-gray-900 tracking-tight">Asistencias Estudiantes</h1>
-            <p className="text-gray-400 mt-1 text-sm">Seguimiento de asistencia del alumnado por grupo y sesión</p>
+
+            {/* Selector de período */}
+            <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2.5 shadow-sm">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">Período</label>
+              {loadingPeriodos ? (
+                <div className="h-5 w-36 bg-gray-100 rounded animate-pulse" />
+              ) : (
+                <select
+                  value={periodoActivo ?? ''}
+                  onChange={e => setPeriodoActivo(Number(e.target.value))}
+                  className="text-sm font-medium text-gray-800 bg-transparent focus:outline-none cursor-pointer"
+                >
+                  {periodos.map(p => (
+                    <option key={p.ID_PERIODO} value={p.ID_PERIODO}>{p.NOMBRE_PERIODO}</option>
+                  ))}
+                </select>
+              )}
+            </div>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mb-5">
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
+          {/* Sin período */}
+          {!loadingPeriodos && !periodoActivo && (
+            <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+              <div className="text-gray-400 text-5xl mb-4">📅</div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Selecciona un período</h3>
+              <p className="text-gray-500">Elige un período académico para continuar.</p>
             </div>
-            <h2 className="text-lg font-bold text-gray-700 mb-2">Módulo en construcción</h2>
-            <p className="text-gray-400 text-sm max-w-sm leading-relaxed">
-              Aquí se gestionará el seguimiento de asistencia de estudiantes, incluyendo control por sesión, porcentajes de asistencia y alertas por inasistencia.
-            </p>
-          </div>
+          )}
+
+          {/* Loading grupos */}
+          {periodoActivo && loadingGrupos && (
+            <div className="flex items-center justify-center h-40">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
+              <span className="ml-3 text-gray-500 text-sm">Cargando grupos...</span>
+            </div>
+          )}
+
+          {/* Contenido principal */}
+          {periodoActivo && !loadingGrupos && (
+            <>
+              {/* Período nombre */}
+              {periodos.find(p => p.ID_PERIODO === periodoActivo) && (
+                <p className="text-sm text-gray-500 mb-4">
+                  <span className="font-semibold text-gray-700">
+                    {periodos.find(p => p.ID_PERIODO === periodoActivo)?.NOMBRE_PERIODO}
+                  </span>
+                  <span className="mx-2 text-gray-300">·</span>
+                  Selecciona un grupo para ver la asistencia de sus estudiantes
+                </p>
+              )}
+
+              {/* SedeTabs */}
+              {sedes.length > 0 && (
+                <div className="mb-5">
+                  <SedeTabs
+                    sedes={sedes}
+                    sedeActiva={sedeActiva}
+                    onChange={(id) => {
+                      setSedeActiva(id);
+                      setGrupoActivo(null);
+                    }}
+                    totalPorSede={totalPorSede}
+                  />
+                </div>
+              )}
+
+              {/* GrupoTabs */}
+              {gruposDeSede.length > 0 && (
+                <div className="mb-5 flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1.5 shadow-sm overflow-x-auto">
+                  {gruposDeSede.map(g => (
+                    <button
+                      key={g.ID_GRUPO}
+                      onClick={() => setGrupoActivo(g.ID_GRUPO)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                        grupoActivo === g.ID_GRUPO
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
+                    >
+                      {g.NOMBRE_GRUPO}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Tabla */}
+              {grupoActivo ? (
+                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-base font-bold text-gray-900">
+                        {grupoSeleccionado?.NOMBRE_GRUPO}
+                      </h2>
+                      {!loadingEst && (
+                        <p className="text-xs text-gray-400 mt-0.5">{estudiantes.length} estudiantes</p>
+                      )}
+                    </div>
+                  </div>
+                  <TablaEstudiantes
+                    estudiantes={estudiantes}
+                    loading={loadingEst}
+                    onVerAsistencia={est => setEstudianteModal(est)}
+                  />
+                </div>
+              ) : (
+                <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+                  <div className="text-gray-400 text-5xl mb-4">👥</div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Selecciona un grupo</h3>
+                  <p className="text-gray-500">Elige un grupo para ver sus estudiantes.</p>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
+
+      {/* Modal historial */}
+      <ModalHistorialEstudiante
+        estudiante={estudianteModal}
+        idGrupo={grupoActivo}
+        nombreGrupo={grupoSeleccionado?.NOMBRE_GRUPO}
+        onClose={() => setEstudianteModal(null)}
+        onSuccess={refetch}
+      />
     </Layout>
   );
 }
