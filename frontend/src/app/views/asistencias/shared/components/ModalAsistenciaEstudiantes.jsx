@@ -60,6 +60,21 @@ export function ModalAsistenciaEstudiantes({ sesion, onClose, onSuccess }) {
       : row.ESTADO_ASISTENCIA;
   }, [pending]);
 
+  const handleMarcarVaciosAsistio = useCallback(() => {
+    const nuevos = {};
+    postulantes.forEach(p => {
+      const estadoActual = pending.hasOwnProperty(p.ID_ASISTENCIA)
+        ? pending[p.ID_ASISTENCIA]
+        : p.ESTADO_ASISTENCIA;
+      if (!estadoActual) {
+        nuevos[p.ID_ASISTENCIA] = 'ASISTIO';
+      }
+    });
+    if (Object.keys(nuevos).length > 0) {
+      setPending(prev => ({ ...prev, ...nuevos }));
+    }
+  }, [postulantes, pending]);
+
   const handleGuardar = () => {
     if (pendingCount === 0) return;
     setConfirmOpen(true);
@@ -242,6 +257,17 @@ export function ModalAsistenciaEstudiantes({ sesion, onClose, onSuccess }) {
               )}
             </div>
             <div className="flex items-center gap-3">
+              {!loading && postulantes.length > 0 && statsLine.sinMarcar > 0 && (
+                <button
+                  onClick={handleMarcarVaciosAsistio}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  Marcar vacíos como Asistió ({statsLine.sinMarcar})
+                </button>
+              )}
               <button
                 onClick={onClose}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"

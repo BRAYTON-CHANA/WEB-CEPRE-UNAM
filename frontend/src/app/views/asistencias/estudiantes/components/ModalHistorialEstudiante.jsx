@@ -76,6 +76,21 @@ export function ModalHistorialEstudiante({ estudiante, idGrupo, nombreGrupo, onC
     };
   }, [sesiones, pending]);
 
+  const handleMarcarVaciosAsistio = useCallback(() => {
+    const nuevos = {};
+    sesiones.forEach(s => {
+      const estadoActual = pending.hasOwnProperty(s.ID_ASISTENCIA)
+        ? pending[s.ID_ASISTENCIA]
+        : s.ESTADO_ASISTENCIA;
+      if (!estadoActual) {
+        nuevos[s.ID_ASISTENCIA] = 'ASISTIO';
+      }
+    });
+    if (Object.keys(nuevos).length > 0) {
+      setPending(prev => ({ ...prev, ...nuevos }));
+    }
+  }, [sesiones, pending]);
+
   const handleGuardar = () => {
     if (pendingCount === 0) return;
     setConfirmOpen(true);
@@ -263,6 +278,17 @@ export function ModalHistorialEstudiante({ estudiante, idGrupo, nombreGrupo, onC
               )}
             </div>
             <div className="flex items-center gap-3">
+              {!loading && sesiones.length > 0 && statsLine.sinMarcar > 0 && (
+                <button
+                  onClick={handleMarcarVaciosAsistio}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  Marcar vacíos como Asistió ({statsLine.sinMarcar})
+                </button>
+              )}
               <button
                 onClick={onClose}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
