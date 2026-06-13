@@ -18,10 +18,11 @@ function formatHora(horaStr) {
 }
 
 const ESTADOS = [
-  { value: null,       label: 'Sin marcar', cls: 'bg-gray-50 text-gray-400 border-gray-200' },
-  { value: 'ASISTIO',  label: 'Asistió',    cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  { value: 'TARDANZA', label: 'Tardanza',   cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  { value: 'FALTA',    label: 'Falta',      cls: 'bg-red-50 text-red-700 border-red-200' },
+  { value: null,         label: 'Sin marcar', cls: 'bg-gray-50 text-gray-400 border-gray-200' },
+  { value: 'ASISTIO',    label: 'Asistió',    cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  { value: 'TARDANZA',   label: 'Tardanza',   cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  { value: 'FALTA',      label: 'Falta',      cls: 'bg-red-50 text-red-700 border-red-200' },
+  { value: 'JUSTIFICADO', label: 'Justificado', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
 ];
 
 function EstadoSelect({ value, onChange }) {
@@ -115,11 +116,12 @@ export function ModalAsistenciaEstudiantes({ sesion, onClose, onSuccess }) {
       ...p,
       _estado: pending.hasOwnProperty(p.ID_ASISTENCIA) ? pending[p.ID_ASISTENCIA] : p.ESTADO_ASISTENCIA
     }));
-    const asistio   = all.filter(p => p._estado === 'ASISTIO').length;
-    const tardanza  = all.filter(p => p._estado === 'TARDANZA').length;
-    const falta     = all.filter(p => p._estado === 'FALTA').length;
-    const sinMarcar = all.filter(p => !p._estado).length;
-    return { total: all.length, asistio, tardanza, falta, sinMarcar };
+    const asistio     = all.filter(p => p._estado === 'ASISTIO').length;
+    const tardanza    = all.filter(p => p._estado === 'TARDANZA').length;
+    const falta       = all.filter(p => p._estado === 'FALTA').length;
+    const justificado = all.filter(p => p._estado === 'JUSTIFICADO').length;
+    const sinMarcar   = all.filter(p => !p._estado).length;
+    return { total: all.length, asistio, tardanza, falta, justificado, sinMarcar };
   }, [postulantes, pending]);
 
   if (!sesion) return null;
@@ -172,6 +174,9 @@ export function ModalAsistenciaEstudiantes({ sesion, onClose, onSuccess }) {
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
                 {statsLine.falta} faltas
+              </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                {statsLine.justificado} justificados
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
                 {statsLine.sinMarcar} sin marcar

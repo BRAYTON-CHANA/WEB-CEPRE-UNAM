@@ -3,7 +3,7 @@ import { GruposTabs } from './components/GruposTabs';
 import { TablaSesionesFecha } from './components/TablaSesionesFecha';
 import { useSesionesPorFecha } from './hooks/useSesionesPorFecha';
 import { ModalMarcarAsistencia } from '../grupos/components/vista-grupo/ModalMarcarAsistencia';
-import { ModalAsistenciaEstudiantes } from '../shared/components';
+import { ModalAsistenciaEstudiantes, ModalAsistenciaCompacta } from '../shared/components';
 
 const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -13,6 +13,7 @@ export function VistaFecha({ fecha, idSede, onVolver }) {
   const [grupoActivo, setGrupoActivo] = useState(null);
   const [modalAsistencia, setModalAsistencia] = useState(null);
   const [sesionEstudiantes, setSesionEstudiantes] = useState(null);
+  const [modalCompacto, setModalCompacto] = useState(null);
 
   // Seleccionar primer grupo por defecto
   React.useEffect(() => {
@@ -47,6 +48,15 @@ export function VistaFecha({ fecha, idSede, onVolver }) {
 
   const handleMarcarEstudiantes = (sesion) => {
     setSesionEstudiantes(sesion);
+  };
+
+  const handleMarcarCompacto = () => {
+    setModalCompacto(grupoSeleccionado);
+  };
+
+  const handleCompactoGuardado = () => {
+    setModalCompacto(null);
+    recargar();
   };
 
   if (loading) {
@@ -114,10 +124,25 @@ export function VistaFecha({ fecha, idSede, onVolver }) {
 
       {/* Tabla de sesiones del grupo seleccionado */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
           <h3 className="font-semibold text-gray-900">
             {grupoSeleccionado?.nombreGrupo || 'Seleccione un grupo'}
           </h3>
+          {grupoSeleccionado && (
+            <button
+              onClick={handleMarcarCompacto}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-100 hover:border-purple-200 transition-all"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                <line x1="8" y1="11" x2="16" y2="11"/>
+              </svg>
+              Marcar asistencia compacto
+            </button>
+          )}
         </div>
         <TablaSesionesFecha 
           sesiones={grupoSeleccionado?.sesiones || []}
@@ -140,6 +165,14 @@ export function VistaFecha({ fecha, idSede, onVolver }) {
         sesion={sesionEstudiantes}
         onClose={() => setSesionEstudiantes(null)}
         onSuccess={recargar}
+      />
+
+      {/* Modal asistencia compacta */}
+      <ModalAsistenciaCompacta
+        fecha={fecha}
+        grupo={modalCompacto}
+        onClose={() => setModalCompacto(null)}
+        onSuccess={handleCompactoGuardado}
       />
     </div>
   );

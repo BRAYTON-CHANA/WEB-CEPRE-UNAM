@@ -46,7 +46,7 @@ export function TablaEstudiantes({ estudiantes, loading, onVerAsistencia }) {
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr className="border-b-2 border-gray-100">
-            {['#', 'Apellidos y Nombres', 'Carrera', 'Total', 'Asistió', 'Tardanza', 'Falta', 'Sin marcar', '% Asistencia', 'Acción'].map(h => (
+            {['#', 'Apellidos y Nombres', 'Carrera', 'Total', 'Asistió', 'Tardanza', 'Falta', 'Justificado', 'Sin marcar', '% Asistencia', 'Acción'].map(h => (
               <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap bg-white">
                 {h}
               </th>
@@ -81,6 +81,11 @@ export function TablaEstudiantes({ estudiantes, loading, onVerAsistencia }) {
               <td className="px-4 py-3.5 whitespace-nowrap text-center">
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
                   {est.falta}
+                </span>
+              </td>
+              <td className="px-4 py-3.5 whitespace-nowrap text-center">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                  {est.justificado}
                 </span>
               </td>
               <td className="px-4 py-3.5 whitespace-nowrap text-center">

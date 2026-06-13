@@ -18,10 +18,11 @@ function formatHora(horaStr) {
 }
 
 const ESTADOS = [
-  { value: null,       label: 'Sin marcar', cls: 'bg-gray-50 text-gray-400 border-gray-200' },
-  { value: 'ASISTIO',  label: 'Asistió',    cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  { value: 'TARDANZA', label: 'Tardanza',   cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  { value: 'FALTA',    label: 'Falta',      cls: 'bg-red-50 text-red-700 border-red-200' },
+  { value: null,         label: 'Sin marcar', cls: 'bg-gray-50 text-gray-400 border-gray-200' },
+  { value: 'ASISTIO',    label: 'Asistió',    cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  { value: 'TARDANZA',   label: 'Tardanza',   cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  { value: 'FALTA',      label: 'Falta',      cls: 'bg-red-50 text-red-700 border-red-200' },
+  { value: 'JUSTIFICADO', label: 'Justificado', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
 ];
 
 function EstadoSelect({ value, onChange }) {
@@ -72,6 +73,7 @@ export function ModalHistorialEstudiante({ estudiante, idGrupo, nombreGrupo, onC
       asistio: all.filter(s => s._estado === 'ASISTIO').length,
       tardanza: all.filter(s => s._estado === 'TARDANZA').length,
       falta: all.filter(s => s._estado === 'FALTA').length,
+      justificado: all.filter(s => s._estado === 'JUSTIFICADO').length,
       sinMarcar: all.filter(s => !s._estado).length,
     };
   }, [sesiones, pending]);
@@ -179,6 +181,9 @@ export function ModalHistorialEstudiante({ estudiante, idGrupo, nombreGrupo, onC
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
                 {statsLine.falta} faltas
               </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                {statsLine.justificado} justificados
+              </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
                 {statsLine.sinMarcar} sin marcar
               </span>
@@ -186,13 +191,13 @@ export function ModalHistorialEstudiante({ estudiante, idGrupo, nombreGrupo, onC
                 <>
                   <span className="text-gray-200">|</span>
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
-                    (statsLine.asistio + statsLine.tardanza) / statsLine.total >= 0.8
+                    (statsLine.asistio + statsLine.tardanza + statsLine.justificado) / statsLine.total >= 0.8
                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : (statsLine.asistio + statsLine.tardanza) / statsLine.total >= 0.6
+                      : (statsLine.asistio + statsLine.tardanza + statsLine.justificado) / statsLine.total >= 0.6
                       ? 'bg-amber-50 text-amber-700 border-amber-200'
                       : 'bg-red-50 text-red-700 border-red-200'
                   }`}>
-                    {Math.round(((statsLine.asistio + statsLine.tardanza) / statsLine.total) * 100)}% asistencia
+                    {Math.round(((statsLine.asistio + statsLine.tardanza + statsLine.justificado) / statsLine.total) * 100)}% asistencia
                   </span>
                 </>
               )}

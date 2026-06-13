@@ -21,11 +21,12 @@ export function useEstudiantesPorGrupo(idGrupo) {
             NOMBRES:        row.NOMBRES,
             APELLIDOS:      row.APELLIDOS,
             NOMBRE_CARRERA: row.NOMBRE_CARRERA,
-            totalSesiones:  Number(row.TOTAL_SESIONES)  || 0,
-            asistio:        Number(row.TOTAL_ASISTIO)   || 0,
-            tardanza:       Number(row.TOTAL_TARDANZA)  || 0,
-            falta:          Number(row.TOTAL_FALTA)     || 0,
-            sinMarcar:      Number(row.TOTAL_SIN_MARCAR)|| 0,
+            totalSesiones:  Number(row.TOTAL_SESIONES)    || 0,
+            asistio:        Number(row.TOTAL_ASISTIO)     || 0,
+            tardanza:       Number(row.TOTAL_TARDANZA)    || 0,
+            falta:          Number(row.TOTAL_FALTA)       || 0,
+            justificado:    Number(row.TOTAL_JUSTIFICADO) || 0,
+            sinMarcar:      Number(row.TOTAL_SIN_MARCAR)  || 0,
             porcentaje:     row.PORCENTAJE_ASISTENCIA != null
                               ? Number(row.PORCENTAJE_ASISTENCIA)
                               : null,
