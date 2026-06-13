@@ -27,9 +27,12 @@ export function useEstudiantesPorGrupo(idGrupo) {
             falta:          Number(row.TOTAL_FALTA)       || 0,
             justificado:    Number(row.TOTAL_JUSTIFICADO) || 0,
             sinMarcar:      Number(row.TOTAL_SIN_MARCAR)  || 0,
-            porcentaje:     row.PORCENTAJE_ASISTENCIA != null
-                              ? Number(row.PORCENTAJE_ASISTENCIA)
-                              : null,
+            porcentaje:       row.PORCENTAJE_ASISTENCIA != null
+                                ? Number(row.PORCENTAJE_ASISTENCIA)
+                                : null,
+            porcentajeFaltas: row.PORCENTAJE_FALTAS != null
+                                ? Number(row.PORCENTAJE_FALTAS)
+                                : null,
           }))
           .sort((a, b) => a.APELLIDOS.localeCompare(b.APELLIDOS));
 

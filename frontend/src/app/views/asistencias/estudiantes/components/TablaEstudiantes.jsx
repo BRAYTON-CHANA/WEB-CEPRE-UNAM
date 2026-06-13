@@ -15,6 +15,21 @@ function PorcentajeBadge({ pct }) {
   );
 }
 
+function FaltasBadge({ pct }) {
+  if (pct === null || pct === undefined) {
+    return <span className="text-xs text-gray-300 italic">—</span>;
+  }
+  const cls =
+    pct > 30 ? 'bg-red-50 text-red-700 border-red-200' :
+    pct > 15 ? 'bg-amber-50 text-amber-700 border-amber-200' :
+               'bg-gray-50 text-gray-500 border-gray-200';
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${cls}`}>
+      {pct}%
+    </span>
+  );
+}
+
 export function TablaEstudiantes({ estudiantes, loading, onVerAsistencia }) {
   if (loading) {
     return (
@@ -46,7 +61,7 @@ export function TablaEstudiantes({ estudiantes, loading, onVerAsistencia }) {
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr className="border-b-2 border-gray-100">
-            {['#', 'Apellidos y Nombres', 'Carrera', 'Total', 'Asistió', 'Tardanza', 'Falta', 'Justificado', 'Sin marcar', '% Asistencia', 'Acción'].map(h => (
+            {['#', 'Apellidos y Nombres', 'Carrera', 'Total', 'Asistió', 'Tardanza', 'Falta', 'Justificado', 'Sin marcar', '% Asistencia', '% Faltas', 'Acción'].map(h => (
               <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap bg-white">
                 {h}
               </th>
@@ -95,6 +110,9 @@ export function TablaEstudiantes({ estudiantes, loading, onVerAsistencia }) {
               </td>
               <td className="px-4 py-3.5 whitespace-nowrap text-center">
                 <PorcentajeBadge pct={est.porcentaje} />
+              </td>
+              <td className="px-4 py-3.5 whitespace-nowrap text-center">
+                <FaltasBadge pct={est.porcentajeFaltas} />
               </td>
               <td className="px-4 py-3.5 whitespace-nowrap">
                 <button
