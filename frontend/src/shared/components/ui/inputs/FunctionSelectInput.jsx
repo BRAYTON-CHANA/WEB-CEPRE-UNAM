@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import SelectInput from './SelectInput';
 import { useFunctionData } from '@/shared/hooks/useFunctionData';
-import { evaluateOperatorSet } from '@/features/form/utils/conditionEvaluator';
+import { evaluateOperatorSet } from '@/shared/components/form/utils/conditionEvaluator';
 
 /**
  * Helper para formatear template con valores de formData

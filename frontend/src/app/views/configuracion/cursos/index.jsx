@@ -1,9 +1,9 @@
 import React from 'react';
-import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/features/crud';
+import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/shared/components/crud';
 import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
-import { tableConfig, getTableLevelConfigs } from './config/tableConfig';
-import { cursosFormFields, cursosMultiStep, cursosValidation, cursosModalConfig } from './config/formConfig';
-import { headerProps, getHeaderActions } from './config/headerConfig';
+import { tableConfig, getTableLevelConfigs } from '@/features/configuracion/cursos/config/tableConfig';
+import { cursosFormFields, cursosMultiStep, cursosValidation, cursosModalConfig } from '@/features/configuracion/cursos/config/formConfig';
+import { headerProps, getHeaderActions } from '@/features/configuracion/cursos/config/headerConfig';
 
 /**
  * Configuración de CURSOS

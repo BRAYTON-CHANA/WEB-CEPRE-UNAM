@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Layout from '@/shared/components/layout/Layout';
 import { Link } from 'react-router-dom';
-import { usePeriodos } from './hooks/usePeriodos';
-import { useGrupos } from './hooks/useGrupos';
-import { SedeTabs } from './components/SedeTabs';
-import { GruposGrid } from './components/GruposGrid';
-import { VistaGrupo } from './components/vista-grupo';
+import { usePeriodos } from '@/features/asistencias/grupos/hooks/usePeriodos';
+import { useGrupos } from '@/features/asistencias/grupos/hooks/useGrupos';
+import { SedeTabs } from '@/features/asistencias/grupos/components/SedeTabs';
+import { GruposGrid } from '@/features/asistencias/grupos/components/GruposGrid';
+import { VistaGrupo } from '@/features/asistencias/grupos/components/vista-grupo';
 
 function AsistenciasGrupos() {
   const { periodos, periodoActivo, setPeriodoActivo, loading: loadingPeriodos } = usePeriodos();

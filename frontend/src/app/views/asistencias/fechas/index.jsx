@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Layout from '@/shared/components/layout/Layout';
 import { Link } from 'react-router-dom';
-import { FechaCard } from './components/FechaCard';
-import { VistaFecha } from './VistaFecha';
-import { useFechasConClases } from './hooks/useFechasConClases';
-import { usePeriodos } from '../grupos/hooks/usePeriodos';
-import { SedeTabs } from '../grupos/components/SedeTabs';
+import { FechaCard } from '@/features/asistencias/fechas/components/FechaCard';
+import { VistaFecha } from '@/features/asistencias/fechas/VistaFecha';
+import { useFechasConClases } from '@/features/asistencias/fechas/hooks/useFechasConClases';
+import { usePeriodos } from '@/features/asistencias/grupos/hooks/usePeriodos';
+import { SedeTabs } from '@/features/asistencias/grupos/components/SedeTabs';
 
 export default function AsistenciasPorFecha() {
   const { periodos, periodoActivo, setPeriodoActivo, loading: loadingPeriodos } = usePeriodos();

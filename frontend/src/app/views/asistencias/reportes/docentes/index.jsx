@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '@/shared/components/layout/Layout';
 import { Link } from 'react-router-dom';
-import { usePeriodos } from '../../grupos/hooks/usePeriodos';
-import { SedeTabs } from '../../grupos/components/SedeTabs';
+import { usePeriodos } from '@/features/asistencias/grupos/hooks/usePeriodos';
+import { SedeTabs } from '@/features/asistencias/grupos/components/SedeTabs';
 import { db } from '@/shared/api';
-import { exportRegistroDocente, exportRegistroSede } from './utils/exportRegistroDocente';
+import { exportRegistroDocente, exportRegistroSede } from '@/features/asistencias/reportes/docentes/utils/exportRegistroDocente';
 
 function AsistenciasReportesDocentes() {
   const { periodos, periodoActivo, setPeriodoActivo, loading: loadingPeriodos } = usePeriodos();

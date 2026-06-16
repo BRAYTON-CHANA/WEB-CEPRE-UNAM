@@ -1,9 +1,9 @@
 import React from 'react';
-import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/features/crud';
+import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/shared/components/crud';
 import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
-import { tableConfig, getTableLevelConfigs } from './config/tableConfig';
-import { periodosFormFields, periodosMultiStep, periodosValidation, periodosModalConfig } from './config/formConfig';
-import { headerProps, getHeaderActions } from './config/headerConfig';
+import { tableConfig, getTableLevelConfigs } from '@/features/configuracion/periodos/config/tableConfig';
+import { periodosFormFields, periodosMultiStep, periodosValidation, periodosModalConfig } from '@/features/configuracion/periodos/config/formConfig';
+import { headerProps, getHeaderActions } from '@/features/configuracion/periodos/config/headerConfig';
 
 /**
  * Configuración de PERIODOS

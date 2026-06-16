@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/features/crud';
-import { EditableTable } from '@/features/table';
-import { Modal } from '@/features/modal';
+import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/shared/components/crud';
+import { EditableTable } from '@/shared/components/table';
+import { Modal } from '@/shared/components/modal';
 import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
-import { tableConfig, getTableLevelConfigs } from './config/tableConfig';
-import { grupoFormFields, grupoMultiStep, grupoValidation, grupoModalConfig } from './config/formConfig';
-import { headerProps, getHeaderActions } from './config/headerConfig';
+import { tableConfig, getTableLevelConfigs } from '@/features/configuracion/grupos/config/tableConfig';
+import { grupoFormFields, grupoMultiStep, grupoValidation, grupoModalConfig } from '@/features/configuracion/grupos/config/formConfig';
+import { headerProps, getHeaderActions } from '@/features/configuracion/grupos/config/headerConfig';
 
 const PLAZAS_COLUMNS = [
   { field: 'NOMBRE_CURSO',          title: 'Curso',         editable: false },

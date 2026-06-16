@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/features/crud';
+import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/shared/components/crud';
 import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
-import { tableConfig, getTableLevelConfigs } from './config/tableConfig';
-import { postulanteFormFields, postulanteValidation, postulanteModalConfig } from './config/formConfig';
-import CsvImportModal from './components/CsvImportModal';
+import { tableConfig, getTableLevelConfigs } from '@/features/configuracion/postulantes/config/tableConfig';
+import { postulanteFormFields, postulanteValidation, postulanteModalConfig } from '@/features/configuracion/postulantes/config/formConfig';
+import CsvImportModal from '@/features/configuracion/postulantes/components/CsvImportModal';
 
 /**
  * Postulantes — CRUD 3 niveles con selector de período

@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/features/crud';
+import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/shared/components/crud';
 import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
-import { tableConfig, getTableLevelConfigs } from './config/tableConfig';
-import { carreraFormFields, carreraValidation, carreraModalConfig } from './config/formConfig';
+import { tableConfig, getTableLevelConfigs } from '@/features/configuracion/carreras/config/tableConfig';
+import { carreraFormFields, carreraValidation, carreraModalConfig } from '@/features/configuracion/carreras/config/formConfig';
 
 /**
  * Carreras — CRUD 2 niveles: Sede → Carreras

@@ -1,6 +1,6 @@
 import React from 'react';
 import Layout from '@/shared/components/layout/Layout';
-import { Table } from '@/features/table';
+import { Table } from '@/shared/components/table';
 
 /**
  * Módulo de prueba para el componente Table

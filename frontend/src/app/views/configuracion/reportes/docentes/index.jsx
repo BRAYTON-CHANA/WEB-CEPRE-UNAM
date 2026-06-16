@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
-import { useTableData } from '@/features/crud/hooks/useTableData';
-import ExportOptionsModal from '../shared/ExportOptionsModal';
-import { exportDocenteToExcel, exportAllDocentesToExcel } from './utils/exportDocenteToExcel';
-import { exportDocenteToPdf, exportAllDocentesToPdf } from './utils/exportDocenteToPdf';
+import { useTableData } from '@/shared/components/crud/hooks/useTableData';
+import ExportOptionsModal from '@/features/configuracion/reportes/shared/ExportOptionsModal';
+import { exportDocenteToExcel, exportAllDocentesToExcel } from '@/features/configuracion/reportes/docentes/utils/exportDocenteToExcel';
+import { exportDocenteToPdf, exportAllDocentesToPdf } from '@/features/configuracion/reportes/docentes/utils/exportDocenteToPdf';
 
 const ITEMS_PER_PAGE = 15;
 

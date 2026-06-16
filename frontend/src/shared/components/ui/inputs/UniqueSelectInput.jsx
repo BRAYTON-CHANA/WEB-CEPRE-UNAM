@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import SelectInput from './SelectInput';
-import { Modal } from '@/features/modal';
+import { Modal } from '@/shared/components/modal';
 import { useUniqueValues } from '@/shared/hooks/useUniqueValues';
 
 /**

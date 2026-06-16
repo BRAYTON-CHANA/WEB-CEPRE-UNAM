@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Layout from '@/shared/components/layout/Layout';
 import { Link } from 'react-router-dom';
-import { usePeriodos } from './hooks/usePeriodos';
-import { useDocentes } from './hooks/useDocentes';
-import { SedeTabs } from '../grupos/components/SedeTabs';
-import { DocentesGrid } from './components/DocentesGrid';
-import { VistaDocente } from './components/VistaDocente';
+import { usePeriodos } from '@/features/asistencias/docentes/hooks/usePeriodos';
+import { useDocentes } from '@/features/asistencias/docentes/hooks/useDocentes';
+import { SedeTabs } from '@/features/asistencias/grupos/components/SedeTabs';
+import { DocentesGrid } from '@/features/asistencias/docentes/components/DocentesGrid';
+import { VistaDocente } from '@/features/asistencias/docentes/components/VistaDocente';
 import { db } from '@/shared/api';
 
 function AsistenciasDocentes() {

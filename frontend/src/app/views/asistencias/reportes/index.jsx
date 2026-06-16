@@ -1,7 +1,7 @@
 import React from 'react';
 import Layout from '@/shared/components/layout/Layout';
 import { Link } from 'react-router-dom';
-import { usePeriodos } from '../grupos/hooks/usePeriodos';
+import { usePeriodos } from '@/features/asistencias/grupos/hooks/usePeriodos';
 
 function ReportesAsistencias() {
   const { periodos, periodoActivo, setPeriodoActivo, loading: loadingPeriodos } = usePeriodos();

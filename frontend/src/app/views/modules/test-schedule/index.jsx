@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import AutomaticSchedule from './components/AutomaticSchedule';
-import CustomSchedule from './components/CustomSchedule';
+import AutomaticSchedule from '@/features/modules/test-schedule/components/AutomaticSchedule';
+import CustomSchedule from '@/features/modules/test-schedule/components/CustomSchedule';
 
 /**
  * Vista de prueba para el calendario de horarios

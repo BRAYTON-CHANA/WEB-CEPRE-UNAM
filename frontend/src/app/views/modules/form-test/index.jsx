@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import Layout from '@/shared/components/layout/Layout';
-import { CrudForm } from '@/features/form';
-import { useTableData } from '@/features/crud/hooks/useTableData';
-import Table from '@/features/table/views/Table';
+import { CrudForm } from '@/shared/components/form';
+import { useTableData } from '@/shared/components/crud/hooks/useTableData';
+import Table from '@/shared/components/table/views/Table';
 
 /**
  * Página de prueba para CrudForm

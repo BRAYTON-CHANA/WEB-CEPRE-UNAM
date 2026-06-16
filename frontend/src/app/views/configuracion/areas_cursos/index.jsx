@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/features/crud';
+import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/shared/components/crud';
 import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
-import { tableConfig, getTableLevelConfigs } from './config/tableConfig';
-import { areasFormFields, areasMultiStep, areasValidation, areasModalConfig } from './config/areasFormConfig';
-import { areaCursoBaseFields, areaCursoMultiStep, areaCursoValidation, areaCursoModalConfig } from './config/areaCursoFormConfig';
-import { headerProps, getHeaderActions } from './config/headerConfig';
+import { tableConfig, getTableLevelConfigs } from '@/features/configuracion/areas_cursos/config/tableConfig';
+import { areasFormFields, areasMultiStep, areasValidation, areasModalConfig } from '@/features/configuracion/areas_cursos/config/areasFormConfig';
+import { areaCursoBaseFields, areaCursoMultiStep, areaCursoValidation, areaCursoModalConfig } from '@/features/configuracion/areas_cursos/config/areaCursoFormConfig';
+import { headerProps, getHeaderActions } from '@/features/configuracion/areas_cursos/config/headerConfig';
 
 /**
  * Configuración de ÁREAS Y CURSOS

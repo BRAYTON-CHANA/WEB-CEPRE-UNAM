@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crud } from '@/features/crud';
+import { Crud } from '@/shared/components/crud';
 import Layout from '@/shared/components/layout/Layout';
 
 /**

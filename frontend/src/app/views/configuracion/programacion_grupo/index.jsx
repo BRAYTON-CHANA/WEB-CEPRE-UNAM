@@ -1,11 +1,11 @@
 import React from 'react';
 import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
-import ScheduleTemplate from '@/features/schedule/components/ScheduleTemplate';
-import GrupoSelector from './components/GrupoSelector';
-import PlantillaToolbar from './components/PlantillaToolbar';
-import EstadisticasModal from './components/EstadisticasModal';
-import { ConflictErrorDisplay } from './components/ConflictErrorDisplay';
-import { useProgramacionGrupo } from './hooks/useProgramacionGrupo';
+import ScheduleTemplate from '@/shared/components/schedule/components/ScheduleTemplate';
+import GrupoSelector from '@/features/configuracion/programacion_grupo/components/GrupoSelector';
+import PlantillaToolbar from '@/features/configuracion/programacion_grupo/components/PlantillaToolbar';
+import EstadisticasModal from '@/features/configuracion/programacion_grupo/components/EstadisticasModal';
+import { ConflictErrorDisplay } from '@/features/configuracion/programacion_grupo/components/ConflictErrorDisplay';
+import { useProgramacionGrupo } from '@/features/configuracion/programacion_grupo/hooks/useProgramacionGrupo';
 
 function ProgramacionGrupoConfig() {
   const {

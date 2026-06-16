@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import SelectInput from './SelectInput';
 import { useReferenceData } from '@/shared/hooks/useReferenceData';
-import { evaluateOperatorSet } from '@/features/form/utils/conditionEvaluator';
+import { evaluateOperatorSet } from '@/shared/components/form/utils/conditionEvaluator';
 import { db } from '@/shared/api';
 
 /**

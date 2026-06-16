@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/features/crud';
+import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/shared/components/crud';
 import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
-import { tableConfig, getTableLevelConfigs } from './config/tableConfig';
-import { planesAcademicosFormFields, planesAcademicosMultiStep, planesAcademicosValidation, planesAcademicosModalConfig } from './config/planesAcademicosFormConfig';
-import { planesAcademicosCursosBaseFields, planesAcademicosCursosMultiStep, planesAcademicosCursosValidation, planesAcademicosCursosModalConfig } from './config/planesAcademicosCursosFormConfig';
-import { headerProps, getHeaderActions } from './config/headerConfig';
+import { tableConfig, getTableLevelConfigs } from '@/features/configuracion/planes_academicos/config/tableConfig';
+import { planesAcademicosFormFields, planesAcademicosMultiStep, planesAcademicosValidation, planesAcademicosModalConfig } from '@/features/configuracion/planes_academicos/config/planesAcademicosFormConfig';
+import { planesAcademicosCursosBaseFields, planesAcademicosCursosMultiStep, planesAcademicosCursosValidation, planesAcademicosCursosModalConfig } from '@/features/configuracion/planes_academicos/config/planesAcademicosCursosFormConfig';
+import { headerProps, getHeaderActions } from '@/features/configuracion/planes_academicos/config/headerConfig';
 
 /**
  * Configuración de PLANES ACADÉMICOS Y CURSOS

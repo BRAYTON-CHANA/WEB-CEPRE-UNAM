@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Layout from '@/shared/components/layout/Layout';
 import { Link } from 'react-router-dom';
-import { usePeriodos } from '../grupos/hooks/usePeriodos';
-import { useGrupos } from '../grupos/hooks/useGrupos';
-import { SedeTabs } from '../grupos/components/SedeTabs';
-import { useEstudiantesPorGrupo } from './hooks/useEstudiantesPorGrupo';
-import { useTodosEstudiantes } from './hooks/useTodosEstudiantes';
-import { TablaEstudiantes } from './components/TablaEstudiantes';
-import { ModalHistorialEstudiante } from './components/ModalHistorialEstudiante';
+import { usePeriodos } from '@/features/asistencias/grupos/hooks/usePeriodos';
+import { useGrupos } from '@/features/asistencias/grupos/hooks/useGrupos';
+import { SedeTabs } from '@/features/asistencias/grupos/components/SedeTabs';
+import { useEstudiantesPorGrupo } from '@/features/asistencias/estudiantes/hooks/useEstudiantesPorGrupo';
+import { useTodosEstudiantes } from '@/features/asistencias/estudiantes/hooks/useTodosEstudiantes';
+import { TablaEstudiantes } from '@/features/asistencias/estudiantes/components/TablaEstudiantes';
+import { ModalHistorialEstudiante } from '@/features/asistencias/estudiantes/components/ModalHistorialEstudiante';
 
 function AsistenciasEstudiantes() {
   const { periodos, periodoActivo, setPeriodoActivo, loading: loadingPeriodos } = usePeriodos();

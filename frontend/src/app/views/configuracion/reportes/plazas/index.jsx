@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
-import TableMultiLevelRender from '@/features/table/views/TableMultiLevelRender';
-import { useTableData } from '@/features/crud/hooks/useTableData';
-import { exportPlazaToExcel, exportSedeToExcel, exportAllPlazasToExcel } from './utils/exportPlazaToExcel';
-import { exportPlazaToPdf, exportSedeToPdf, exportAllPlazasToPdf } from './utils/exportPlazaToPdf';
-import ExportOptionsModal from '../shared/ExportOptionsModal';
+import TableMultiLevelRender from '@/shared/components/table/views/TableMultiLevelRender';
+import { useTableData } from '@/shared/components/crud/hooks/useTableData';
+import { exportPlazaToExcel, exportSedeToExcel, exportAllPlazasToExcel } from '@/features/configuracion/reportes/plazas/utils/exportPlazaToExcel';
+import { exportPlazaToPdf, exportSedeToPdf, exportAllPlazasToPdf } from '@/features/configuracion/reportes/plazas/utils/exportPlazaToPdf';
+import ExportOptionsModal from '@/features/configuracion/reportes/shared/ExportOptionsModal';
 
 function ReportesPlazas() {
   const [selectedPeriodo, setSelectedPeriodo] = useState('');

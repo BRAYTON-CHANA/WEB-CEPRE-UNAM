@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/features/crud';
+import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/shared/components/crud';
 import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
-import { tableConfig, getTableLevelConfigs } from './config/tableConfig';
-import { docentesFormFields, docentesMultiStep, docentesValidation, docentesModalConfig } from './config/docentesFormConfig';
-import { docenteCursoBaseFields, docenteCursoMultiStep, docenteCursoValidation, docenteCursoModalConfig } from './config/docenteCursoFormConfig';
-import { headerProps, getHeaderActions } from './config/headerConfig';
+import { tableConfig, getTableLevelConfigs } from '@/features/configuracion/docentes_cursos/config/tableConfig';
+import { docentesFormFields, docentesMultiStep, docentesValidation, docentesModalConfig } from '@/features/configuracion/docentes_cursos/config/docentesFormConfig';
+import { docenteCursoBaseFields, docenteCursoMultiStep, docenteCursoValidation, docenteCursoModalConfig } from '@/features/configuracion/docentes_cursos/config/docenteCursoFormConfig';
+import { headerProps, getHeaderActions } from '@/features/configuracion/docentes_cursos/config/headerConfig';
 
 /**
  * Configuración de DOCENTES Y CURSOS

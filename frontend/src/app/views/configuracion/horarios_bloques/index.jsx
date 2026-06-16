@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/features/crud';
+import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/shared/components/crud';
 import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
-import ScheduleTemplate from '@/features/schedule/components/ScheduleTemplate';
-import { tableConfig, getTableLevelConfigs } from './config/tableConfig';
-import { horariosFormFields, horariosMultiStep, horariosValidation, horariosModalConfig } from './config/horariosFormConfig';
-import { bloqueBaseFields, bloqueMultiStep, bloqueValidation, bloqueModalConfig } from './config/horarioBloquesFormConfig';
-import { headerProps, getHeaderActions } from './config/headerConfig';
+import ScheduleTemplate from '@/shared/components/schedule/components/ScheduleTemplate';
+import { tableConfig, getTableLevelConfigs } from '@/features/configuracion/horarios_bloques/config/tableConfig';
+import { horariosFormFields, horariosMultiStep, horariosValidation, horariosModalConfig } from '@/features/configuracion/horarios_bloques/config/horariosFormConfig';
+import { bloqueBaseFields, bloqueMultiStep, bloqueValidation, bloqueModalConfig } from '@/features/configuracion/horarios_bloques/config/horarioBloquesFormConfig';
+import { headerProps, getHeaderActions } from '@/features/configuracion/horarios_bloques/config/headerConfig';
 
 /**
  * Configuración de HORARIOS Y BLOQUES (Plantillas)

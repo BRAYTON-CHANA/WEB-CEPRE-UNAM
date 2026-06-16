@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/features/crud';
+import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/shared/components/crud';
 import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
-import Table from '@/features/table/views/Table';
-import { Modal } from '@/features/modal';
-import { tableConfig, getTableLevelConfigs } from './config/tableConfig';
-import { plazaFormFields, plazaMultiStep, plazaValidation, plazaModalConfig } from './config/formConfig';
-import { headerProps, getHeaderActions } from './config/headerConfig';
-import { useExportDetallePlazas } from './hooks/useExportDetallePlazas';
+import Table from '@/shared/components/table/views/Table';
+import { Modal } from '@/shared/components/modal';
+import { tableConfig, getTableLevelConfigs } from '@/features/configuracion/plazas_docentes/config/tableConfig';
+import { plazaFormFields, plazaMultiStep, plazaValidation, plazaModalConfig } from '@/features/configuracion/plazas_docentes/config/formConfig';
+import { headerProps, getHeaderActions } from '@/features/configuracion/plazas_docentes/config/headerConfig';
+import { useExportDetallePlazas } from '@/features/configuracion/plazas_docentes/hooks/useExportDetallePlazas';
 
 /**
  * Plazas Docentes — CRUD 2 niveles con selector de período

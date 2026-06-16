@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/features/crud';
+import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/shared/components/crud';
 import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
-import { tableConfig, getTableLevelConfigs } from './config/tableConfig';
-import { turnoBaseFields, turnoMultiStep, turnoValidation, turnoModalConfig } from './config/turnosFormConfig';
-import { headerProps, getHeaderActions } from './config/headerConfig';
+import { tableConfig, getTableLevelConfigs } from '@/features/configuracion/turnos/config/tableConfig';
+import { turnoBaseFields, turnoMultiStep, turnoValidation, turnoModalConfig } from '@/features/configuracion/turnos/config/turnosFormConfig';
+import { headerProps, getHeaderActions } from '@/features/configuracion/turnos/config/headerConfig';
 
 /**
  * Configuración de SEDES Y TURNOS

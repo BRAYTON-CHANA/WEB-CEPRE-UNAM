@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Layout from './Layout';
-import ConfigSidebar from '@/app/views/configuracion/ConfigSidebar';
+import ConfigSidebar from '@/features/configuracion/ConfigSidebar';
 
 /**
  * Layout con Sidebar para páginas de configuración

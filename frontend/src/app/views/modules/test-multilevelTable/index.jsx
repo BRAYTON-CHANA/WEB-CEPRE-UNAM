@@ -1,7 +1,7 @@
 import React from 'react';
-import { CrudTableMultiLevel } from '@/features/crud';
-import TableMultiLevelRender from '@/features/table/views/TableMultiLevelRender';
-import { useTableData } from '@/features/crud/hooks/useTableData';
+import { CrudTableMultiLevel } from '@/shared/components/crud';
+import TableMultiLevelRender from '@/shared/components/table/views/TableMultiLevelRender';
+import { useTableData } from '@/shared/components/crud/hooks/useTableData';
 import Layout from '@/shared/components/layout/Layout';
 
 /**
