@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { db } from '@/shared/api';
 import { useSesionesEstudiante } from '../hooks/useSesionesEstudiante';
 import FormConfirmModal from '@/features/form/components/FormConfirmModal';
@@ -18,26 +18,98 @@ function formatHora(horaStr) {
 }
 
 const ESTADOS = [
-  { value: null,         label: 'Sin marcar', cls: 'bg-gray-50 text-gray-400 border-gray-200' },
-  { value: 'ASISTIO',    label: 'Asistió',    cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  { value: 'TARDANZA',   label: 'Tardanza',   cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  { value: 'FALTA',      label: 'Falta',      cls: 'bg-red-50 text-red-700 border-red-200' },
-  { value: 'JUSTIFICADO', label: 'Justificado', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+  { value: null,         label: '—', fullLabel: 'Sin marcar',  cls: 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200' },
+  { value: 'ASISTIO',    label: 'A', fullLabel: 'Asistió',     cls: 'bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-200' },
+  { value: 'TARDANZA',   label: 'T', fullLabel: 'Tardanza',    cls: 'bg-amber-100 text-amber-700 border-amber-300 hover:bg-amber-200' },
+  { value: 'FALTA',      label: 'F', fullLabel: 'Falta',       cls: 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200' },
+  { value: 'JUSTIFICADO', label: 'J', fullLabel: 'Justificado', cls: 'bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200' },
 ];
 
 function EstadoSelect({ value, onChange }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const buttonRef = useRef(null);
+  const estadoActual = ESTADOS.find(e => e.value === value) || ESTADOS[0];
+
+  // Close on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (buttonRef.current && !buttonRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  // Close on escape key
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [isOpen]);
+
   return (
-    <select
-      value={value ?? ''}
-      onChange={e => onChange(e.target.value === '' ? null : e.target.value)}
-      className="text-xs font-medium rounded-full border px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-400 cursor-pointer bg-white"
-    >
-      {ESTADOS.map(e => (
-        <option key={e.value ?? '__null__'} value={e.value ?? ''}>
-          {e.label}
-        </option>
-      ))}
-    </select>
+    <div className="relative inline-block" ref={buttonRef}>
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-10 h-8 rounded-lg text-sm font-bold border flex items-center justify-center gap-0.5 transition-all hover:scale-105 active:scale-95 shadow-sm ${estadoActual.cls}`}
+        title={estadoActual.fullLabel}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+      >
+        <span>{estadoActual.label}</span>
+        <svg
+          className={`w-3 h-3 opacity-60 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <div
+          className="absolute z-50 mt-1 bg-white rounded-xl shadow-2xl border border-gray-200 py-1.5 min-w-[150px] animate-in fade-in slide-in-from-top-1 duration-150 origin-top"
+          role="listbox"
+        >
+          {ESTADOS.map((e) => (
+            <button
+              key={e.value ?? '__null__'}
+              type="button"
+              onClick={() => {
+                onChange(e.value);
+                setIsOpen(false);
+              }}
+              className={`w-full px-3 py-2 text-left text-sm flex items-center gap-3 hover:bg-gray-50 transition-colors ${
+                value === e.value ? 'bg-gray-50 font-semibold' : ''
+              }`}
+              role="option"
+              aria-selected={value === e.value}
+            >
+              <span className={`w-7 h-7 rounded-md text-xs font-bold border flex items-center justify-center shadow-sm ${e.cls}`}>
+                {e.label}
+              </span>
+              <span className="text-gray-700 whitespace-nowrap">{e.fullLabel}</span>
+              {value === e.value && (
+                <svg className="w-4 h-4 text-gray-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -149,12 +221,6 @@ export function ModalHistorialEstudiante({ estudiante, idGrupo, nombreGrupo, onC
             <div>
               <h2 className="text-lg font-bold text-gray-900">{nombreCompleto}</h2>
               <div className="flex items-center gap-3 mt-1 flex-wrap">
-                {estudiante.NOMBRE_CARRERA && (
-                  <>
-                    <span className="text-sm text-gray-400">{estudiante.NOMBRE_CARRERA}</span>
-                    <span className="text-gray-300">·</span>
-                  </>
-                )}
                 <span className="text-sm text-gray-400 font-medium">{nombreGrupo}</span>
               </div>
             </div>
@@ -248,8 +314,8 @@ export function ModalHistorialEstudiante({ estudiante, idGrupo, nombreGrupo, onC
                             {formatHora(s.HORA_INICIO)} – {formatHora(s.HORA_FIN)}
                           </span>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <span className="text-gray-700 text-sm">{s.NOMBRE_CURSO}</span>
+                        <td className="px-4 py-3 whitespace-nowrap max-w-[180px]">
+                          <span className="text-gray-700 text-sm block truncate">{s.NOMBRE_CURSO}</span>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-2">

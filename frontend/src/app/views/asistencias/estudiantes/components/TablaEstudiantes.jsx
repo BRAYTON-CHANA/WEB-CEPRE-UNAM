@@ -30,7 +30,7 @@ function FaltasBadge({ pct }) {
   );
 }
 
-export function TablaEstudiantes({ estudiantes, loading, onVerAsistencia }) {
+export function TablaEstudiantes({ estudiantes, loading, onVerAsistencia, mostrarGrupo = false }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -61,7 +61,7 @@ export function TablaEstudiantes({ estudiantes, loading, onVerAsistencia }) {
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr className="border-b-2 border-gray-100">
-            {['#', 'Apellidos y Nombres', 'Carrera', 'Total', 'Asistió', 'Tardanza', 'Falta', 'Justificado', 'Sin marcar', '% Asistencia', '% Faltas', 'Acción'].map(h => (
+            {['#', 'Apellidos y Nombres', ...(mostrarGrupo ? ['Grupo'] : []), 'Total', 'Asistió', 'Tardanza', 'Falta', 'Justificado', 'Sin marcar', '% Asistencia', '% Faltas', 'Acción'].map(h => (
               <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap bg-white">
                 {h}
               </th>
@@ -77,9 +77,11 @@ export function TablaEstudiantes({ estudiantes, loading, onVerAsistencia }) {
               <td className="px-4 py-3.5 whitespace-nowrap">
                 <span className="font-semibold text-gray-800">{est.APELLIDOS}, {est.NOMBRES}</span>
               </td>
-              <td className="px-4 py-3.5 whitespace-nowrap">
-                <span className="text-gray-500 text-sm">{est.NOMBRE_CARRERA ?? <span className="text-gray-300 italic">—</span>}</span>
-              </td>
+              {mostrarGrupo && (
+                <td className="px-4 py-3.5 whitespace-nowrap">
+                  <span className="text-gray-500 text-sm">{est.NOMBRE_GRUPO}</span>
+                </td>
+              )}
               <td className="px-4 py-3.5 whitespace-nowrap text-center">
                 <span className="text-xs font-mono text-gray-500">{est.totalSesiones}</span>
               </td>

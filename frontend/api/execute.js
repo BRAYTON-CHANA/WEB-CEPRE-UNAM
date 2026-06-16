@@ -60,6 +60,7 @@ export default async function handler(req, res) {
     const result = await func(...args);
     console.log(`[DEBUG execute.js] ${functionName} resultado:`, result);
 
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.json({
       success: true,
       data: result
@@ -73,6 +74,7 @@ export default async function handler(req, res) {
     console.error(`[DEBUG execute.js] Stack:`, error.stack);
     console.error(`[DEBUG execute.js] Error completo:`, error);
     
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.status(500).json({
       success: false,
       message: error.message,

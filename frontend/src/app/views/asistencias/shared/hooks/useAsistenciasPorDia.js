@@ -27,7 +27,6 @@ export function useAsistenciasPorDia(fecha, idGrupo) {
           ID_POSTULANTE: e.ID_POSTULANTE,
           NOMBRES: e.NOMBRES,
           APELLIDOS: e.APELLIDOS,
-          NOMBRE_CARRERA: e.NOMBRE_CARRERA,
         }))
         .sort((a, b) => a.APELLIDOS?.localeCompare(b.APELLIDOS || '') || 0);
 

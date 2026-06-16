@@ -19,23 +19,29 @@ export default async function handler(req, res) {
     try {
       await DatabaseManager.connect();
       const result = await DatabaseManager.executeFunction(filename, params || {});
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
       res.json({ success: true, data: result });
     } catch (error) {
       console.error(`Error en /api/functions/${filename}:`, error);
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
       res.status(500).json({ success: false, message: error.message });
     }
   } else if (req.method === 'GET') {
     if (req.query.info) {
       try {
         const info = await DatabaseManager.getFunctionInfo(filename);
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.json({ success: true, data: info });
       } catch (error) {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.status(500).json({ success: false, message: error.message });
       }
     } else {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
       res.status(400).json({ success: false, message: 'Use POST para ejecutar o ?info=true para obtener info' });
     }
   } else {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 }

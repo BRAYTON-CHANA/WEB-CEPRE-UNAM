@@ -87,7 +87,6 @@ const buildSheetForGrupo = (workbook, grupo, periodo, asistencias) => {
         ID_POSTULANTE:  row.ID_POSTULANTE,
         NOMBRES:        row.NOMBRES,
         APELLIDOS:      row.APELLIDOS,
-        NOMBRE_CARRERA: row.NOMBRE_CARRERA || '',
       });
     }
     if (row.ID_SESION && !sesionMap.has(row.ID_SESION)) {
@@ -135,14 +134,13 @@ const buildSheetForGrupo = (workbook, grupo, periodo, asistencias) => {
   }
 
   // ── Layout de columnas ────────────────────────────────────────────────────
-  // Col 1: N°, Col 2: Apellidos y Nombres, Col 3: Carrera
+  // Col 1: N°, Col 2: Apellidos y Nombres
   // Luego por cada fecha: una sub-columna por sesión de esa fecha
   // Últimas 2: TOTAL, %
   const COL_N      = 1;
   const COL_NOMBRE = 2;
-  const COL_CARRERA = 3;
 
-  let colIdx = 4;
+  let colIdx = 3;
   const fechaCols = fechasOrdenadas.map(fd => {
     const startCol = colIdx;
     colIdx += fd.sesiones.length;
@@ -154,8 +152,7 @@ const buildSheetForGrupo = (workbook, grupo, periodo, asistencias) => {
 
   // Anchos
   ws.getColumn(COL_N).width      = 4;
-  ws.getColumn(COL_NOMBRE).width = 28;
-  ws.getColumn(COL_CARRERA).width = 20;
+  ws.getColumn(COL_NOMBRE).width = 32;
   for (const fd of fechaCols) {
     for (let ci = fd.startCol; ci <= fd.endCol; ci++) ws.getColumn(ci).width = 6;
   }
@@ -240,7 +237,6 @@ const buildSheetForGrupo = (workbook, grupo, periodo, asistencias) => {
   };
   setFixed(COL_N, 'N°');
   setFixed(COL_NOMBRE, 'APELLIDOS Y NOMBRES');
-  setFixed(COL_CARRERA, 'CARRERA');
 
   // Cabeceras por fecha
   for (const fd of fechaCols) {
@@ -296,7 +292,6 @@ const buildSheetForGrupo = (workbook, grupo, periodo, asistencias) => {
 
     setCell(COL_N, idx + 1);
     setCell(COL_NOMBRE, `${post.APELLIDOS}, ${post.NOMBRES}`, { align: 'left', alignment: { indent: 1 } });
-    setCell(COL_CARRERA, post.NOMBRE_CARRERA || '—', { align: 'left', alignment: { indent: 1 } });
 
     let totalAsistencias = 0;
     let totalSesionesContadas = 0;
@@ -355,14 +350,14 @@ const buildSheetForGrupo = (workbook, grupo, periodo, asistencias) => {
 
   // ── Leyenda ───────────────────────────────────────────────────────────────
   const legendRow = ROW_DATA_START + postulantes.length + 1;
-  ws.mergeCells(legendRow, COL_N, legendRow, COL_CARRERA + 4);
+  ws.mergeCells(legendRow, COL_N, legendRow, COL_NOMBRE + 4);
   const legCell = ws.getCell(legendRow, COL_N);
   legCell.value = 'Leyenda: A=Asistió  T=Tardanza  F=Falta  J=Justificado  —=Sin marcar';
   legCell.font  = { name: 'Arial', size: 8, italic: true, color: { argb: 'FF6B7280' } };
   legCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
 
-  // Freeze: fijar columnas 1-3 y filas 1-6
-  ws.views = [{ state: 'frozen', xSplit: 3, ySplit: ROW_CURSO, topLeftCell: 'D7' }];
+  // Freeze: fijar columnas 1-2 y filas 1-6
+  ws.views = [{ state: 'frozen', xSplit: 2, ySplit: ROW_CURSO, topLeftCell: 'C7' }];
 
   return true;
 };

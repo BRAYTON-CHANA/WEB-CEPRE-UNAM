@@ -5,6 +5,7 @@ import { usePeriodos } from '../grupos/hooks/usePeriodos';
 import { useGrupos } from '../grupos/hooks/useGrupos';
 import { SedeTabs } from '../grupos/components/SedeTabs';
 import { useEstudiantesPorGrupo } from './hooks/useEstudiantesPorGrupo';
+import { useTodosEstudiantes } from './hooks/useTodosEstudiantes';
 import { TablaEstudiantes } from './components/TablaEstudiantes';
 import { ModalHistorialEstudiante } from './components/ModalHistorialEstudiante';
 
@@ -14,6 +15,10 @@ function AsistenciasEstudiantes() {
 
   const [sedeActiva, setSedeActiva] = useState(null);
   const [grupoActivo, setGrupoActivo] = useState(null);
+  const [modoTodos, setModoTodos] = useState(false);
+  const [busqueda, setBusqueda] = useState('');
+  const [faltasCondicion, setFaltasCondicion] = useState('>'); // '>', '<', '='
+  const [faltasValor, setFaltasValor] = useState('');
   const [estudianteModal, setEstudianteModal] = useState(null);
 
   // Extraer sedes — Moquegua primero
@@ -37,6 +42,10 @@ function AsistenciasEstudiantes() {
   useEffect(() => {
     setSedeActiva(null);
     setGrupoActivo(null);
+    setModoTodos(false);
+    setBusqueda('');
+    setFaltasCondicion('>');
+    setFaltasValor('');
   }, [periodoActivo]);
 
   // Auto-seleccionar primera sede
@@ -75,7 +84,43 @@ function AsistenciasEstudiantes() {
 
   const grupoSeleccionado = gruposDeSede.find(g => g.ID_GRUPO === grupoActivo);
 
-  const { estudiantes, loading: loadingEst, refetch } = useEstudiantesPorGrupo(grupoActivo);
+  // Hook para estudiantes por grupo (modo normal)
+  const { estudiantes: estPorGrupo, loading: loadingEstGrupo, refetch: refetchGrupo } = useEstudiantesPorGrupo(grupoActivo);
+  
+  // Hook para todos los estudiantes del período y sede (modo Todos)
+  const { estudiantes: estTodos, loading: loadingEstTodos, refetch: refetchTodos } = useTodosEstudiantes(periodoActivo, sedeActiva);
+  
+  // Determinar qué estudiantes mostrar según el modo
+  const estudiantesRaw = modoTodos ? estTodos : estPorGrupo;
+  const loadingEst = modoTodos ? loadingEstTodos : loadingEstGrupo;
+  const refetch = modoTodos ? refetchTodos : refetchGrupo;
+  
+  // Filtrar por búsqueda y porcentaje de faltas
+  const estudiantes = useMemo(() => {
+    let resultado = estudiantesRaw;
+    
+    // Filtro por nombre
+    if (busqueda.trim()) {
+      const term = busqueda.toLowerCase().trim();
+      resultado = resultado.filter(est => 
+        `${est.APELLIDOS} ${est.NOMBRES}`.toLowerCase().includes(term)
+      );
+    }
+    
+    // Filtro por porcentaje de faltas
+    if (faltasValor !== '' && !isNaN(Number(faltasValor))) {
+      const valor = Number(faltasValor);
+      resultado = resultado.filter(est => {
+        const pct = est.porcentajeFaltas ?? 0;
+        if (faltasCondicion === '>') return pct > valor;
+        if (faltasCondicion === '<') return pct < valor;
+        if (faltasCondicion === '=') return pct === valor;
+        return true;
+      });
+    }
+    
+    return resultado;
+  }, [estudiantesRaw, busqueda, faltasCondicion, faltasValor]);
 
   return (
     <Layout>
@@ -160,15 +205,18 @@ function AsistenciasEstudiantes() {
                 </div>
               )}
 
-              {/* GrupoTabs */}
+              {/* GrupoTabs + Todos */}
               {gruposDeSede.length > 0 && (
                 <div className="mb-5 flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1.5 shadow-sm overflow-x-auto">
                   {gruposDeSede.map(g => (
                     <button
                       key={g.ID_GRUPO}
-                      onClick={() => setGrupoActivo(g.ID_GRUPO)}
+                      onClick={() => {
+                        setGrupoActivo(g.ID_GRUPO);
+                        setModoTodos(false);
+                      }}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                        grupoActivo === g.ID_GRUPO
+                        grupoActivo === g.ID_GRUPO && !modoTodos
                           ? 'bg-emerald-600 text-white shadow-sm'
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                       }`}
@@ -176,19 +224,108 @@ function AsistenciasEstudiantes() {
                       {g.NOMBRE_GRUPO}
                     </button>
                   ))}
+                  <button
+                    onClick={() => {
+                      setModoTodos(true);
+                      setGrupoActivo(null);
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                      modoTodos
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                  >
+                    Todos
+                  </button>
+                </div>
+              )}
+
+              {/* Filtros: Buscador + Faltas */}
+              {(grupoActivo || modoTodos) && (
+                <div className="mb-4 flex flex-wrap items-center gap-3">
+                  {/* Buscador por nombre */}
+                  <div className="relative max-w-xs">
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input
+                      type="text"
+                      value={busqueda}
+                      onChange={e => setBusqueda(e.target.value)}
+                      placeholder="Buscar por apellido o nombre..."
+                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+                    />
+                    {busqueda && (
+                      <button
+                        onClick={() => setBusqueda('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Separador visual */}
+                  <div className="h-8 w-px bg-gray-300 hidden sm:block" />
+
+                  {/* Filtro por % de faltas */}
+                  <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
+                    <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span className="text-xs font-medium text-gray-500 whitespace-nowrap">Faltas</span>
+                    <select
+                      value={faltasCondicion}
+                      onChange={e => setFaltasCondicion(e.target.value)}
+                      className="text-sm font-medium text-gray-700 bg-transparent focus:outline-none cursor-pointer"
+                    >
+                      <option value=">">&gt;</option>
+                      <option value="<">&lt;</option>
+                      <option value="=">=</option>
+                    </select>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={faltasValor}
+                      onChange={e => setFaltasValor(e.target.value)}
+                      placeholder="0"
+                      className="w-14 text-sm text-center text-gray-700 bg-gray-50 border border-gray-200 rounded-lg py-1 focus:outline-none focus:ring-2 focus:ring-red-400"
+                    />
+                    <span className="text-sm text-gray-500">%</span>
+                    {faltasValor !== '' && (
+                      <button
+                        onClick={() => setFaltasValor('')}
+                        className="ml-1 text-gray-400 hover:text-gray-600"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
               {/* Tabla */}
-              {grupoActivo ? (
+              {grupoActivo || modoTodos ? (
                 <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
                   <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                     <div>
                       <h2 className="text-base font-bold text-gray-900">
-                        {grupoSeleccionado?.NOMBRE_GRUPO}
+                        {modoTodos ? 'Todos los estudiantes' : grupoSeleccionado?.NOMBRE_GRUPO}
                       </h2>
                       {!loadingEst && (
-                        <p className="text-xs text-gray-400 mt-0.5">{estudiantes.length} estudiantes</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {estudiantes.length} estudiantes {(busqueda || faltasValor !== '') && '(filtrados)'}
+                          {faltasValor !== '' && (
+                            <span className="ml-1 text-red-400">
+                              · Faltas {faltasCondicion} {faltasValor}%
+                            </span>
+                          )}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -196,13 +333,14 @@ function AsistenciasEstudiantes() {
                     estudiantes={estudiantes}
                     loading={loadingEst}
                     onVerAsistencia={est => setEstudianteModal(est)}
+                    mostrarGrupo={modoTodos}
                   />
                 </div>
               ) : (
                 <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
                   <div className="text-gray-400 text-5xl mb-4">👥</div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Selecciona un grupo</h3>
-                  <p className="text-gray-500">Elige un grupo para ver sus estudiantes.</p>
+                  <p className="text-gray-500">Elige un grupo o presiona "Todos" para ver estudiantes.</p>
                 </div>
               )}
             </>
@@ -214,7 +352,7 @@ function AsistenciasEstudiantes() {
       <ModalHistorialEstudiante
         estudiante={estudianteModal}
         idGrupo={grupoActivo}
-        nombreGrupo={grupoSeleccionado?.NOMBRE_GRUPO}
+        nombreGrupo={modoTodos ? estudianteModal?.NOMBRE_GRUPO : grupoSeleccionado?.NOMBRE_GRUPO}
         onClose={() => setEstudianteModal(null)}
         onSuccess={refetch}
       />

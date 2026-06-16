@@ -52,7 +52,6 @@ export function AsistenciaForm({ idSesion, sesionData, idCurso, idDocenteProgram
   const [formData, setFormData] = useState(getInitialFormData());
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [timePickerModal, setTimePickerModal] = useState(null); // { tipo: 'entrada'|'salida', hora: '' } | null
 
   // Actualizar formData cuando cambia sesionData (para edición)
   useEffect(() => {
@@ -62,21 +61,6 @@ export function AsistenciaForm({ idSesion, sesionData, idCurso, idDocenteProgram
   const getHoraActual = () => {
     const now = new Date();
     return now.toTimeString().slice(0, 5);
-  };
-
-  const handleMarcarHora = (tipo) => {
-    const horaActual = getHoraActual();
-    setTimePickerModal({ tipo, hora: horaActual });
-  };
-
-  const confirmarHora = () => {
-    if (!timePickerModal) return;
-    if (timePickerModal.tipo === 'entrada') {
-      setFormData(prev => ({ ...prev, HORA_ENTRADA_REAL: timePickerModal.hora }));
-    } else {
-      setFormData(prev => ({ ...prev, HORA_SALIDA_REAL: timePickerModal.hora }));
-    }
-    setTimePickerModal(null);
   };
 
   const handleChange = (name, value) => {
@@ -190,48 +174,38 @@ export function AsistenciaForm({ idSesion, sesionData, idCurso, idDocenteProgram
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Grid de 2 columnas */}
         <div className="grid grid-cols-2 gap-4">
-          {/* Hora Entrada - bloqueada + botón marcar */}
-          <div className="flex gap-2 items-start">
-            <div className="flex-1">
-              <TextInput
-                name="HORA_ENTRADA_REAL"
-                label="Hora de entrada"
-                value={formData.HORA_ENTRADA_REAL}
-                disabled={true}
-                placeholder="--:--"
-              />
-            </div>
-            <div className="pt-7">
-              <button
-                type="button"
-                onClick={() => handleMarcarHora('entrada')}
-                className="px-3 py-2 h-[42px] text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
-              >
-                {formData.HORA_ENTRADA_REAL ? 'Cambiar' : 'Marcar'}
-              </button>
-            </div>
+          {/* Hora Entrada - input nativo */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-gray-700">
+              Hora de entrada
+            </label>
+            <input
+              type="time"
+              name="HORA_ENTRADA_REAL"
+              value={formData.HORA_ENTRADA_REAL}
+              onChange={(e) => handleChange('HORA_ENTRADA_REAL', e.target.value)}
+              className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              style={{
+                colorScheme: 'light',
+              }}
+            />
           </div>
 
-          {/* Hora Salida - bloqueada + botón marcar */}
-          <div className="flex gap-2 items-start">
-            <div className="flex-1">
-              <TextInput
-                name="HORA_SALIDA_REAL"
-                label="Hora de salida"
-                value={formData.HORA_SALIDA_REAL}
-                disabled={true}
-                placeholder="--:--"
-              />
-            </div>
-            <div className="pt-7">
-              <button
-                type="button"
-                onClick={() => handleMarcarHora('salida')}
-                className="px-3 py-2 h-[42px] text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
-              >
-                {formData.HORA_SALIDA_REAL ? 'Cambiar' : 'Marcar'}
-              </button>
-            </div>
+          {/* Hora Salida - input nativo */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-gray-700">
+              Hora de salida
+            </label>
+            <input
+              type="time"
+              name="HORA_SALIDA_REAL"
+              value={formData.HORA_SALIDA_REAL}
+              onChange={(e) => handleChange('HORA_SALIDA_REAL', e.target.value)}
+              className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              style={{
+                colorScheme: 'light',
+              }}
+            />
           </div>
 
           {/* Docente que le toca + Switch de asistencia */}
@@ -396,148 +370,6 @@ export function AsistenciaForm({ idSesion, sesionData, idCurso, idDocenteProgram
           </button>
         </div>
       </form>
-
-      {/* Modal de selección de hora */}
-      {timePickerModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96 max-w-[90vw]">
-            <h3 className="text-lg font-semibold mb-4">
-              Seleccionar hora de {timePickerModal.tipo === 'entrada' ? 'entrada' : 'salida'}
-            </h3>
-
-            {/* Selector de hora con scroll */}
-            <div className="mb-4">
-              {(() => {
-                const [horaStr, minStr] = (timePickerModal.hora || '00:00').split(':');
-                const hora = parseInt(horaStr, 10);
-                const minuto = parseInt(minStr, 10);
-                const horas = Array.from({ length: 24 }, (_, i) => i);
-                const minutos = Array.from({ length: 60 }, (_, i) => i);
-
-                const setHora = (h) => {
-                  const nuevaHora = `${String(h).padStart(2, '0')}:${String(minuto).padStart(2, '0')}`;
-                  setTimePickerModal(prev => ({ ...prev, hora: nuevaHora }));
-                };
-                const setMinuto = (m) => {
-                  const nuevaHora = `${String(hora).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                  setTimePickerModal(prev => ({ ...prev, hora: nuevaHora }));
-                };
-
-                return (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 text-center">
-                      Hora seleccionada: <span className="text-blue-600 font-bold text-lg">{timePickerModal.hora}</span>
-                    </label>
-                    <div className="flex gap-2 justify-center">
-                      {/* Scroll de Horas */}
-                      <div className="flex-1">
-                        <div className="text-xs text-gray-500 text-center mb-1">Horas</div>
-                        <div
-                          className="border border-gray-300 rounded-lg h-48 overflow-y-auto bg-gray-50"
-                          style={{ scrollSnapType: 'y mandatory' }}
-                        >
-                          {horas.map(h => (
-                            <button
-                              key={h}
-                              type="button"
-                              onClick={() => setHora(h)}
-                              className={`w-full py-2 text-sm font-medium transition-colors ${
-                                h === hora
-                                  ? 'bg-blue-500 text-white'
-                                  : 'hover:bg-gray-200 text-gray-700'
-                              }`}
-                              style={{ scrollSnapAlign: 'center' }}
-                            >
-                              {String(h).padStart(2, '0')}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center text-gray-400 font-bold text-xl">:</div>
-
-                      {/* Scroll de Minutos */}
-                      <div className="flex-1">
-                        <div className="text-xs text-gray-500 text-center mb-1">Minutos</div>
-                        <div
-                          className="border border-gray-300 rounded-lg h-48 overflow-y-auto bg-gray-50"
-                          style={{ scrollSnapType: 'y mandatory' }}
-                        >
-                          {minutos.map(m => (
-                            <button
-                              key={m}
-                              type="button"
-                              onClick={() => setMinuto(m)}
-                              className={`w-full py-2 text-sm font-medium transition-colors ${
-                                m === minuto
-                                  ? 'bg-blue-500 text-white'
-                                  : 'hover:bg-gray-200 text-gray-700'
-                              }`}
-                              style={{ scrollSnapAlign: 'center' }}
-                            >
-                              {String(m).padStart(2, '0')}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Botones rápidos */}
-                    <div className="flex gap-2 mt-3 justify-center">
-                      <button
-                        type="button"
-                        onClick={() => setTimePickerModal(prev => ({ ...prev, hora: getHoraActual() }))}
-                        className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                      >
-                        Ahora
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setTimePickerModal(prev => ({ ...prev, hora: '' }))}
-                        className="px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
-                      >
-                        Limpiar
-                      </button>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-
-            <div className="text-gray-600 text-sm mb-4 space-y-2">
-              {(timePickerModal.tipo === 'entrada' && formData.HORA_ENTRADA_REAL) && (
-                <p className="text-amber-600 bg-amber-50 p-2 rounded text-xs">
-                  Ya existe una hora de entrada registrada ({formData.HORA_ENTRADA_REAL}).
-                  Se sobreescribirá con la nueva hora.
-                </p>
-              )}
-              {(timePickerModal.tipo === 'salida' && formData.HORA_SALIDA_REAL) && (
-                <p className="text-amber-600 bg-amber-50 p-2 rounded text-xs">
-                  Ya existe una hora de salida registrada ({formData.HORA_SALIDA_REAL}).
-                  Se sobreescribirá con la nueva hora.
-                </p>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setTimePickerModal(null)}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={confirmarHora}
-                className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
