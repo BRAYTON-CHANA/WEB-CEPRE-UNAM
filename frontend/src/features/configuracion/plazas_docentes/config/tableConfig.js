@@ -14,8 +14,9 @@ export const tableConfig = {
 export const getTableLevelConfigs = (plazasCrud, handleAddPlaza, handleVerDetalles) => [
   {
     level: 1,
-    field: 'NOMBRE_SEDE',
-    headers: [],
+    headers: [
+      { title: 'NOMBRE_SEDE', type: 'string', groupBy: true, label: 'Sede' }
+    ],
     boundColumn: 'ID_SEDE',
     childCountLabel: { singular: 'plaza', plural: 'plazas' },
     actions: {

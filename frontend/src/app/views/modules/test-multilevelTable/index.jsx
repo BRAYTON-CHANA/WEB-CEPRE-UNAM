@@ -14,11 +14,10 @@ function TestMultiLevelTable() {
     levelConfigs: [
       {
         level: 1,
-        field: 'NOMBRE_HORARIO',
         headers: [
-          { title: 'HORA_INICIO_JORNADA', type: 'string' },
-          { title: 'HORA_FIN_JORNADA', type: 'string' },
-          
+          { title: 'NOMBRE_HORARIO', type: 'string', groupBy: true, label: 'Horario' },
+          { title: 'HORA_INICIO_JORNADA', type: 'string', label: 'Inicio' },
+          { title: 'HORA_FIN_JORNADA', type: 'string', label: 'Fin' }
         ],
         boundColumn: 'ID_HORARIO',
         actions: {

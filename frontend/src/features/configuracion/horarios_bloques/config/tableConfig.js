@@ -11,11 +11,11 @@ export const tableConfig = {
  */
 export const getTableLevelConfigs = (horariosCrud, bloquesCrud, handleAddBloqueToHorario, handleViewPlantilla) => [
   {
-    level: 1, 
-    field: 'NOMBRE_HORARIO',
+    level: 1,
     headers: [
-      { title: 'HORA_INICIO_JORNADA', type: 'string' },
-      { title: 'HORA_FIN_JORNADA', type: 'string' }
+      { title: 'NOMBRE_HORARIO', type: 'string', groupBy: true, label: 'Horario' },
+      { title: 'HORA_INICIO_JORNADA', type: 'string', label: 'Inicio' },
+      { title: 'HORA_FIN_JORNADA', type: 'string', label: 'Fin' }
     ],
     childCountLabel: { singular: 'bloque', plural: 'bloques' },
     boundColumn: 'ID_HORARIO',

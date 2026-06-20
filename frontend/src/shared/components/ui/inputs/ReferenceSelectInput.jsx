@@ -52,6 +52,7 @@ const ReferenceSelectInput = React.memo(({
   hidden = null,
   formData = {},
   onReferenceSelectLoadComplete = null,
+  showRefreshButton = false,
   ...props
 }) => {
   // Estado para manejar errores
@@ -175,7 +176,7 @@ const ReferenceSelectInput = React.memo(({
     referenceDescriptionField, processedFilters, referenceSelf, currentValue, processedSelfFilters, referenceOriginalValue
   ]);
 
-  const { options, loading } = useReferenceData(shouldLoadData ? config : null);
+  const { options, loading, refresh } = useReferenceData(shouldLoadData ? config : null);
 
   // Llamar callback cuando loading termina
   const prevLoadingRef = useRef(loading);
@@ -341,17 +342,38 @@ const ReferenceSelectInput = React.memo(({
 
   return (
     <>
-      <SelectInput
-        {...props}
-        name={name}
-        label={label}
-        options={options}
-        loading={loading}
-        searchable={searchable}
-        optionValue="value"
-        optionLabel="label"
-        optionDescription="description"
-      />
+      <div className={showRefreshButton ? 'flex items-center gap-1' : undefined}>
+        <div className={showRefreshButton ? 'flex-1 min-w-0' : undefined}>
+          <SelectInput
+            {...props}
+            name={name}
+            label={label}
+            options={options}
+            loading={loading}
+            searchable={searchable}
+            optionValue="value"
+            optionLabel="label"
+            optionDescription="description"
+          />
+        </div>
+        {showRefreshButton && (
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={loading}
+            title="Actualizar opciones"
+            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-40"
+          >
+            <svg
+              className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        )}
+      </div>
       
       {/* Modal de error */}
       {showErrorModal && (

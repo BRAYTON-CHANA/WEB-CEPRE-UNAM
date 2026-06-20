@@ -14,19 +14,19 @@ import TestSchedule from '@/app/views/modules/test-schedule';
 import TestMultiLevelTable from '@/app/views/modules/test-multilevelTable';
 
 
-import SedesYAulasConfig from '@/app/views/configuracion/sedes_aulas';
-import PeriodosConfig from '@/app/views/configuracion/periodos';
-import CursosConfig from '@/app/views/configuracion/cursos';
-import AreasYCursosConfig from '@/app/views/configuracion/areas_cursos';
-import DocentesYCursosConfig from '@/app/views/configuracion/docentes_cursos';
-import HorariosBloquesConfig from '@/app/views/configuracion/horarios_bloques';
-import ConfigTurnosPage from '@/app/views/configuracion/turnos';
-import PlanesAcademicosConfig from '@/app/views/configuracion/planes_academicos';
-import PlazasDocentesConfig from '@/app/views/configuracion/plazas_docentes';
+import InfraestructuraConfig from '@/app/views/configuracion/infraestructura';
+import PeriodosConfig from '@/app/views/configuracion/periodo_academico/periodos';
+import CursosConfig from '@/app/views/configuracion/academico/cursos';
+import AreasYCursosConfig from '@/app/views/configuracion/academico/areas_cursos';
+import DocentesYCursosConfig from '@/app/views/configuracion/academico/docentes_cursos';
+import HorariosBloquesConfig from '@/app/views/configuracion/horarios/horarios_bloques';
+import ConfigTurnosPage from '@/app/views/configuracion/horarios/turnos';
+import PlanesAcademicosConfig from '@/app/views/configuracion/academico/planes_academicos';
+import PlazasDocentesConfig from '@/app/views/configuracion/periodo_academico/plazas_docentes';
 import GruposConfig from '@/app/views/configuracion/grupos';
-import PostulantesConfig from '@/app/views/configuracion/postulantes';
-import CarrerasConfig from '@/app/views/configuracion/carreras';
-import ProgramacionGrupoConfig from '@/app/views/configuracion/programacion_grupo';
+import PostulantesConfig from '@/app/views/configuracion/periodo_academico/postulantes';
+import CarrerasConfig from '@/app/views/configuracion/academico/carreras';
+import ProgramacionGrupoConfig from '@/app/views/configuracion/periodo_academico/programacion_grupo';
 // import ProgramacionPlazasDocentes from '@/app/views/configuracion/programacion_plazas_docentes'; // TEMP: En mantenimiento
 import ReportesIndex from '@/app/views/configuracion/reportes';
 import ReportesGrupos from '@/app/views/configuracion/reportes/grupos';
@@ -71,7 +71,7 @@ function App() {
 
       <Route path="/configuracion" element={<Configuracion />} />
 
-      <Route path="/configuracion/sedes_aulas" element={<SedesYAulasConfig />} />
+      <Route path="/configuracion/infraestructura" element={<InfraestructuraConfig />} />
      
       <Route path="/configuracion/cursos" element={<CursosConfig />} />
       <Route path="/configuracion/areas_cursos" element={<AreasYCursosConfig />} />

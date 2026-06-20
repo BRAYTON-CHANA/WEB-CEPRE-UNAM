@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -7,38 +6,82 @@ const Footer = () => {
   return (
     <footer className="bg-gray-900 text-white">
       <div className="container">
-        <div className="py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {/* Company Info */}
-            <div className="col-span-1 md:col-span-2">
-              <h3 className="text-2xl font-bold text-gradient mb-4">
-                MiApp
+        <div className="py-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+            {/* Identidad */}
+            <div className="col-span-1 md:col-span-1">
+              <h3 className="text-xl font-bold text-white mb-2">
+                CEPRE – UNAM Moquegua
               </h3>
-              <p className="text-gray-300 mb-4 max-w-md">
-                Plataforma integral para la gestión eficiente de procesos y operaciones administrativas.
+              <p className="text-sm text-gray-400 mb-1">
+                Centro Pre-Universitario de la
               </p>
-              <div className="flex space-x-4">
-                <a 
-                  href="#" 
-                  className="text-gray-400 hover:text-white transition-colors"
-                  aria-label="Facebook"
-                >
-                  <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                  </svg>
-                </a>
-                <a 
-                  href="#" 
-                  className="text-gray-400 hover:text-white transition-colors"
-                  aria-label="Twitter"
-                >
-                  <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                  </svg>
-                </a>
-              </div>
+              <p className="text-sm text-gray-400 mb-4">
+                Universidad Nacional de Moquegua
+              </p>
+              <p className="text-xs text-gray-500">
+                Formando estudiantes con excelencia académica para el ingreso a la universidad.
+              </p>
             </div>
+
+            {/* Contacto */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-200 uppercase tracking-wider mb-4">
+                Contacto
+              </h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li className="flex items-start gap-2">
+                  <svg className="h-4 w-4 mt-0.5 shrink-0 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                  Calle Ancash S/N, Moquegua – Perú
+                </li>
+                <li className="flex items-center gap-2">
+                  <svg className="h-4 w-4 shrink-0 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                  </svg>
+                  cepre@unam.edu.pe
+                </li>
+                <li className="flex items-start gap-2">
+                  <svg className="h-4 w-4 mt-0.5 shrink-0 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                  Ciudad Jardín, Ilo – Filial Ilo
+                </li>
+              </ul>
+            </div>
+
+            {/* Institución */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-200 uppercase tracking-wider mb-4">
+                Institución
+              </h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li>Universidad Nacional de Moquegua</li>
+                <li>Moquegua – Perú</li>
+                <li>
+                  <a
+                    href="https://www.unam.edu.pe"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    www.unam.edu.pe
+                  </a>
+                </li>
+              </ul>
+            </div>
+
           </div>
+        </div>
+
+        {/* Barra inferior */}
+        <div className="border-t border-gray-700 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500">
+          <span>© {currentYear} CEPRE – Universidad Nacional de Moquegua. Todos los derechos reservados.</span>
+          <span>Sistema de Gestión Académica</span>
         </div>
       </div>
     </footer>

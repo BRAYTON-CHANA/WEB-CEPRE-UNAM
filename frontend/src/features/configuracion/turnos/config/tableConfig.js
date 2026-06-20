@@ -14,8 +14,9 @@ export const tableConfig = {
 export const getTableLevelConfigs = (turnosCrud, handleAddTurnoToSede) => [
   {
     level: 1,
-    field: 'NOMBRE_SEDE',
-    headers: [],
+    headers: [
+      { title: 'NOMBRE_SEDE', type: 'string', groupBy: true, label: 'Sede' }
+    ],
     childCountLabel: { singular: 'turno', plural: 'turnos' },
     boundColumn: 'ID_SEDE',
     actions: {

@@ -12,10 +12,9 @@ export const tableConfig = {
 export const getTableLevelConfigs = (planesCrud, planesCursosCrud, handleAddCursoToPlan) => [
   {
     level: 1,
-    field: 'DESCRIPCION_PLAN',
     headers: [
-      { title: 'ACTIVO_PLAN', type: 'boolean' }
-
+      { title: 'DESCRIPCION_PLAN', type: 'string', groupBy: true, label: 'Plan Académico' },
+      { title: 'ACTIVO_PLAN', type: 'boolean', label: 'Activo' }
     ],
     boundColumn: 'ID_PLAN',
     actions: {

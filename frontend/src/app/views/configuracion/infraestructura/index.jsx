@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/shared/components/crud';
 import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
-import { tableConfig, getTableLevelConfigs } from '@/features/configuracion/sedes_aulas/config/tableConfig';
-import { sedesFormFields, sedesMultiStep, sedesValidation, sedesModalConfig } from '@/features/configuracion/sedes_aulas/config/sedesFormConfig';
-import { aulaBaseFields, aulaMultiStep, aulaValidation, aulasModalConfig } from '@/features/configuracion/sedes_aulas/config/aulasFormConfig';
-import { headerProps, getHeaderActions } from '@/features/configuracion/sedes_aulas/config/headerConfig';
+import { tableConfig, getTableLevelConfigs } from '@/features/configuracion/infraestructura/config/tableConfig';
+import { sedesFormFields, sedesMultiStep, sedesValidation, sedesModalConfig } from '@/features/configuracion/infraestructura/config/sedesFormConfig';
+import { aulaBaseFields, aulaMultiStep, aulaValidation, aulasModalConfig } from '@/features/configuracion/infraestructura/config/aulasFormConfig';
+import { headerProps, getHeaderActions } from '@/features/configuracion/infraestructura/config/headerConfig';
 
 /**
  * Configuración de SEDES Y AULAS

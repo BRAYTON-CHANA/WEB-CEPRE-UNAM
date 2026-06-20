@@ -71,7 +71,7 @@ const ESTADO_COLOR = {
 };
 
 // ─── Construir hoja para un grupo ────────────────────────────────────────────
-const buildSheetForGrupo = (workbook, grupo, periodo, asistencias) => {
+const buildSheetForGrupo = (workbook, grupo, periodo, asistencias, fechasFiltradas = null) => {
   const sheetName = (grupo.NOMBRE_GRUPO || grupo.CODIGO_GRUPO || 'Grupo').slice(0, 31);
   const ws = workbook.addWorksheet(sheetName);
 
@@ -100,13 +100,19 @@ const buildSheetForGrupo = (workbook, grupo, periodo, asistencias) => {
     }
   }
 
-  // Ordenar sesiones por fecha + hora
-  const sesiones = [...sesionMap.values()].sort((a, b) => {
-    const fa = String(a.FECHA || '');
-    const fb = String(b.FECHA || '');
-    if (fa !== fb) return fa.localeCompare(fb);
-    return String(a.HORA_INICIO || '').localeCompare(String(b.HORA_INICIO || ''));
-  });
+  // Ordenar sesiones por fecha + hora (con filtro opcional de fechas)
+  const sesiones = [...sesionMap.values()]
+    .filter(s => {
+      if (!fechasFiltradas) return true;
+      const f = String(s.FECHA || '').split('T')[0];
+      return fechasFiltradas.has(f);
+    })
+    .sort((a, b) => {
+      const fa = String(a.FECHA || '');
+      const fb = String(b.FECHA || '');
+      if (fa !== fb) return fa.localeCompare(fb);
+      return String(a.HORA_INICIO || '').localeCompare(String(b.HORA_INICIO || ''));
+    });
 
   // Agrupar sesiones por fecha (para fila 5 = fecha merged)
   const fechasOrdenadas = []; // [{ fecha, sesiones: [] }]
@@ -146,9 +152,11 @@ const buildSheetForGrupo = (workbook, grupo, periodo, asistencias) => {
     colIdx += fd.sesiones.length;
     return { ...fd, startCol, endCol: colIdx - 1 };
   });
-  const COL_TOTAL  = colIdx;
-  const COL_PCT    = colIdx + 1;
-  const TOTAL_COLS = COL_PCT;
+  const COL_TOTAL     = colIdx;
+  const COL_PCT       = colIdx + 1;
+  const COL_PCT_FALTA = colIdx + 2;
+  const COL_PCT_JUST  = colIdx + 3;
+  const TOTAL_COLS    = COL_PCT_JUST;
 
   // Anchos
   ws.getColumn(COL_N).width      = 4;
@@ -156,8 +164,10 @@ const buildSheetForGrupo = (workbook, grupo, periodo, asistencias) => {
   for (const fd of fechaCols) {
     for (let ci = fd.startCol; ci <= fd.endCol; ci++) ws.getColumn(ci).width = 6;
   }
-  ws.getColumn(COL_TOTAL).width = 7;
-  ws.getColumn(COL_PCT).width   = 7;
+  ws.getColumn(COL_TOTAL).width     = 7;
+  ws.getColumn(COL_PCT).width       = 7;
+  ws.getColumn(COL_PCT_FALTA).width = 7;
+  ws.getColumn(COL_PCT_JUST).width  = 7;
 
   // ── FILAS 1-2: Título ─────────────────────────────────────────────────────
   ws.mergeCells(1, 1, 2, 1);
@@ -271,7 +281,9 @@ const buildSheetForGrupo = (workbook, grupo, periodo, asistencias) => {
     c.border = thinBorder;
   };
   setTailHdr(COL_TOTAL, 'TOTAL');
-  setTailHdr(COL_PCT, '%');
+  setTailHdr(COL_PCT, '% ASIST');
+  setTailHdr(COL_PCT_FALTA, '% FALTA');
+  setTailHdr(COL_PCT_JUST, '% JUST');
 
   ws.getRow(ROW_FECHA).height = 22;
   ws.getRow(ROW_CURSO).height = 50;
@@ -294,6 +306,8 @@ const buildSheetForGrupo = (workbook, grupo, periodo, asistencias) => {
     setCell(COL_NOMBRE, `${post.APELLIDOS}, ${post.NOMBRES}`, { align: 'left', alignment: { indent: 1 } });
 
     let totalAsistencias = 0;
+    let totalFaltas = 0;
+    let totalJustificados = 0;
     let totalSesionesContadas = 0;
 
     for (const fd of fechaCols) {
@@ -308,9 +322,9 @@ const buildSheetForGrupo = (workbook, grupo, periodo, asistencias) => {
           cell.font  = { name: 'Arial', size: 8, bold: true, color: { argb: ec.fg } };
           cell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: ec.bg } };
           totalSesionesContadas++;
-          if (estado === 'ASISTIO' || estado === 'TARDANZA' || estado === 'JUSTIFICADO') {
-            totalAsistencias++;
-          }
+          if (estado === 'ASISTIO' || estado === 'TARDANZA') totalAsistencias++;
+          if (estado === 'JUSTIFICADO') { totalAsistencias++; totalJustificados++; }
+          if (estado === 'FALTA') totalFaltas++;
         } else {
           cell.value = '—';
           cell.font  = { name: 'Arial', size: 8, color: { argb: 'FFD1D5DB' } };
@@ -329,21 +343,59 @@ const buildSheetForGrupo = (workbook, grupo, periodo, asistencias) => {
     totalCell.alignment = { vertical: 'middle', horizontal: 'center' };
     totalCell.border = thinBorder;
 
-    // %
+    const makePctCell = (col, value, lowIsBad = true) => {
+      const cell = ws.getCell(rowNum, col);
+      cell.value = `${value}%`;
+      const good = lowIsBad ? value >= 80 : value <= 10;
+      const mid  = lowIsBad ? value >= 60 : value <= 25;
+      cell.font = {
+        name: 'Arial', size: 8, bold: true,
+        color: { argb: good ? 'FF065F46' : mid ? 'FF92400E' : 'FF991B1B' }
+      };
+      cell.fill = {
+        type: 'pattern', pattern: 'solid',
+        fgColor: { argb: good ? 'FFD1FAE5' : mid ? 'FFFEF3C7' : 'FFFEE2E2' }
+      };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = thinBorder;
+    };
+
+    // % ASISTENCIA
     const pct = totalSesionesContadas > 0
       ? Math.round((totalAsistencias / totalSesionesContadas) * 100) : 0;
-    const pctCell = ws.getCell(rowNum, COL_PCT);
-    pctCell.value = `${pct}%`;
-    pctCell.font  = {
+    makePctCell(COL_PCT, pct, true);
+
+    // % FALTAS
+    const pctFalta = totalSesionesContadas > 0
+      ? Math.round((totalFaltas / totalSesionesContadas) * 100) : 0;
+    const cFalta = ws.getCell(rowNum, COL_PCT_FALTA);
+    cFalta.value = `${pctFalta}%`;
+    cFalta.font = {
       name: 'Arial', size: 8, bold: true,
-      color: { argb: pct >= 80 ? 'FF065F46' : pct >= 60 ? 'FF92400E' : 'FF991B1B' }
+      color: { argb: pctFalta === 0 ? 'FF065F46' : pctFalta <= 20 ? 'FF92400E' : 'FF991B1B' }
     };
-    pctCell.fill = {
+    cFalta.fill = {
       type: 'pattern', pattern: 'solid',
-      fgColor: { argb: pct >= 80 ? 'FFD1FAE5' : pct >= 60 ? 'FFFEF3C7' : 'FFFEE2E2' }
+      fgColor: { argb: pctFalta === 0 ? 'FFD1FAE5' : pctFalta <= 20 ? 'FFFEF3C7' : 'FFFEE2E2' }
     };
-    pctCell.alignment = { vertical: 'middle', horizontal: 'center' };
-    pctCell.border = thinBorder;
+    cFalta.alignment = { vertical: 'middle', horizontal: 'center' };
+    cFalta.border = thinBorder;
+
+    // % JUSTIFICADO
+    const pctJust = totalSesionesContadas > 0
+      ? Math.round((totalJustificados / totalSesionesContadas) * 100) : 0;
+    const cJust = ws.getCell(rowNum, COL_PCT_JUST);
+    cJust.value = `${pctJust}%`;
+    cJust.font = {
+      name: 'Arial', size: 8, bold: true,
+      color: { argb: pctJust === 0 ? 'FF6B7280' : 'FF1E40AF' }
+    };
+    cJust.fill = {
+      type: 'pattern', pattern: 'solid',
+      fgColor: { argb: pctJust === 0 ? 'FFF9FAFB' : 'FFDBEAFE' }
+    };
+    cJust.alignment = { vertical: 'middle', horizontal: 'center' };
+    cJust.border = thinBorder;
 
     ws.getRow(rowNum).height = 16;
   });
@@ -369,7 +421,7 @@ const buildSheetForGrupo = (workbook, grupo, periodo, asistencias) => {
 /**
  * Exporta el registro de asistencia de 1 grupo.
  */
-export const exportRegistroGrupo = async (grupo, idPeriodo) => {
+export const exportRegistroGrupo = async (grupo, idPeriodo, fechasFiltradas = null) => {
   try {
     const asistencias = await selectAll('VW_ASISTENCIAS_POSTULANTE', {
       ID_GRUPO: grupo.ID_GRUPO
@@ -385,7 +437,7 @@ export const exportRegistroGrupo = async (grupo, idPeriodo) => {
     workbook.creator = 'CEPRE UNAM';
     workbook.created = new Date();
 
-    buildSheetForGrupo(workbook, grupo, periodo, asistencias);
+    buildSheetForGrupo(workbook, grupo, periodo, asistencias, fechasFiltradas);
 
     const fileName = `Asistencia_${(grupo.NOMBRE_GRUPO || grupo.CODIGO_GRUPO || 'Grupo').replace(/\s+/g, '_')}.xlsx`;
     await downloadWorkbook(workbook, fileName);

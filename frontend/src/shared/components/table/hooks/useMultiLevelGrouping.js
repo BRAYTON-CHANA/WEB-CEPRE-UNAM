@@ -10,21 +10,41 @@ export const useMultiLevelGrouping = (data, levelConfigs) => {
   return useMemo(() => {
     if (!levelConfigs.length || !data.length) return [];
 
-    const groupByFields = levelConfigs.map(config => config.field);
-    
+    const getGroupField = (config) => {
+      const validHeaders = config.headers?.filter(h => h && h.title) || [];
+      const groupByHeaders = validHeaders.filter(h => h.groupBy === true);
+      if (groupByHeaders.length > 1) {
+        console.warn(`TableMultiLevel: Nivel ${config.level} tiene ${groupByHeaders.length} headers con groupBy: true. Solo se usará el primero como agrupador.`);
+      }
+      return groupByHeaders[0]?.title || config.field || null;
+    };
+
     const group = (items, level = 0) => {
       if (level >= levelConfigs.length) return items;
       
       const config = levelConfigs[level];
       const validHeaders = config.headers?.filter(h => h && h.title) || [];
-      const field = config.field || (validHeaders[0]?.title);
+      const isLastLevel = level + 1 >= levelConfigs.length;
+      const field = isLastLevel ? null : getGroupField(config);
       
-      if (!field) {
-        console.warn(`TableMultiLevel: Nivel ${level + 1} no tiene field ni headers válidos definidos`);
+      if (!field && !isLastLevel) {
+        console.warn(`TableMultiLevel: Nivel ${level + 1} no tiene groupBy ni field definidos`);
         return items;
       }
       
-      const isLastLevel = level + 1 >= levelConfigs.length;
+      // Tabla plana sin agrupamiento: cada item es su propia fila
+      if (!field && isLastLevel) {
+        return items.map(item => ({
+          key: item[config.boundColumn] || item.ID || Math.random().toString(),
+          value: null,
+          field: null,
+          level: level + 1,
+          config: { ...config, headers: validHeaders, visible: true },
+          rows: [item],
+          children: null
+        }));
+      }
+      
       const groups = {};
       
       items.forEach(item => {
@@ -72,7 +92,7 @@ export const useMultiLevelGrouping = (data, levelConfigs) => {
             children: [{
               key: 'null-group',
               value: 'null',
-              field: nextConfig.field || nextValidHeaders[0]?.title,
+              field: getGroupField(nextConfig),
               level: level + 2,
               config: { ...nextConfig, headers: nextValidHeaders, visible: false },
               rows: []

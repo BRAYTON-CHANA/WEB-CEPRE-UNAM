@@ -130,8 +130,8 @@ const ConfigSidebar = () => {
       id: 'infraestructura',
       name: 'Infraestructura',
       icon: <BuildingIcon />,
-      href: '/configuracion/sedes_aulas',
-      active: location.pathname === '/configuracion/sedes_aulas'
+      href: '/configuracion/infraestructura',
+      active: location.pathname === '/configuracion/infraestructura'
     },
     {
       id: 'academico',

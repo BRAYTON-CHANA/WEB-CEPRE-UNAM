@@ -12,9 +12,9 @@ export const tableConfig = {
 export const getTableLevelConfigs = (areasCrud, areaCursoCrud, handleAddCursoToArea) => [
   {
     level: 1,
-    field: 'CODIGO_AREA',
     headers: [
-      { title: 'NOMBRE_AREA', type: 'string' },
+      { title: 'CODIGO_AREA', type: 'string', groupBy: true, label: 'Código Área' },
+      { title: 'NOMBRE_AREA', type: 'string', label: 'Área' }
     ],
     childCountLabel: { singular: 'curso', plural: 'cursos' },
     boundColumn: 'ID_AREA',
@@ -45,18 +45,11 @@ export const getTableLevelConfigs = (areasCrud, areaCursoCrud, handleAddCursoToA
   {
     level: 2,
     headers: [
-      { title: 'CODIGO', type: 'string' },
-      { title: 'NOMBRE_CURSO', type: 'string' }
+      { title: 'CODIGO', type: 'string', label: 'Código' },
+      { title: 'NOMBRE_CURSO', type: 'string', label: 'Curso' }
     ],
     boundColumn: 'ID_CURSO_AREA',
     actions: {
-      edit: {
-        enabled: true,
-        icon: 'edit',
-        label: 'Editar',
-        className: 'text-blue-600 hover:bg-blue-100',
-        onClick: (row) => areaCursoCrud.handleEdit(row)
-      },
       delete: {
         enabled: true,
         icon: 'trash',

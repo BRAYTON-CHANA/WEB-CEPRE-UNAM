@@ -12,8 +12,9 @@ export const tableConfig = {
 export const getTableLevelConfigs = (sedesCrud, aulasCrud, handleAddAulaFromSede) => [
   {
     level: 1,
-    field: 'NOMBRE_SEDE',
-    headers: [],
+    headers: [
+      { title: 'NOMBRE_SEDE', type: 'string', groupBy: true, label: 'Sede' }
+    ],
     childCountLabel: { singular: 'aula', plural: 'aulas' },
     boundColumn: 'ID_SEDE',
     actions: {
@@ -43,9 +44,9 @@ export const getTableLevelConfigs = (sedesCrud, aulasCrud, handleAddAulaFromSede
   {
     level: 2,
     headers: [
-      { title: 'NOMBRE_AULA', type: 'string' },
-      { title: 'UBICACION', type: 'string' },
-      { title: 'CAPACIDAD', type: 'number' }
+      { title: 'NOMBRE_AULA', type: 'string', label: 'Aula' },
+      { title: 'UBICACION', type: 'string', label: 'Ubicación' },
+      { title: 'CAPACIDAD', type: 'number', label: 'Capacidad' }
     ],
     boundColumn: 'ID_AULA',
     actions: {

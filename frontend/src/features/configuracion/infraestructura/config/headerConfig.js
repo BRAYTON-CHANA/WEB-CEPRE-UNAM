@@ -2,8 +2,8 @@
  * Configuración del header para la página Sedes y Aulas
  */
 export const headerProps = {
-  headerTitle: 'Gestión de Sedes y Aulas',
-  headerDescription: 'Administra las sedes académicas y sus aulas físicas, virtuales e híbridas'
+  headerTitle: 'Infraestructura',
+  headerDescription: 'Administra las sedes académicas e infraestructura física, virtual e híbrida'
 };
 
 export const getHeaderActions = (sedesCrud) => [

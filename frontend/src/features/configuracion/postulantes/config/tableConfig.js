@@ -21,17 +21,18 @@ export const tableConfig = {
 export const getTableLevelConfigs = (postulantesCrud, handleAddPostulante) => [
   {
     level: 1,
-    field: 'NOMBRE_SEDE',
-    headers: [],
+    headers: [
+      { title: 'NOMBRE_SEDE', type: 'string', groupBy: true, label: 'Sede' }
+    ],
     boundColumn: 'ID_SEDE',
     childCountLabel: { singular: 'grupo', plural: 'grupos' }
   },
   {
     level: 2,
-    field: 'CODIGO_GRUPO',
     headers: [
-      { title: 'CAPACIDAD_MAXIMA', type: 'number' },
-      { title: 'TOTAL_POSTULANTES', type: 'number' }
+      { title: 'CODIGO_GRUPO', type: 'string', groupBy: true, label: 'Grupo' },
+      { title: 'CAPACIDAD_MAXIMA', type: 'number', label: 'Capacidad' },
+      { title: 'TOTAL_POSTULANTES', type: 'number', label: 'Postulantes' }
     ],
     boundColumn: 'ID_GRUPO',
     childCountLabel: { singular: 'postulante', plural: 'postulantes' },

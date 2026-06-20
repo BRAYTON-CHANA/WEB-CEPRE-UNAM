@@ -5,6 +5,21 @@ import { usePeriodos } from '@/features/asistencias/grupos/hooks/usePeriodos';
 import { SedeTabs } from '@/features/asistencias/grupos/components/SedeTabs';
 import { db } from '@/shared/api';
 import { exportRegistroGrupo, exportRegistroSedEstudiantes } from '@/features/asistencias/reportes/estudiantes/utils/exportRegistroEstudiantes';
+import { ModalSeleccionFechas } from '@/features/asistencias/reportes/estudiantes/components/ModalSeleccionFechas';
+
+const selectAll = async (table, filters = {}) => {
+  const PAGE_SIZE = 1000;
+  let offset = 0;
+  const all = [];
+  while (true) {
+    const res = await db.selectWithLimit(table, PAGE_SIZE, offset, filters);
+    const rows = res?.data?.records || res || [];
+    all.push(...rows);
+    if (rows.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+  return all;
+};
 
 function ReportesEstudiantes() {
   const { periodos, periodoActivo, setPeriodoActivo, loading: loadingPeriodos } = usePeriodos();
@@ -16,6 +31,9 @@ function ReportesEstudiantes() {
   const [exportandoGrupo, setExportandoGrupo] = useState(null);
   const [exportandoSede, setExportandoSede] = useState(false);
   const [progresoSede, setProgresoSede] = useState({ current: 0, total: 0 });
+  const [modalGrupo, setModalGrupo] = useState(null);
+  const [asistenciasModal, setAsistenciasModal] = useState([]);
+  const [loadingModal, setLoadingModal] = useState(false);
 
   useEffect(() => {
     if (!periodoActivo) {
@@ -78,11 +96,35 @@ function ReportesEstudiantes() {
 
   const handleExportGrupo = async (grupo) => {
     setExportandoGrupo(grupo.ID_GRUPO);
+    setLoadingModal(true);
     try {
-      await exportRegistroGrupo(grupo, periodoActivo);
+      const asistencias = await selectAll('VW_ASISTENCIAS_POSTULANTE', { ID_GRUPO: grupo.ID_GRUPO });
+      setAsistenciasModal(asistencias || []);
+      setModalGrupo(grupo);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setExportandoGrupo(null);
+      setLoadingModal(false);
+    }
+  };
+
+  const handleConfirmarExport = async (fechasSeleccionadas) => {
+    if (!modalGrupo) return;
+    const grupo = modalGrupo;
+    setModalGrupo(null);
+    setAsistenciasModal([]);
+    setExportandoGrupo(grupo.ID_GRUPO);
+    try {
+      await exportRegistroGrupo(grupo, periodoActivo, fechasSeleccionadas);
     } finally {
       setExportandoGrupo(null);
     }
+  };
+
+  const handleCerrarModal = () => {
+    setModalGrupo(null);
+    setAsistenciasModal([]);
   };
 
   const handleExportSede = async () => {
@@ -104,6 +146,14 @@ function ReportesEstudiantes() {
 
   return (
     <Layout>
+      {modalGrupo && (
+        <ModalSeleccionFechas
+          grupo={modalGrupo}
+          asistencias={asistenciasModal}
+          onConfirm={handleConfirmarExport}
+          onClose={handleCerrarModal}
+        />
+      )}
       <div className="min-h-screen py-10" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
         <div className="max-w-screen-2xl mx-auto px-6">
 
@@ -231,7 +281,7 @@ function ReportesEstudiantes() {
                           {exportandoGrupo === grupo.ID_GRUPO ? (
                             <>
                               <span className="animate-spin h-3.5 w-3.5 border-2 border-emerald-600 border-t-transparent rounded-full" />
-                              Generando...
+                              {loadingModal ? 'Cargando...' : 'Generando...'}
                             </>
                           ) : (
                             <>

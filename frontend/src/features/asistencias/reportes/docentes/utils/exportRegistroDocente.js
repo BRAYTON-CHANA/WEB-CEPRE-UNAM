@@ -1,5 +1,12 @@
 import ExcelJS from 'exceljs';
 import { db } from '@/shared/api';
+import cepreUrl from '@/app/views/asistencias/reportes/images/cepre.png';
+import unamUrl from '@/app/views/asistencias/reportes/images/unam.png';
+
+const loadImageBuffer = async (url) => {
+  const res = await fetch(url);
+  return await res.arrayBuffer();
+};
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const selectAll = async (table, filters = {}) => {
@@ -67,164 +74,242 @@ const thinBorder = {
 const TABLE_HEADERS = ['N°', 'FECHA', 'TURNO', 'GRUPO', 'HORA DE ENTRADA', 'FIRMA', 'TEMA DESARROLLADO', 'HORA SALIDA', 'TOTAL / HORAS', 'FIRMA'];
 const COL_WIDTHS = [5, 12, 10, 12, 14, 12, 36, 12, 12, 14];
 const NUM_COLS = TABLE_HEADERS.length;
+const ROWS_PER_PAGE = 12;
 
-// ─── Construir hoja para un curso ────────────────────────────────────────────
-// TODO: embeber logos CEPRE / UNAM como imágenes. Por ahora texto.
-const buildSheetForCurso = (workbook, docenteNombre, periodo, cursoNombre, grupoNombre, sesiones, dni, sheetName) => {
-  const ws = workbook.addWorksheet((sheetName || cursoNombre || 'Curso').slice(0, 31));
+// ─── Sub-renderers ────────────────────────────────────────────────────────────
 
-  // ── Fila 1-2: Título + banda período ────────────────────────────────────────
-  // Logos texto en col 1 y última col
-  ws.mergeCells(1, 1, 2, 1);
-  const logoL = ws.getCell(1, 1);
-  logoL.value = 'CEPRE';
-  logoL.font = { name: 'Arial', size: 11, bold: true, color: { argb: NAVY } };
-  logoL.alignment = { vertical: 'middle', horizontal: 'center' };
-  logoL.border = thinBorder;
+const renderHeader = (ws, workbook, startRow, docenteNombre, periodo, cursoNombre, grupoNombre, logoLeftBuf, logoRightBuf) => {
+  const r = startRow;
+  ws.getRow(r).height = 30;
+  ws.getRow(r + 1).height = 30;
+  ws.getRow(r + 2).height = 26;
 
-  ws.mergeCells(1, NUM_COLS, 2, NUM_COLS);
-  const logoR = ws.getCell(1, NUM_COLS);
-  logoR.value = 'UNAM';
-  logoR.font = { name: 'Arial', size: 11, bold: true, color: { argb: NAVY } };
-  logoR.alignment = { vertical: 'middle', horizontal: 'center' };
-  logoR.border = thinBorder;
+  // Logo CEPRE: cols 2-3, filas r a r+2
+  ws.mergeCells(r, 2, r + 2, 3);
+  ws.getCell(r, 2).border = thinBorder;
+  if (logoLeftBuf) {
+    const imgL = workbook.addImage({ buffer: logoLeftBuf, extension: 'png' });
+    ws.addImage(imgL, { tl: { col: 1, row: r - 1 }, br: { col: 3, row: r + 2 }, editAs: 'twoCell' });
+  } else {
+    const logoL = ws.getCell(r, 2);
+    logoL.value = 'CEPRE';
+    logoL.font = { name: 'Arial', size: 13, bold: true, color: { argb: NAVY } };
+    logoL.alignment = { vertical: 'middle', horizontal: 'center' };
+    logoL.border = thinBorder;
+  }
 
-  // Título navy
-  ws.mergeCells(1, 2, 1, NUM_COLS - 1);
-  const title = ws.getCell(1, 2);
+  // Logo UNAM: cols NUM_COLS a NUM_COLS+1, filas r a r+2
+  ws.mergeCells(r, NUM_COLS, r + 2, NUM_COLS + 1);
+  ws.getCell(r, NUM_COLS).border = thinBorder;
+  if (logoRightBuf) {
+    const imgR = workbook.addImage({ buffer: logoRightBuf, extension: 'png' });
+    ws.addImage(imgR, { tl: { col: NUM_COLS - 1, row: r - 1 }, br: { col: NUM_COLS + 1, row: r + 2 }, editAs: 'twoCell' });
+  } else {
+    const logoR = ws.getCell(r, NUM_COLS);
+    logoR.value = 'UNAM';
+    logoR.font = { name: 'Arial', size: 13, bold: true, color: { argb: NAVY } };
+    logoR.alignment = { vertical: 'middle', horizontal: 'center' };
+    logoR.border = thinBorder;
+  }
+
+  // Título navy: cols 4 a NUM_COLS-1, filas r a r+1
+  ws.mergeCells(r, 4, r + 1, NUM_COLS - 1);
+  const title = ws.getCell(r, 4);
   title.value = 'REGISTRO DE ASISTENCIA DE DOCENTES';
-  title.font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
+  title.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
   title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
   title.alignment = { vertical: 'middle', horizontal: 'center' };
   title.border = thinBorder;
-  ws.getRow(1).height = 22;
 
-  // Banda período teal
-  ws.mergeCells(2, 2, 2, NUM_COLS - 1);
-  const subt = ws.getCell(2, 2);
+  // Banda período teal: cols 4 a NUM_COLS-1, fila r+2
+  ws.mergeCells(r + 2, 4, r + 2, NUM_COLS - 1);
+  const subt = ws.getCell(r + 2, 4);
   subt.value = (periodo || '').toUpperCase();
   subt.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
   subt.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TEAL } };
   subt.alignment = { vertical: 'middle', horizontal: 'center' };
   subt.border = thinBorder;
-  ws.getRow(2).height = 20;
 
-  // ── Fila 3: DOCENTE ──────────────────────────────────────────────────────────
-  const docLabel = ws.getCell(3, 1);
+  // Fila r+3: DOCENTE
+  ws.mergeCells(r + 3, 2, r + 3, 3);
+  const docLabel = ws.getCell(r + 3, 2);
   docLabel.value = 'DOCENTE';
   docLabel.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
   docLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
   docLabel.alignment = { vertical: 'middle', horizontal: 'center' };
   docLabel.border = thinBorder;
-  ws.mergeCells(3, 2, 3, NUM_COLS);
-  const docVal = ws.getCell(3, 2);
+  ws.mergeCells(r + 3, 4, r + 3, NUM_COLS + 1);
+  const docVal = ws.getCell(r + 3, 4);
   docVal.value = docenteNombre || '';
   docVal.font = { name: 'Arial', size: 10, color: { argb: 'FF000000' } };
   docVal.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
   docVal.border = thinBorder;
-  ws.getRow(3).height = 20;
+  ws.getRow(r + 3).height = 24;
 
-  // ── Fila 4: CURSO ──────────────────────────────────────────────────────────
-  const cursoLabel = ws.getCell(4, 1);
+  // Fila r+4: CURSO
+  ws.mergeCells(r + 4, 2, r + 4, 3);
+  const cursoLabel = ws.getCell(r + 4, 2);
   cursoLabel.value = 'CURSO';
   cursoLabel.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
   cursoLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
   cursoLabel.alignment = { vertical: 'middle', horizontal: 'center' };
   cursoLabel.border = thinBorder;
-  ws.mergeCells(4, 2, 4, NUM_COLS);
-  const cursoVal = ws.getCell(4, 2);
+  ws.mergeCells(r + 4, 4, r + 4, NUM_COLS + 1);
+  const cursoVal = ws.getCell(r + 4, 4);
   cursoVal.value = cursoNombre ? (grupoNombre ? `${cursoNombre} - ${grupoNombre}` : cursoNombre) : (grupoNombre || '');
   cursoVal.font = { name: 'Arial', size: 10, color: { argb: 'FF000000' } };
   cursoVal.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
   cursoVal.border = thinBorder;
-  ws.getRow(4).height = 20;
+  ws.getRow(r + 4).height = 24;
 
-  // ── Fila 6: Encabezado tabla ─────────────────────────────────────────────────
-  const headerRow = 6;
+  return r + 5; // siguiente fila disponible
+};
+
+const renderTableHeader = (ws, startRow) => {
   TABLE_HEADERS.forEach((h, i) => {
-    const c = ws.getCell(headerRow, i + 1);
+    const c = ws.getCell(startRow, i + 2);
     c.value = h;
     c.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
     c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TEAL } };
     c.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
     c.border = thinBorder;
   });
-  ws.getRow(headerRow).height = 30;
+  ws.getRow(startRow).height = 30;
+  return startRow + 1;
+};
 
-  // ── Filas de sesiones ─────────────────────────────────────────────────────────
-  let row = headerRow + 1;
-  let totalHoras = 0;
-  sesiones.forEach((s, idx) => {
-    const horas = horasAcademicas(s.DURACION_CLASE_MINUTOS);
-    totalHoras += horas;
-    const values = [
-      idx + 1,
-      fmtFecha(s.FECHA),
-      s.NOMBRE_TURNO || '',
-      s.NOMBRE_GRUPO || s.CODIGO_GRUPO || '',
-      fmtHora(s.HORA_ENTRADA_REAL),
-      '', // FIRMA vacío
-      '', // TEMA DESARROLLADO vacío
-      fmtHora(s.HORA_SALIDA_REAL),
-      horas || '',
-      '', // FIRMA vacío
-    ];
-    values.forEach((v, i) => {
-      const c = ws.getCell(row, i + 1);
-      c.value = v;
-      c.font = { name: 'Arial', size: 9, color: { argb: 'FF000000' } };
-      c.alignment = { vertical: 'middle', horizontal: i === 6 ? 'left' : 'center', wrapText: true };
-      c.border = thinBorder;
-    });
-    ws.getRow(row).height = 26;
-    row++;
-  });
-
-  // ── Fila total horas ──────────────────────────────────────────────────────────
-  const totalLabel = ws.getCell(row, 1);
-  ws.mergeCells(row, 1, row, NUM_COLS - 2);
+const renderTotalRow = (ws, startRow, totalHoras) => {
+  ws.mergeCells(startRow, 2, startRow, NUM_COLS - 1);
+  const totalLabel = ws.getCell(startRow, 2);
   totalLabel.value = 'TOTAL HORAS ACADÉMICAS';
   totalLabel.font = { name: 'Arial', size: 9, bold: true, color: { argb: NAVY } };
   totalLabel.alignment = { vertical: 'middle', horizontal: 'right', indent: 1 };
   totalLabel.border = thinBorder;
-  const totalVal = ws.getCell(row, NUM_COLS - 1);
+  const totalVal = ws.getCell(startRow, NUM_COLS);
   totalVal.value = Math.round(totalHoras * 100) / 100;
   totalVal.font = { name: 'Arial', size: 9, bold: true, color: { argb: NAVY } };
   totalVal.alignment = { vertical: 'middle', horizontal: 'center' };
   totalVal.border = thinBorder;
-  ws.getCell(row, NUM_COLS).border = thinBorder;
-  ws.getRow(row).height = 22;
-  row += 3;
+  ws.getCell(startRow, NUM_COLS + 1).border = thinBorder;
+  ws.getRow(startRow).height = 22;
+  return startRow + 1;
+};
 
-  // ── Footer firmas ─────────────────────────────────────────────────────────────
-  const firmaRow = row;
-  // Línea docente (cols 1-3)
-  ws.mergeCells(firmaRow, 1, firmaRow, 3);
-  const lineD = ws.getCell(firmaRow, 1);
-  lineD.border = { top: { style: 'thin', color: { argb: 'FF000000' } } };
-  // Línea responsable (cols 6-8)
-  ws.mergeCells(firmaRow, 6, firmaRow, 8);
-  const lineR = ws.getCell(firmaRow, 6);
-  lineR.border = { top: { style: 'thin', color: { argb: 'FF000000' } } };
+const renderFooter = (ws, startRow, docenteNombre, dni) => {
+  // Fila de separación antes de las firmas
+  ws.getRow(startRow).height = 16;
+  const firmaRow = startRow + 1;
+
+  // Línea docente: cols 3-5 (una columna a la derecha)
+  ws.mergeCells(firmaRow, 3, firmaRow, 5);
+  ws.getCell(firmaRow, 3).border = { top: { style: 'thin', color: { argb: 'FF000000' } } };
+  // Línea responsable: cols 8-10 (una columna a la derecha)
+  ws.mergeCells(firmaRow, 8, firmaRow, 10);
+  ws.getCell(firmaRow, 8).border = { top: { style: 'thin', color: { argb: 'FF000000' } } };
 
   const dRow = firmaRow + 1;
-  const dCell = ws.getCell(dRow, 1);
-  dCell.value = `DOCENTE: ${docenteNombre || ''}`;
-  dCell.font = { name: 'Arial', size: 9, color: { argb: 'FF000000' } };
-  const rCell = ws.getCell(dRow, 6);
-  rCell.value = 'RESPONSABLE:';
-  rCell.font = { name: 'Arial', size: 9, color: { argb: 'FF000000' } };
+  ws.getCell(dRow, 3).value = `DOCENTE: ${docenteNombre || ''}`;
+  ws.getCell(dRow, 3).font = { name: 'Arial', size: 9, color: { argb: 'FF000000' } };
+  ws.getCell(dRow, 8).value = 'RESPONSABLE:';
+  ws.getCell(dRow, 8).font = { name: 'Arial', size: 9, color: { argb: 'FF000000' } };
 
   const dniRow = firmaRow + 2;
-  const dniD = ws.getCell(dniRow, 1);
-  dniD.value = `DNI: ${dni || ''}`;
-  dniD.font = { name: 'Arial', size: 9, color: { argb: 'FF000000' } };
-  const dniR = ws.getCell(dniRow, 6);
-  dniR.value = 'DNI:';
-  dniR.font = { name: 'Arial', size: 9, color: { argb: 'FF000000' } };
+  ws.getCell(dniRow, 3).value = `DNI: ${dni || ''}`;
+  ws.getCell(dniRow, 3).font = { name: 'Arial', size: 9, color: { argb: 'FF000000' } };
+  ws.getCell(dniRow, 8).value = 'DNI:';
+  ws.getCell(dniRow, 8).font = { name: 'Arial', size: 9, color: { argb: 'FF000000' } };
 
-  // Anchos de columna
-  COL_WIDTHS.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  return dniRow + 1; // siguiente fila disponible
+};
+
+// ─── Construir hoja para un curso (paginada por ROWS_PER_PAGE) ───────────────
+const buildSheetForCurso = (workbook, docenteNombre, periodo, cursoNombre, grupoNombre, sesiones, dni, sheetName, logoLeftBuf, logoRightBuf) => {
+  const ws = workbook.addWorksheet((sheetName || cursoNombre || 'Curso').slice(0, 31));
+
+  // Anchos de columna (col 1 = margen izq, cols 2-11 = contenido, col 12 = margen der)
+  ws.getColumn(1).width = 2;
+  COL_WIDTHS.forEach((w, i) => { ws.getColumn(i + 2).width = w; });
+  ws.getColumn(NUM_COLS + 2).width = 2;
+
+  // Configuración de página A4 portrait
+  ws.pageSetup = {
+    paperSize: 9,
+    orientation: 'portrait',
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+    margins: { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 }
+  };
+
+  // Partir sesiones en chunks de ROWS_PER_PAGE
+  const chunks = [];
+  for (let i = 0; i < sesiones.length; i += ROWS_PER_PAGE) {
+    chunks.push(sesiones.slice(i, i + ROWS_PER_PAGE));
+  }
+  if (chunks.length === 0) chunks.push([]);
+
+  let currentRow = 1;
+  // Margen superior inicial
+  ws.getRow(currentRow).height = 8;
+  currentRow++;
+
+  chunks.forEach((chunk, chunkIdx) => {
+    const pageStartRow = currentRow;
+
+    // Header
+    currentRow = renderHeader(ws, workbook, currentRow, docenteNombre, periodo, cursoNombre, grupoNombre, logoLeftBuf, logoRightBuf);
+
+    // Espacio entre header y tabla
+    ws.getRow(currentRow).height = 14;
+    currentRow++;
+
+    // Encabezado tabla
+    currentRow = renderTableHeader(ws, currentRow);
+
+    // Filas de datos
+    let chunkHoras = 0;
+    const globalOffset = chunkIdx * ROWS_PER_PAGE;
+    chunk.forEach((s, idx) => {
+      const horas = horasAcademicas(s.DURACION_CLASE_MINUTOS);
+      chunkHoras += horas;
+      const values = [
+        globalOffset + idx + 1,
+        fmtFecha(s.FECHA),
+        s.NOMBRE_TURNO || '',
+        s.NOMBRE_GRUPO || s.CODIGO_GRUPO || '',
+        fmtHora(s.HORA_ENTRADA_REAL),
+        '',
+        '',
+        fmtHora(s.HORA_SALIDA_REAL),
+        horas || '',
+        '',
+      ];
+      values.forEach((v, i) => {
+        const c = ws.getCell(currentRow, i + 2);
+        c.value = v;
+        c.font = { name: 'Arial', size: 9, color: { argb: 'FF000000' } };
+        c.alignment = { vertical: 'middle', horizontal: i === 6 ? 'left' : 'center', wrapText: true };
+        c.border = thinBorder;
+      });
+      ws.getRow(currentRow).height = 26;
+      currentRow++;
+    });
+
+    // Total parcial
+    currentRow = renderTotalRow(ws, currentRow, chunkHoras);
+
+    // Footer (ya incluye fila de separación interna)
+    currentRow = renderFooter(ws, currentRow, docenteNombre, dni);
+
+    // Salto de página entre bloques (no después del último)
+    if (chunkIdx < chunks.length - 1) {
+      // El pageBreak va en la última fila con contenido (dniRow = currentRow - 1)
+      ws.getRow(currentRow - 1).addPageBreak();
+      // Margen superior del siguiente bloque
+      ws.getRow(currentRow).height = 8;
+      currentRow++;
+    }
+  });
 
   return true;
 };
@@ -275,12 +360,17 @@ export const exportRegistroDocente = async (idDocente, nombreDocente, idPeriodo)
     workbook.creator = 'CEPRE UNAM';
     workbook.created = new Date();
 
+    const [logoLeftBuf, logoRightBuf] = await Promise.all([
+      loadImageBuffer(cepreUrl).catch(() => null),
+      loadImageBuffer(unamUrl).catch(() => null)
+    ]);
+
     const porPlaza = agruparPorPlaza(sesiones);
     let i = 0;
     for (const arr of porPlaza.values()) {
       const cursoNombre = arr[0]?.NOMBRE_CURSO || 'Curso';
       const sheetName = cursoNombre.slice(0, 31) || `Curso ${++i}`;
-      buildSheetForCurso(workbook, nombreDocente, periodo, cursoNombre, '', arr, dni, sheetName);
+      buildSheetForCurso(workbook, nombreDocente, periodo, cursoNombre, '', arr, dni, sheetName, logoLeftBuf, logoRightBuf);
     }
 
     const fileName = `Registro_${(nombreDocente || 'Docente').replace(/\s+/g, '_')}.xlsx`;
@@ -306,6 +396,11 @@ export const exportRegistroSede = async (sede, idPeriodo, docentes, onProgress) 
     workbook.creator = 'CEPRE UNAM';
     workbook.created = new Date();
 
+    const [logoLeftBuf, logoRightBuf] = await Promise.all([
+      loadImageBuffer(cepreUrl).catch(() => null),
+      loadImageBuffer(unamUrl).catch(() => null)
+    ]);
+
     let processed = 0;
     let added = 0;
     if (onProgress) onProgress(0, docentes.length);
@@ -323,10 +418,9 @@ export const exportRegistroSede = async (sede, idPeriodo, docentes, onProgress) 
         const porPlaza = agruparPorPlaza(sesiones);
         for (const arr of porPlaza.values()) {
           const cursoNombre = arr[0]?.NOMBRE_CURSO || 'Curso';
-          // Hoja: apellido + curso (único, recortado a 31)
           const ape = (doc.APELLIDOS || nombreDoc).split(' ')[0];
           const sheetName = `${ape}-${cursoNombre}`.slice(0, 31);
-          buildSheetForCurso(workbook, nombreDoc, periodo, cursoNombre, '', arr, dni, sheetName);
+          buildSheetForCurso(workbook, nombreDoc, periodo, cursoNombre, '', arr, dni, sheetName, logoLeftBuf, logoRightBuf);
           added++;
         }
       }

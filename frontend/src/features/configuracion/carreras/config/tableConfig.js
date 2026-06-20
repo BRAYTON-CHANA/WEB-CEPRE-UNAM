@@ -14,9 +14,9 @@ export const tableConfig = {
 export const getTableLevelConfigs = (sedesCrud, carrerasCrud, handleAddCarrera) => [
   {
     level: 1,
-    field: 'NOMBRE_SEDE',
     headers: [
-      { title: 'TOTAL_CARRERAS', type: 'number' }
+      { title: 'NOMBRE_SEDE', type: 'string', groupBy: true, label: 'Sede' },
+      { title: 'TOTAL_CARRERAS', type: 'number', label: 'Carreras' }
     ],
     boundColumn: 'ID_SEDE',
     childCountLabel: { singular: 'carrera', plural: 'carreras' },

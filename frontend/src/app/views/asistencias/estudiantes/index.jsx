@@ -351,7 +351,7 @@ function AsistenciasEstudiantes() {
       {/* Modal historial */}
       <ModalHistorialEstudiante
         estudiante={estudianteModal}
-        idGrupo={grupoActivo}
+        idGrupo={modoTodos ? estudianteModal?.ID_GRUPO : grupoActivo}
         nombreGrupo={modoTodos ? estudianteModal?.NOMBRE_GRUPO : grupoSeleccionado?.NOMBRE_GRUPO}
         onClose={() => setEstudianteModal(null)}
         onSuccess={refetch}

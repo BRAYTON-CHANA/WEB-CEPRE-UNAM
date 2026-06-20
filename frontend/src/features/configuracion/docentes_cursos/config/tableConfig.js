@@ -12,11 +12,10 @@ export const tableConfig = {
 export const getTableLevelConfigs = (docentesCrud, docenteCursoCrud, handleAddCursoToDocente) => [
   {
     level: 1,
-    field: 'NOMBRE_COMPLETO',
     headers: [
-      { title: 'DNI', type: 'string' },
-      { title: 'TIPO_DOCENTE', type: 'string' },
-      
+      { title: 'NOMBRE_COMPLETO', type: 'string', groupBy: true, label: 'Docente' },
+      { title: 'DNI', type: 'string', label: 'DNI' },
+      { title: 'TIPO_DOCENTE', type: 'string', label: 'Tipo' }
     ],
     boundColumn: 'ID_DOCENTE',
     actions: {

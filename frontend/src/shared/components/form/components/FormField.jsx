@@ -181,7 +181,8 @@ const FormField = ({
           referenceOriginalValue: field.referenceOriginalValue,
           blocked: field.blocked,
           placeholder: field.placeholder,
-          searchable: field.searchable
+          searchable: field.searchable,
+          showRefreshButton: field.showRefreshButton
         };
 
       case 'function-select':
@@ -195,7 +196,8 @@ const FormField = ({
           statusField: field.statusField,
           searchable: field.searchable,
           placeholder: field.placeholder,
-          clearable: field.clearable
+          clearable: field.clearable,
+          showRefreshButton: field.showRefreshButton
         };
 
       case 'cascade-search':
