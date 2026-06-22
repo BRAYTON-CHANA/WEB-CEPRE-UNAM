@@ -2,6 +2,6 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "framework": "vite",
-  "devCommand": "vite --port 3000",
+  "devCommand": "vite",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
