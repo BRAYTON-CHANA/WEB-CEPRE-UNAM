@@ -20,6 +20,7 @@ export function useTodosEstudiantes(idPeriodo, idSede) {
             ID_POSTULANTE:  row.ID_POSTULANTE,
             NOMBRES:        row.NOMBRES,
             APELLIDOS:      row.APELLIDOS,
+            ID_GRUPO:       row.ID_GRUPO,
             NOMBRE_GRUPO:   row.NOMBRE_GRUPO || row.CODIGO_GRUPO || '—',
             totalSesiones:  Number(row.TOTAL_SESIONES)    || 0,
             asistio:        Number(row.TOTAL_ASISTIO)     || 0,
@@ -32,6 +33,9 @@ export function useTodosEstudiantes(idPeriodo, idSede) {
                                 : null,
             porcentajeFaltas: row.PORCENTAJE_FALTAS != null
                                 ? Number(row.PORCENTAJE_FALTAS)
+                                : null,
+            porcentajeJustificacion: row.PORCENTAJE_JUSTIFICACION != null
+                                ? Number(row.PORCENTAJE_JUSTIFICACION)
                                 : null,
           }))
           .sort((a, b) => a.APELLIDOS.localeCompare(b.APELLIDOS));

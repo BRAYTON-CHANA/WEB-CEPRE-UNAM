@@ -17,8 +17,9 @@ function AsistenciasEstudiantes() {
   const [grupoActivo, setGrupoActivo] = useState(null);
   const [modoTodos, setModoTodos] = useState(false);
   const [busqueda, setBusqueda] = useState('');
-  const [faltasCondicion, setFaltasCondicion] = useState('>'); // '>', '<', '='
-  const [faltasValor, setFaltasValor] = useState('');
+  const [tipoFiltro, setTipoFiltro] = useState('faltas'); // 'faltas' | 'justificado'
+  const [condicionFiltro, setCondicionFiltro] = useState('>'); // '>', '<', '='
+  const [valorFiltro, setValorFiltro] = useState('');
   const [estudianteModal, setEstudianteModal] = useState(null);
 
   // Extraer sedes — Moquegua primero
@@ -44,8 +45,9 @@ function AsistenciasEstudiantes() {
     setGrupoActivo(null);
     setModoTodos(false);
     setBusqueda('');
-    setFaltasCondicion('>');
-    setFaltasValor('');
+    setTipoFiltro('faltas');
+    setCondicionFiltro('>');
+    setValorFiltro('');
   }, [periodoActivo]);
 
   // Auto-seleccionar primera sede
@@ -107,20 +109,21 @@ function AsistenciasEstudiantes() {
       );
     }
     
-    // Filtro por porcentaje de faltas
-    if (faltasValor !== '' && !isNaN(Number(faltasValor))) {
-      const valor = Number(faltasValor);
+    // Filtro por porcentaje de faltas o justificado
+    if (valorFiltro !== '' && !isNaN(Number(valorFiltro))) {
+      const valor = Number(valorFiltro);
+      const campo = tipoFiltro === 'faltas' ? 'porcentajeFaltas' : 'porcentajeJustificacion';
       resultado = resultado.filter(est => {
-        const pct = est.porcentajeFaltas ?? 0;
-        if (faltasCondicion === '>') return pct > valor;
-        if (faltasCondicion === '<') return pct < valor;
-        if (faltasCondicion === '=') return pct === valor;
+        const pct = est[campo] ?? 0;
+        if (condicionFiltro === '>') return pct > valor;
+        if (condicionFiltro === '<') return pct < valor;
+        if (condicionFiltro === '=') return pct === valor;
         return true;
       });
     }
-    
+
     return resultado;
-  }, [estudiantesRaw, busqueda, faltasCondicion, faltasValor]);
+  }, [estudiantesRaw, busqueda, tipoFiltro, condicionFiltro, valorFiltro]);
 
   return (
     <Layout>
@@ -270,15 +273,31 @@ function AsistenciasEstudiantes() {
                   {/* Separador visual */}
                   <div className="h-8 w-px bg-gray-300 hidden sm:block" />
 
-                  {/* Filtro por % de faltas */}
+                  {/* Filtro por % de faltas / justificado */}
                   <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
-                    <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    <svg
+                      className={`w-4 h-4 ${tipoFiltro === 'faltas' ? 'text-red-500' : 'text-blue-500'}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      {tipoFiltro === 'faltas' ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      )}
                     </svg>
-                    <span className="text-xs font-medium text-gray-500 whitespace-nowrap">Faltas</span>
                     <select
-                      value={faltasCondicion}
-                      onChange={e => setFaltasCondicion(e.target.value)}
+                      value={tipoFiltro}
+                      onChange={e => setTipoFiltro(e.target.value)}
+                      className="text-xs font-medium text-gray-700 bg-transparent focus:outline-none cursor-pointer"
+                    >
+                      <option value="faltas">Faltas</option>
+                      <option value="justificado">Justificado</option>
+                    </select>
+                    <select
+                      value={condicionFiltro}
+                      onChange={e => setCondicionFiltro(e.target.value)}
                       className="text-sm font-medium text-gray-700 bg-transparent focus:outline-none cursor-pointer"
                     >
                       <option value=">">&gt;</option>
@@ -289,15 +308,17 @@ function AsistenciasEstudiantes() {
                       type="number"
                       min="0"
                       max="100"
-                      value={faltasValor}
-                      onChange={e => setFaltasValor(e.target.value)}
+                      value={valorFiltro}
+                      onChange={e => setValorFiltro(e.target.value)}
                       placeholder="0"
-                      className="w-14 text-sm text-center text-gray-700 bg-gray-50 border border-gray-200 rounded-lg py-1 focus:outline-none focus:ring-2 focus:ring-red-400"
+                      className={`w-14 text-sm text-center text-gray-700 bg-gray-50 border border-gray-200 rounded-lg py-1 focus:outline-none focus:ring-2 ${
+                        tipoFiltro === 'faltas' ? 'focus:ring-red-400' : 'focus:ring-blue-400'
+                      }`}
                     />
                     <span className="text-sm text-gray-500">%</span>
-                    {faltasValor !== '' && (
+                    {valorFiltro !== '' && (
                       <button
-                        onClick={() => setFaltasValor('')}
+                        onClick={() => setValorFiltro('')}
                         className="ml-1 text-gray-400 hover:text-gray-600"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -319,10 +340,10 @@ function AsistenciasEstudiantes() {
                       </h2>
                       {!loadingEst && (
                         <p className="text-xs text-gray-400 mt-0.5">
-                          {estudiantes.length} estudiantes {(busqueda || faltasValor !== '') && '(filtrados)'}
-                          {faltasValor !== '' && (
-                            <span className="ml-1 text-red-400">
-                              · Faltas {faltasCondicion} {faltasValor}%
+                          {estudiantes.length} estudiantes {(busqueda || valorFiltro !== '') && '(filtrados)'}
+                          {valorFiltro !== '' && (
+                            <span className={`ml-1 ${tipoFiltro === 'faltas' ? 'text-red-400' : 'text-blue-400'}`}>
+                              · {tipoFiltro === 'faltas' ? 'Faltas' : 'Justificado'} {condicionFiltro} {valorFiltro}%
                             </span>
                           )}
                         </p>

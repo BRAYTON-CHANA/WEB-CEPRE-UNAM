@@ -20,6 +20,7 @@ export function useEstudiantesPorGrupo(idGrupo) {
             ID_POSTULANTE:  row.ID_POSTULANTE,
             NOMBRES:        row.NOMBRES,
             APELLIDOS:      row.APELLIDOS,
+            ID_GRUPO:       row.ID_GRUPO,
             totalSesiones:  Number(row.TOTAL_SESIONES)    || 0,
             asistio:        Number(row.TOTAL_ASISTIO)     || 0,
             tardanza:       Number(row.TOTAL_TARDANZA)    || 0,
@@ -31,6 +32,9 @@ export function useEstudiantesPorGrupo(idGrupo) {
                                 : null,
             porcentajeFaltas: row.PORCENTAJE_FALTAS != null
                                 ? Number(row.PORCENTAJE_FALTAS)
+                                : null,
+            porcentajeJustificacion: row.PORCENTAJE_JUSTIFICACION != null
+                                ? Number(row.PORCENTAJE_JUSTIFICACION)
                                 : null,
           }))
           .sort((a, b) => a.APELLIDOS.localeCompare(b.APELLIDOS));

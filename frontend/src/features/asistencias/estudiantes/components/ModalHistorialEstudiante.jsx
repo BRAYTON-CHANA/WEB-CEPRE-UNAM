@@ -25,6 +25,20 @@ const ESTADOS = [
   { value: 'JUSTIFICADO', label: 'J', fullLabel: 'Justificado', cls: 'bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200' },
 ];
 
+function StatFilterButton({ count, label, active, baseCls, activeCls, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${
+        active ? activeCls : baseCls
+      } ${active ? 'shadow-sm' : 'hover:shadow-sm'}`}
+    >
+      {count} {label}
+    </button>
+  );
+}
+
 function EstadoSelect({ value, onChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef(null);
@@ -123,6 +137,7 @@ export function ModalHistorialEstudiante({ estudiante, idGrupo, nombreGrupo, onC
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notification, setNotification] = useState({ isOpen: false, type: '', title: '', message: '' });
+  const [filtroEstado, setFiltroEstado] = useState(null); // null = todos
 
   const pendingCount = Object.keys(pending).length;
 
@@ -149,6 +164,14 @@ export function ModalHistorialEstudiante({ estudiante, idGrupo, nombreGrupo, onC
       sinMarcar: all.filter(s => !s._estado).length,
     };
   }, [sesiones, pending]);
+
+  const sesionesFiltradas = useMemo(() => {
+    if (filtroEstado === null) return sesiones;
+    if (filtroEstado === 'SIN_MARCAR') {
+      return sesiones.filter(s => !getEstado(s));
+    }
+    return sesiones.filter(s => getEstado(s) === filtroEstado);
+  }, [sesiones, filtroEstado, getEstado]);
 
   const handleMarcarVaciosAsistio = useCallback(() => {
     const nuevos = {};
@@ -237,22 +260,57 @@ export function ModalHistorialEstudiante({ estudiante, idGrupo, nombreGrupo, onC
           {/* Stats bar */}
           {!loading && sesiones.length > 0 && (
             <div className="px-6 py-2.5 border-b border-gray-100 flex items-center gap-3 flex-wrap shrink-0 bg-gray-50">
-              <span className="text-xs font-semibold text-gray-500">{statsLine.total} sesiones</span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                {statsLine.asistio} asistió
-              </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                {statsLine.tardanza} tardanza
-              </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
-                {statsLine.falta} faltas
-              </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                {statsLine.justificado} justificados
-              </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-                {statsLine.sinMarcar} sin marcar
-              </span>
+              <button
+                type="button"
+                onClick={() => setFiltroEstado(null)}
+                className={`text-xs font-semibold transition-all ${
+                  filtroEstado === null
+                    ? 'text-gray-700 underline decoration-2 underline-offset-4'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {statsLine.total} sesiones
+              </button>
+              <StatFilterButton
+                count={statsLine.asistio}
+                label="asistió"
+                active={filtroEstado === 'ASISTIO'}
+                baseCls="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                activeCls="ring-2 ring-emerald-400 bg-emerald-100"
+                onClick={() => setFiltroEstado(prev => prev === 'ASISTIO' ? null : 'ASISTIO')}
+              />
+              <StatFilterButton
+                count={statsLine.tardanza}
+                label="tardanza"
+                active={filtroEstado === 'TARDANZA'}
+                baseCls="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                activeCls="ring-2 ring-amber-400 bg-amber-100"
+                onClick={() => setFiltroEstado(prev => prev === 'TARDANZA' ? null : 'TARDANZA')}
+              />
+              <StatFilterButton
+                count={statsLine.falta}
+                label="faltas"
+                active={filtroEstado === 'FALTA'}
+                baseCls="bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+                activeCls="ring-2 ring-red-400 bg-red-100"
+                onClick={() => setFiltroEstado(prev => prev === 'FALTA' ? null : 'FALTA')}
+              />
+              <StatFilterButton
+                count={statsLine.justificado}
+                label="justificados"
+                active={filtroEstado === 'JUSTIFICADO'}
+                baseCls="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                activeCls="ring-2 ring-blue-400 bg-blue-100"
+                onClick={() => setFiltroEstado(prev => prev === 'JUSTIFICADO' ? null : 'JUSTIFICADO')}
+              />
+              <StatFilterButton
+                count={statsLine.sinMarcar}
+                label="sin marcar"
+                active={filtroEstado === 'SIN_MARCAR'}
+                baseCls="bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200"
+                activeCls="ring-2 ring-gray-400 bg-gray-200"
+                onClick={() => setFiltroEstado(prev => prev === 'SIN_MARCAR' ? null : 'SIN_MARCAR')}
+              />
               {statsLine.total > 0 && (
                 <>
                   <span className="text-gray-200">|</span>
@@ -283,6 +341,17 @@ export function ModalHistorialEstudiante({ estudiante, idGrupo, nombreGrupo, onC
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <p className="text-gray-400 text-sm font-medium">No hay sesiones registradas para este estudiante</p>
               </div>
+            ) : sesionesFiltradas.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <p className="text-gray-400 text-sm font-medium">No hay sesiones con el filtro seleccionado</p>
+                <button
+                  type="button"
+                  onClick={() => setFiltroEstado(null)}
+                  className="mt-3 text-sm font-medium text-emerald-600 hover:text-emerald-700"
+                >
+                  Mostrar todas
+                </button>
+              </div>
             ) : (
               <table className="w-full text-sm border-collapse">
                 <thead className="sticky top-0 z-10 bg-white">
@@ -295,7 +364,7 @@ export function ModalHistorialEstudiante({ estudiante, idGrupo, nombreGrupo, onC
                   </tr>
                 </thead>
                 <tbody>
-                  {sesiones.map((s, idx) => {
+                  {sesionesFiltradas.map((s, idx) => {
                     const estadoActual = getEstado(s);
                     const changed = pending.hasOwnProperty(s.ID_ASISTENCIA);
                     return (
