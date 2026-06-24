@@ -3,6 +3,7 @@
   "installCommand": "npm install && cd frontend && npm install",
   "framework": "vite",
   "devCommand": "cd frontend && npm run dev -- --port $PORT",
+  "outputDirectory": "frontend/dist",
   "rewrites": [
     {
       "source": "/((?!api/|@|.*\\..*$).*)",
