@@ -19,6 +19,9 @@ frontend/build/
 # Vercel
 .vercel/
 
+# Backend (solo referencia local / SQLs; el API real es api/ en root)
+backend/
+
 # Logs
 *.log
 npm-debug.log*
@@ -35,6 +38,3 @@ desktop.ini
 .idea/
 *.swp
 *.swo
-
-.vercel
-.env*.local
