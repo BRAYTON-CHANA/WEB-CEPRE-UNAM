@@ -5,6 +5,7 @@ import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectI
 import { tableConfig, getTableLevelConfigs } from '@/features/configuracion/postulantes/config/tableConfig';
 import { postulanteFormFields, postulanteValidation, postulanteModalConfig } from '@/features/configuracion/postulantes/config/formConfig';
 import CsvImportModal from '@/features/configuracion/postulantes/components/CsvImportModal';
+import { exportPostulantes } from '@/features/configuracion/postulantes/utils/exportPostulantes';
 
 /**
  * Postulantes — CRUD 3 niveles con selector de período
@@ -175,7 +176,7 @@ function PostulantesConfig() {
                 formData={{}}
               />
             </div>
-            <div className="pt-6">
+            <div className="pt-6 flex items-center gap-2">
               <button
                 onClick={() => setCsvModalOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -185,6 +186,17 @@ function PostulantesConfig() {
                 </svg>
                 <span>Importar CSV</span>
               </button>
+              {selectedPeriodo && (
+                <button
+                  onClick={() => exportPostulantes(records, selectedPeriodo)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  <span>Exportar Excel</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

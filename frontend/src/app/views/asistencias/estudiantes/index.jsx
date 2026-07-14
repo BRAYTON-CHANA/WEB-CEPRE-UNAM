@@ -17,7 +17,7 @@ function AsistenciasEstudiantes() {
   const [grupoActivo, setGrupoActivo] = useState(null);
   const [modoTodos, setModoTodos] = useState(false);
   const [busqueda, setBusqueda] = useState('');
-  const [tipoFiltro, setTipoFiltro] = useState('faltas'); // 'faltas' | 'justificado'
+  const [tipoFiltro, setTipoFiltro] = useState('faltas'); // 'faltas' | 'justificado' | 'total'
   const [condicionFiltro, setCondicionFiltro] = useState('>'); // '>', '<', '='
   const [valorFiltro, setValorFiltro] = useState('');
   const [estudianteModal, setEstudianteModal] = useState(null);
@@ -109,12 +109,18 @@ function AsistenciasEstudiantes() {
       );
     }
     
-    // Filtro por porcentaje de faltas o justificado
+    // Filtro por porcentaje de faltas, justificado o total
     if (valorFiltro !== '' && !isNaN(Number(valorFiltro))) {
       const valor = Number(valorFiltro);
-      const campo = tipoFiltro === 'faltas' ? 'porcentajeFaltas' : 'porcentajeJustificacion';
       resultado = resultado.filter(est => {
-        const pct = est[campo] ?? 0;
+        let pct;
+        if (tipoFiltro === 'faltas') {
+          pct = est.porcentajeFaltas ?? 0;
+        } else if (tipoFiltro === 'justificado') {
+          pct = est.porcentajeJustificacion ?? 0;
+        } else {
+          pct = (est.porcentajeFaltas ?? 0) + (est.porcentajeJustificacion ?? 0);
+        }
         if (condicionFiltro === '>') return pct > valor;
         if (condicionFiltro === '<') return pct < valor;
         if (condicionFiltro === '=') return pct === valor;
@@ -273,18 +279,22 @@ function AsistenciasEstudiantes() {
                   {/* Separador visual */}
                   <div className="h-8 w-px bg-gray-300 hidden sm:block" />
 
-                  {/* Filtro por % de faltas / justificado */}
+                  {/* Filtro por % de faltas / justificado / total */}
                   <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
                     <svg
-                      className={`w-4 h-4 ${tipoFiltro === 'faltas' ? 'text-red-500' : 'text-blue-500'}`}
+                      className={`w-4 h-4 ${
+                        tipoFiltro === 'faltas' ? 'text-red-500' : tipoFiltro === 'justificado' ? 'text-blue-500' : 'text-purple-500'
+                      }`}
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
                     >
                       {tipoFiltro === 'faltas' ? (
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      ) : (
+                      ) : tipoFiltro === 'justificado' ? (
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       )}
                     </svg>
                     <select
@@ -294,6 +304,7 @@ function AsistenciasEstudiantes() {
                     >
                       <option value="faltas">Faltas</option>
                       <option value="justificado">Justificado</option>
+                      <option value="total">Total%</option>
                     </select>
                     <select
                       value={condicionFiltro}
@@ -307,12 +318,12 @@ function AsistenciasEstudiantes() {
                     <input
                       type="number"
                       min="0"
-                      max="100"
+                      max={tipoFiltro === 'total' ? 200 : 100}
                       value={valorFiltro}
                       onChange={e => setValorFiltro(e.target.value)}
                       placeholder="0"
                       className={`w-14 text-sm text-center text-gray-700 bg-gray-50 border border-gray-200 rounded-lg py-1 focus:outline-none focus:ring-2 ${
-                        tipoFiltro === 'faltas' ? 'focus:ring-red-400' : 'focus:ring-blue-400'
+                        tipoFiltro === 'faltas' ? 'focus:ring-red-400' : tipoFiltro === 'justificado' ? 'focus:ring-blue-400' : 'focus:ring-purple-400'
                       }`}
                     />
                     <span className="text-sm text-gray-500">%</span>
@@ -342,8 +353,10 @@ function AsistenciasEstudiantes() {
                         <p className="text-xs text-gray-400 mt-0.5">
                           {estudiantes.length} estudiantes {(busqueda || valorFiltro !== '') && '(filtrados)'}
                           {valorFiltro !== '' && (
-                            <span className={`ml-1 ${tipoFiltro === 'faltas' ? 'text-red-400' : 'text-blue-400'}`}>
-                              · {tipoFiltro === 'faltas' ? 'Faltas' : 'Justificado'} {condicionFiltro} {valorFiltro}%
+                            <span className={`ml-1 ${
+                              tipoFiltro === 'faltas' ? 'text-red-400' : tipoFiltro === 'justificado' ? 'text-blue-400' : 'text-purple-400'
+                            }`}>
+                              · {tipoFiltro === 'faltas' ? 'Faltas' : tipoFiltro === 'justificado' ? 'Justificado' : 'Total%'} {condicionFiltro} {valorFiltro}%
                             </span>
                           )}
                         </p>

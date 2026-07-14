@@ -195,6 +195,26 @@ const renderTotalRow = (ws, startRow, totalHoras) => {
   return startRow + 1;
 };
 
+const renderTotalGeneral = (ws, startRow, totalHoras) => {
+  ws.mergeCells(startRow, 2, startRow, NUM_COLS - 1);
+  const label = ws.getCell(startRow, 2);
+  label.value = 'TOTAL GENERAL DE HORAS ACADÉMICAS';
+  label.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+  label.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+  label.alignment = { vertical: 'middle', horizontal: 'right', indent: 1 };
+  label.border = thinBorder;
+  const val = ws.getCell(startRow, NUM_COLS);
+  val.value = Math.round(totalHoras * 100) / 100;
+  val.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+  val.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+  val.alignment = { vertical: 'middle', horizontal: 'center' };
+  val.border = thinBorder;
+  ws.getCell(startRow, NUM_COLS + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+  ws.getCell(startRow, NUM_COLS + 1).border = thinBorder;
+  ws.getRow(startRow).height = 26;
+  return startRow + 1;
+};
+
 const renderFooter = (ws, startRow, docenteNombre, dni) => {
   // Fila de separación antes de las firmas
   ws.getRow(startRow).height = 16;
@@ -253,6 +273,8 @@ const buildSheetForCurso = (workbook, docenteNombre, periodo, cursoNombre, grupo
   ws.getRow(currentRow).height = 8;
   currentRow++;
 
+  let grandTotal = 0;
+
   chunks.forEach((chunk, chunkIdx) => {
     const pageStartRow = currentRow;
 
@@ -277,10 +299,10 @@ const buildSheetForCurso = (workbook, docenteNombre, periodo, cursoNombre, grupo
         fmtFecha(s.FECHA),
         s.NOMBRE_TURNO || '',
         s.NOMBRE_GRUPO || s.CODIGO_GRUPO || '',
-        fmtHora(s.HORA_ENTRADA_REAL),
+        fmtHora(s.HORA_INICIO),
         '',
         '',
-        fmtHora(s.HORA_SALIDA_REAL),
+        fmtHora(s.HORA_FIN),
         horas || '',
         '',
       ];
@@ -295,8 +317,16 @@ const buildSheetForCurso = (workbook, docenteNombre, periodo, cursoNombre, grupo
       currentRow++;
     });
 
+    // Acumular gran total
+    grandTotal += chunkHoras;
+
     // Total parcial
     currentRow = renderTotalRow(ws, currentRow, chunkHoras);
+
+    // Total general solo en la última página, antes del footer
+    if (chunkIdx === chunks.length - 1) {
+      currentRow = renderTotalGeneral(ws, currentRow, grandTotal);
+    }
 
     // Footer (ya incluye fila de separación interna)
     currentRow = renderFooter(ws, currentRow, docenteNombre, dni);
