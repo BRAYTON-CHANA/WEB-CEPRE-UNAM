@@ -32,17 +32,31 @@ export default async function handler(req, res) {
     return;
   }
 
-  const path = Array.isArray(req.query.path)
-    ? req.query.path
-    : (req.query.path ? [req.query.path] : []);
+  const rawPath = req.query.path;
+  let path = [];
+  if (Array.isArray(rawPath)) {
+    path = rawPath;
+  } else if (typeof rawPath === 'string' && rawPath) {
+    path = rawPath.split('/');
+  }
+
+  if (!path.length && req.url) {
+    const urlParts = req.url.split('?')[0].split('/').filter(Boolean);
+    const authIdx = urlParts.indexOf('auth');
+    path = authIdx >= 0 ? urlParts.slice(authIdx + 1) : urlParts;
+  }
+
+  path = path.filter(Boolean);
+
+  console.log('[auth] req.url:', req.url, 'query:', req.query, 'path:', path);
 
   if (path.length === 1 && handlers[path[0]]) {
     return handlers[path[0]](req, res);
   }
 
-  if (path.length === 2 && path[0] === 'password-reset' && passwordResetHandlers[path[1]]) {
+  if (path.length >= 2 && path[0] === 'password-reset' && passwordResetHandlers[path[1]]) {
     return passwordResetHandlers[path[1]](req, res);
   }
 
-  return res.status(404).json({ success: false, message: 'Ruta no encontrada' });
+  return res.status(404).json({ success: false, message: 'Ruta no encontrada', debug: { url: req.url, query: req.query, parsedPath: path } });
 }
