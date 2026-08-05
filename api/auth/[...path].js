@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const rawPath = req.query.path;
+  const rawPath = req.query['...path'] || req.query.path;
   let path = [];
   if (Array.isArray(rawPath)) {
     path = rawPath;
