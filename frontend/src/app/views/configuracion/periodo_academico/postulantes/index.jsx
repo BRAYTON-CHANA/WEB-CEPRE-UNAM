@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/shared/components/crud';
-import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
+import { ConfigLayout } from '@/features/layout';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
 import { tableConfig, getTableLevelConfigs } from '@/features/configuracion/postulantes/config/tableConfig';
 import { postulanteFormFields, postulanteValidation, postulanteModalConfig } from '@/features/configuracion/postulantes/config/formConfig';
@@ -149,7 +149,7 @@ function PostulantesConfig() {
   ];
 
   return (
-    <LayoutWithSidebar>
+    <ConfigLayout>
       <div className="px-4 py-6 space-y-6">
         {/* Título - siempre visible */}
         <div>
@@ -231,7 +231,7 @@ function PostulantesConfig() {
           </div>
         )}
       </div>
-    </LayoutWithSidebar>
+    </ConfigLayout>
   );
 }
 

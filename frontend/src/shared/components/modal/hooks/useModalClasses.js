@@ -19,7 +19,6 @@ export const useModalClasses = ({
   headerClassName,
   bodyClassName,
   footerClassName,
-  widthClass,
   headerGradient,
   headerPattern
 }) => {
@@ -43,10 +42,9 @@ export const useModalClasses = ({
       customSize,
       animation,
       fullscreenOnMobile,
-      className,
-      widthClass
+      className
     }), 
-    [backgroundColor, border, shadow, size, customSize, animation, fullscreenOnMobile, className, widthClass]
+    [backgroundColor, border, shadow, size, customSize, animation, fullscreenOnMobile, className]
   );
 
   const headerClasses = useMemo(() => 

@@ -1,9 +1,13 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useAuthContext } from '@/shared/context/AuthContext';
 import '@/shared/theme/globals.css';
 
 // Import pages
 import Home from '@/app/views/home';
+import Login from '@/app/views/login';
+import RecoverPassword from '@/features/login/views/RecoverPassword';
+import ChangePassword from '@/features/login/views/ChangePassword';
 import Modules from '@/app/views/modules';
 import TestDatabase from '@/app/views/modules/test-database';
 import TestTable from '@/app/views/modules/test-table';
@@ -17,21 +21,28 @@ import TestMultiLevelTable from '@/app/views/modules/test-multilevelTable';
 import InfraestructuraConfig from '@/app/views/configuracion/infraestructura';
 import PeriodosConfig from '@/app/views/configuracion/periodo_academico/periodos';
 import CursosConfig from '@/app/views/configuracion/academico/cursos';
-import AreasYCursosConfig from '@/app/views/configuracion/academico/areas_cursos';
-import DocentesYCursosConfig from '@/app/views/configuracion/academico/docentes_cursos';
-import HorariosBloquesConfig from '@/app/views/configuracion/horarios/horarios_bloques';
-import ConfigTurnosPage from '@/app/views/configuracion/horarios/turnos';
+import AreasConfig from '@/app/views/configuracion/academico/areas';
+import DocentesConfig from '@/app/views/configuracion/academico/docentes';
+import HorariosConfig from '@/app/views/configuracion/horarios';
 import PlanesAcademicosConfig from '@/app/views/configuracion/academico/planes_academicos';
 import PlazasDocentesConfig from '@/app/views/configuracion/periodo_academico/plazas_docentes';
-import GruposConfig from '@/app/views/configuracion/grupos';
+import GruposConfig from '@/app/views/configuracion/periodo_academico/grupos';
 import PostulantesConfig from '@/app/views/configuracion/periodo_academico/postulantes';
 import CarrerasConfig from '@/app/views/configuracion/academico/carreras';
+import CorreosConfig from '@/app/views/configuracion/correos/correos';
+import TiposCorreoConfig from '@/app/views/configuracion/correos/tipos';
+import PasswordResetConfig from '@/app/views/configuracion/correos/password-reset';
+import CuentasSmtpConfig from '@/app/views/configuracion/correos/cuentas-smtp';
+import AsignacionCuentasSedesConfig from '@/app/views/configuracion/correos/asignacion-cuentas-sedes';
 import ProgramacionGrupoConfig from '@/app/views/configuracion/periodo_academico/programacion_grupo';
 // import ProgramacionPlazasDocentes from '@/app/views/configuracion/programacion_plazas_docentes'; // TEMP: En mantenimiento
 import ReportesIndex from '@/app/views/configuracion/reportes';
 import ReportesGrupos from '@/app/views/configuracion/reportes/grupos';
 import ReportesPlazas from '@/app/views/configuracion/reportes/plazas';
 import ReportesDocentes from '@/app/views/configuracion/reportes/docentes';
+import UsuariosConfig from '@/app/views/configuracion/sistema/usuarios';
+import PermisosConfig from '@/app/views/configuracion/sistema/permisos';
+import RolesConfig from '@/app/views/configuracion/sistema/roles';
 
 
 import Asistencias from '@/app/views/asistencias';
@@ -47,9 +58,33 @@ import Configuracion from '@/app/views/configuracion';
 
 
 function App() {
+  const { isAuthenticated, user } = useAuthContext();
+  const location = useLocation();
+
+  const publicRoutes = ['/login', '/recuperar-contrasena'];
+  const authRoutes = ['/cambiar-contrasena'];
+
+  const requiresPasswordChange = user?.REQUIERE_CAMBIO_PASSWORD || user?.requiereCambioPassword;
+
+  if (isAuthenticated && requiresPasswordChange && !authRoutes.includes(location.pathname)) {
+    return <Navigate to="/cambiar-contrasena" replace />;
+  }
+
+  if (!isAuthenticated && !publicRoutes.includes(location.pathname)) {
+    sessionStorage.setItem('redirect_after_login', location.pathname + location.search);
+    return <Navigate to="/login" replace />;
+  }
+
+  if (isAuthenticated && publicRoutes.includes(location.pathname) && !requiresPasswordChange) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/recuperar-contrasena" element={<RecoverPassword />} />
+      <Route path="/cambiar-contrasena" element={<ChangePassword />} />
       <Route path="/modules" element={<Modules />} />
       <Route path="/modules/test-database" element={<TestDatabase />} />
       <Route path="/modules/test-table" element={<TestTable />} />
@@ -72,22 +107,32 @@ function App() {
       <Route path="/configuracion" element={<Configuracion />} />
 
       <Route path="/configuracion/infraestructura" element={<InfraestructuraConfig />} />
-     
-      <Route path="/configuracion/cursos" element={<CursosConfig />} />
-      <Route path="/configuracion/areas_cursos" element={<AreasYCursosConfig />} />
-      <Route path="/configuracion/carreras" element={<CarrerasConfig />} />
-      <Route path="/configuracion/docentes_cursos" element={<DocentesYCursosConfig />} />
-      <Route path="/configuracion/planes_academicos" element={<PlanesAcademicosConfig />} />
-     
-      <Route path="/configuracion/horarios_bloques" element={<HorariosBloquesConfig />} />
-      <Route path="/configuracion/turnos" element={<ConfigTurnosPage />} />
-      <Route path="/configuracion/plazas_docentes" element={<PlazasDocentesConfig />} />
-      <Route path="/configuracion/grupos" element={<GruposConfig />} />
-      <Route path="/configuracion/postulantes" element={<PostulantesConfig />} />
 
-      <Route path="/configuracion/periodos" element={<PeriodosConfig />} />
-      <Route path="/configuracion/programacion_grupo" element={<ProgramacionGrupoConfig />} />
-      {/* <Route path="/configuracion/programacion_plazas_docentes" element={<ProgramacionPlazasDocentes />} /> TEMP: En mantenimiento */}
+      <Route path="/configuracion/academico/areas" element={<AreasConfig />} />
+      <Route path="/configuracion/academico/cursos" element={<CursosConfig />} />
+      <Route path="/configuracion/academico/carreras" element={<CarrerasConfig />} />
+      <Route path="/configuracion/academico/docentes" element={<DocentesConfig />} />
+      <Route path="/configuracion/academico/planes_academicos" element={<PlanesAcademicosConfig />} />
+
+      <Route path="/configuracion/horarios" element={<HorariosConfig />} />
+
+      <Route path="/configuracion/periodo_academico/periodos" element={<PeriodosConfig />} />
+      <Route path="/configuracion/periodo_academico/plazas_docentes" element={<PlazasDocentesConfig />} />
+      <Route path="/configuracion/periodo_academico/grupos" element={<GruposConfig />} />
+      <Route path="/configuracion/periodo_academico/postulantes" element={<PostulantesConfig />} />
+      <Route path="/configuracion/periodo_academico/programacion_grupo" element={<ProgramacionGrupoConfig />} />
+      {/* <Route path="/configuracion/periodo_academico/programacion_plazas_docentes" element={<ProgramacionPlazasDocentes />} /> TEMP: En mantenimiento */}
+
+      <Route path="/configuracion/sistema/usuarios" element={<UsuariosConfig />} />
+      <Route path="/configuracion/sistema/permisos" element={<PermisosConfig />} />
+      <Route path="/configuracion/sistema/roles" element={<RolesConfig />} />
+
+      <Route path="/configuracion/correos/correos" element={<CorreosConfig />} />
+      <Route path="/configuracion/correos/tipos" element={<TiposCorreoConfig />} />
+      <Route path="/configuracion/correos/password-reset" element={<PasswordResetConfig />} />
+      <Route path="/configuracion/correos/cuentas-smtp" element={<CuentasSmtpConfig />} />
+      <Route path="/configuracion/correos/asignacion-cuentas-sedes" element={<AsignacionCuentasSedesConfig />} />
+
       <Route path="/configuracion/reportes" element={<ReportesIndex />} />
       <Route path="/configuracion/reportes/grupos" element={<ReportesGrupos />} />
       <Route path="/configuracion/reportes/plazas" element={<ReportesPlazas />} />

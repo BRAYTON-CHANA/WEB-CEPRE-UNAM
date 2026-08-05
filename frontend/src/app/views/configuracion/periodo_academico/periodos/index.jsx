@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/shared/components/crud';
-import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
+import { ConfigLayout } from '@/features/layout';
 import { tableConfig, getTableLevelConfigs } from '@/features/configuracion/periodos/config/tableConfig';
 import { periodosFormFields, periodosMultiStep, periodosValidation, periodosModalConfig } from '@/features/configuracion/periodos/config/formConfig';
 import { headerProps, getHeaderActions } from '@/features/configuracion/periodos/config/headerConfig';
@@ -44,7 +44,7 @@ function PeriodosConfig() {
   ];
 
   return (
-    <LayoutWithSidebar>
+    <ConfigLayout>
       <CrudMultiLevelManager
         data={records}
         loading={loading}
@@ -56,7 +56,7 @@ function PeriodosConfig() {
         }}
         crudLevels={crudLevels}
       />
-    </LayoutWithSidebar>
+    </ConfigLayout>
   );
 }
 

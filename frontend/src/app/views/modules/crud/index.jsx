@@ -1,6 +1,6 @@
 import React from 'react';
-import { Crud } from '@/shared/components/crud';
-import Layout from '@/shared/components/layout/Layout';
+import { CrudMultiLevel } from '@/shared/components/crud';
+import { CepreLayout } from '@/features/layout';
 
 /**
  * Módulo CRUD
@@ -16,15 +16,18 @@ function CrudPage() {
   const tableConfig = {
     // Nombre de la tabla/vista para mostrar datos (puede ser un VIEW)
     tableName: 'areas',
-    
-    // Headers para la tabla - define qué columnas se MUESTRAN
-    headers: [
-      { title: 'ID_AREA', type: 'number' },
-      { title: "NOMBRE_AREA",type: 'string'},
-    ],
-    
-    // Columna que identifica el registro (para selección y acciones)
-    boundColumn: 'ID_AREA'
+
+    // Configuración multinivel: un solo nivel con las columnas visibles
+    levelConfigs: [
+      {
+        level: 1,
+        headers: [
+          { title: 'ID_AREA', type: 'number' },
+          { title: 'NOMBRE_AREA', type: 'string' },
+        ],
+        boundColumn: 'ID_AREA'
+      }
+    ]
   };
 
   // ==========================================
@@ -157,19 +160,17 @@ function CrudPage() {
   };
 
   return (
-    <Layout>
-      <Crud
+    <CepreLayout>
+      <CrudMultiLevel
         tableConfig={tableConfig}
         formConfig={formConfig}
-        tableComponentParameters={tableComponentParameters}
         modalConfig={modalConfig}
         headerProps={headerProps}
         footerProps={footerProps}
-        actions={actions}
         onSuccess={handleSuccess}
         onError={handleError}
       />
-    </Layout>
+    </CepreLayout>
   );
 }
 

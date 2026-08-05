@@ -1,8 +1,8 @@
 import React from 'react';
-import { CrudTableMultiLevel } from '@/shared/components/crud';
-import TableMultiLevelRender from '@/shared/components/table/views/TableMultiLevelRender';
+import { CrudMultiLevel } from '@/shared/components/crud';
+import TableMultiLevel from '@/shared/components/table/views/TableMultiLevel';
 import { useTableData } from '@/shared/components/crud/hooks/useTableData';
-import Layout from '@/shared/components/layout/Layout';
+import { CepreLayout } from '@/features/layout';
 
 /**
  * Página de prueba simplificada para TableMultiLevel
@@ -76,24 +76,24 @@ function TestMultiLevelTable() {
   const { records, loading, error } = useTableData(tableConfig.tableName);
 
   return (
-    <Layout>
+    <CepreLayout>
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-4">Test TableMultiLevel - JSON Output</h1>
-        <CrudTableMultiLevel tableConfig={tableConfig} />
+        <CrudMultiLevel tableConfig={tableConfig} />
         
         <div className="mt-8">
-          <h2 className="text-2xl font-bold mb-4">TableMultiLevelRender - Tabla Profesional</h2>
+          <h2 className="text-2xl font-bold mb-4">TableMultiLevel - Tabla Profesional</h2>
           {loading && <div className="p-4">Cargando...</div>}
           {error && <div className="p-4 text-red-600">Error: {error.message}</div>}
           {!loading && !error && (
-            <TableMultiLevelRender 
-              data={records} 
+            <TableMultiLevel
+              data={records}
               levelConfigs={tableConfig.levelConfigs}
             />
           )}
         </div>
       </div>
-    </Layout>
+    </CepreLayout>
   );
 }
 

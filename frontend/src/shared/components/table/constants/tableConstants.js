@@ -13,9 +13,6 @@ export const TABLE_DEFAULTS = {
   // Props opcionales - Funcionalidades
   sortable: false,
   selectable: false,
-  expandable: false,
-  groupable: { active: false, field: null, className: 'bg-white text-black font-semibold' },
-  filterable: false,
   pagination: true,
   
   // Props opcionales - Control de Ancho
@@ -40,7 +37,8 @@ export const TABLE_DEFAULTS = {
   // Props opcionales - Paginación
   itemsPerPage: 10,
   currentPage: 1,
-  onPageChange: null
+  onPageChange: null,
+  paginationClassName: ''
 };
 
 // Clases CSS comunes

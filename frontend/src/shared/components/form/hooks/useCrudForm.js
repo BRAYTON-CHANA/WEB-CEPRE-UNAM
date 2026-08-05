@@ -38,11 +38,14 @@ function crudFormReducer(state, action) {
  * Hook para manejar formularios conectados a backend CRUD
  * Maneja carga de schema, datos de registro (modo edit), y submit
  */
-export const useCrudForm = (tableName, mode = 'create', recordId = null, primaryKey = 'id') => {
+export const useCrudForm = (tableName, mode = 'create', recordId = null, primaryKey = 'id', viewName = null) => {
   const [state, dispatch] = useReducer(crudFormReducer, initialState);
 
+  // Usar viewName para lectura de registro, tabla base para schema y mutaciones
+  const readTable = viewName || tableName;
+
   /**
-   * Cargar el schema de la tabla
+   * Cargar el schema de la tabla base
    */
   const loadSchema = useCallback(async () => {
     try {
@@ -60,7 +63,7 @@ export const useCrudForm = (tableName, mode = 'create', recordId = null, primary
    * Cargar datos de un registro específico (modo edit)
    */
   const loadRecord = useCallback(async (id) => {
-    console.log(`[useCrudForm] loadRecord called:`, { id, mode, tableName, primaryKey });
+    console.log(`[useCrudForm] loadRecord called:`, { id, mode, readTable, primaryKey });
     if (!id || mode !== 'edit') {
       console.log(`[useCrudForm] loadRecord skipped: no id or not edit mode`);
       return null;
@@ -69,8 +72,8 @@ export const useCrudForm = (tableName, mode = 'create', recordId = null, primary
     try {
       dispatch({ type: 'SET_ERROR', payload: null });
       dispatch({ type: 'SET_LOADING', payload: true });
-      console.log(`[useCrudForm] Fetching record ${id} from ${tableName} with primaryKey ${primaryKey}`);
-      const recordData = await db.getById(tableName, id, primaryKey);
+      console.log(`[useCrudForm] Fetching record ${id} from ${readTable} with primaryKey ${primaryKey}`);
+      const recordData = await db.getById(readTable, id, primaryKey);
       console.log(`[useCrudForm] Record loaded:`, recordData);
       dispatch({ type: 'SET_RECORD', payload: recordData });
       return recordData;

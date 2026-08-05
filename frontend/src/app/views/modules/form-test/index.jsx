@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Layout from '@/shared/components/layout/Layout';
+import { CepreLayout } from '@/features/layout';
 import { CrudForm } from '@/shared/components/form';
 import { useTableData } from '@/shared/components/crud/hooks/useTableData';
 import Table from '@/shared/components/table/views/Table';
@@ -171,7 +171,7 @@ function FormTest() {
   };
 
   return (
-    <Layout>
+    <CepreLayout>
       <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
         <h1 className="text-2xl font-bold mb-6">📝 CrudForm Test</h1>
 
@@ -364,7 +364,7 @@ function FormTest() {
           </div>
         )}
       </div>
-    </Layout>
+    </CepreLayout>
   );
 }
 

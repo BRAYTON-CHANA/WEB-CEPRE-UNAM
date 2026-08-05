@@ -33,13 +33,13 @@ export const grupoFormFields = [
     placeholder: 'Seleccione un área'
   },
   {
-    name: 'ID_TURNO',
+    name: 'ID_HORARIO',
     type: 'reference-select',
-    label: 'Turno',
+    label: 'Horario',
     required: true,
-    referenceTable: 'TURNOS',
-    referenceField: 'ID_TURNO',
-    referenceQuery: '{NOMBRE_TURNO}',
+    referenceTable: 'HORARIOS',
+    referenceField: 'ID_HORARIO',
+    referenceQuery: '{NOMBRE_HORARIO}',
     referenceFilters: [
       { field: 'ID_SEDE', op: '=', value: '{ID_SEDE}' }
     ],
@@ -48,7 +48,7 @@ export const grupoFormFields = [
         { field: 'ID_SEDE', op: '=', value: '' }
       ]
     },
-    placeholder: 'Seleccione un turno (requiere sede seleccionada)'
+    placeholder: 'Seleccione un horario (requiere sede seleccionada)'
   },
   {
     name: 'ID_AULA',
@@ -154,8 +154,8 @@ export const grupoValidation = {
   ID_AREA: {
     required: { value: true, message: 'El área es obligatoria' }
   },
-  ID_TURNO: {
-    required: { value: true, message: 'El turno es obligatorio' }
+  ID_HORARIO: {
+    required: { value: true, message: 'El horario es obligatorio' }
   },
   ID_PLAN: {
     required: { value: true, message: 'El plan académico es obligatorio' }

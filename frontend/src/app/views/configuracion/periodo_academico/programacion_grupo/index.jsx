@@ -1,5 +1,5 @@
 import React from 'react';
-import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
+import { ConfigLayout } from '@/features/layout';
 import ScheduleTemplate from '@/shared/components/schedule/components/ScheduleTemplate';
 import GrupoSelector from '@/features/configuracion/programacion_grupo/components/GrupoSelector';
 import PlantillaToolbar from '@/features/configuracion/programacion_grupo/components/PlantillaToolbar';
@@ -41,7 +41,7 @@ function ProgramacionGrupoConfig() {
   } = useProgramacionGrupo();
 
   return (
-    <LayoutWithSidebar>
+    <ConfigLayout>
       <div className="px-4 py-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Programación de Grupo</h1>
@@ -196,7 +196,7 @@ function ProgramacionGrupoConfig() {
         grupoNombre={grupoNombre}
       />
 
-    </LayoutWithSidebar>
+    </ConfigLayout>
   );
 }
 

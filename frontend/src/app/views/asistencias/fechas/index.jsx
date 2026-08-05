@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import Layout from '@/shared/components/layout/Layout';
+import { CepreLayout } from '@/features/layout';
 import { Link } from 'react-router-dom';
 import { FechaCard } from '@/features/asistencias/fechas/components/FechaCard';
 import { VistaFecha } from '@/features/asistencias/fechas/VistaFecha';
@@ -76,7 +76,7 @@ export default function AsistenciasPorFecha() {
 
   if (fechaSeleccionada) {
     return (
-      <Layout>
+      <CepreLayout>
         <div className="min-h-screen py-10" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
           <div className="max-w-screen-2xl mx-auto px-6">
             <VistaFecha
@@ -86,12 +86,12 @@ export default function AsistenciasPorFecha() {
             />
           </div>
         </div>
-      </Layout>
+      </CepreLayout>
     );
   }
 
   return (
-    <Layout>
+    <CepreLayout>
       <div className="min-h-screen py-10" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
         <div className="max-w-screen-2xl mx-auto px-6">
 
@@ -215,6 +215,6 @@ export default function AsistenciasPorFecha() {
 
         </div>
       </div>
-    </Layout>
+    </CepreLayout>
   );
 }

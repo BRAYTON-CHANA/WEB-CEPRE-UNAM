@@ -18,7 +18,7 @@ import { useCrudForms } from '../hooks/useCrudForms';
  * @param {Object} formMultiStep - Config multi-step
  * @param {Object} formValidation - Validaciones
  * @param {boolean} confirmSubmit - Confirmar antes de submit
- * @param {string} modalWidthClass - Clase CSS del ancho del modal (ej: 'w-1/2')
+ * @param {string} modalSize - Tamaño del modal: 'sm' | 'md' | 'lg' | 'xl' | 'full' (default: 'lg')
  * @param {string} createTitle - Título modal crear
  * @param {string} editTitle - Título modal editar
  * @param {string} deleteTitle - Título modal confirmación eliminar
@@ -31,12 +31,13 @@ import { useCrudForms } from '../hooks/useCrudForms';
 function CrudFormsManager({
   tableName,
   primaryKey = 'ID',
+  viewName = null,
   formFields = [],
   formLayout = null,
   formMultiStep,
   formValidation,
   confirmSubmit = true,
-  modalWidthClass = 'w-1/2',
+  modalSize = 'lg',
   createTitle = 'Crear Nuevo Registro',
   editTitle = 'Editar Registro',
   deleteTitle = '¿Eliminar registro?',
@@ -44,6 +45,8 @@ function CrudFormsManager({
   onSuccess,
   onError,
   onRefresh,
+  modalBodyClassName = 'p-6',
+  formClassName = '',
   children
 }) {
   const crud = useCrudForms({ tableName, primaryKey, onSuccess, onError, onRefresh });
@@ -71,10 +74,10 @@ function CrudFormsManager({
         isOpen={crud.isCreateOpen}
         onClose={crud.handleCloseCreate}
         title={createTitle}
-        widthClass={modalWidthClass}
+        size={modalSize}
         closeOnOutsideClick={false}
       >
-        <div className="p-6">
+        <div className={modalBodyClassName}>
           <CrudForm
             tableName={tableName}
             mode="create"
@@ -84,6 +87,7 @@ function CrudFormsManager({
             multiStep={formMultiStep}
             confirmSubmit={confirmSubmit}
             validation={formValidation}
+            className={formClassName}
             onSuccess={crud.handleFormSuccess}
             onError={crud.handleFormError}
           />
@@ -95,10 +99,10 @@ function CrudFormsManager({
         isOpen={crud.isEditOpen}
         onClose={crud.handleCloseEdit}
         title={editTitle}
-        widthClass={modalWidthClass}
+        size={modalSize}
         closeOnOutsideClick={false}
       >
-        <div className="p-6">
+        <div className={modalBodyClassName}>
           {crud.selectedRow && (
             <CrudForm
               key={`edit-form-${crud.selectedRow[primaryKey]}`}
@@ -111,6 +115,7 @@ function CrudFormsManager({
               multiStep={formMultiStep}
               confirmSubmit={confirmSubmit}
               validation={formValidation}
+              className={formClassName}
               onSuccess={crud.handleFormSuccess}
               onError={crud.handleFormError}
             />

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
+import { ConfigLayout } from '@/features/layout';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
 import { useTableData } from '@/shared/components/crud/hooks/useTableData';
 import ExportOptionsModal from '@/features/configuracion/reportes/shared/ExportOptionsModal';
@@ -35,7 +35,6 @@ function DocenteCard({ row, onExportExcel, onExportPdf, exportingExcel, exportin
           </h3>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
             {row.DNI && <span className="text-xs text-gray-500">DNI: <span className="font-medium text-gray-700">{row.DNI}</span></span>}
-            {row.TIPO_DOCENTE && <span className="text-xs text-gray-500 capitalize">{row.TIPO_DOCENTE}</span>}
             {sedes.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {sedes.map((s, i) => <Badge key={i} text={s} />)}
@@ -164,7 +163,7 @@ function ReportesDocentes() {
   };
 
   return (
-    <LayoutWithSidebar>
+    <ConfigLayout>
       <div className="px-4 py-6 space-y-6">
 
         {/* ── Header ── */}
@@ -347,7 +346,7 @@ function ReportesDocentes() {
         onCancel={() => setExportModalPending(null)}
         mode="docentes"
       />
-    </LayoutWithSidebar>
+    </ConfigLayout>
   );
 }
 

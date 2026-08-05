@@ -1,10 +1,10 @@
 import React from 'react';
-import Layout from '@/shared/components/layout/Layout';
+import { CepreLayout } from '@/features/layout';
 import { Link } from 'react-router-dom';
 
 function Modules() {
   return (
-    <Layout>
+    <CepreLayout>
       <div className="min-h-screen py-12">
         <div className="container">
           <div className="text-center mb-12">
@@ -223,7 +223,7 @@ function Modules() {
           </div>
         </div>
       </div>
-    </Layout>
+    </CepreLayout>
   );
 }
 

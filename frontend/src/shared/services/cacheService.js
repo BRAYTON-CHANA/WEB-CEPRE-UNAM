@@ -16,8 +16,12 @@ class CacheService {
    * @returns {Function} - Función para desuscribirse
    */
   subscribe(callback) {
+    console.log('[cacheService] ➕ Nuevo listener agregado');
     this.listeners.add(callback);
-    return () => this.listeners.delete(callback);
+    return () => {
+      console.log('[cacheService] ➖ Listener removido');
+      this.listeners.delete(callback);
+    };
   }
 
   /**
@@ -37,6 +41,8 @@ class CacheService {
       all
     };
     
+    console.log('[cacheService] 💥 Invalidando caché', event);
+    
     // Guardar en log para debugging
     this.invalidationLog.push(event);
     if (this.invalidationLog.length > this.maxLogSize) {
@@ -44,6 +50,7 @@ class CacheService {
     }
     
     // Notificar a todos los listeners
+    console.log('[cacheService] 📢 Notificando listeners', { count: this.listeners.size, event });
     this.listeners.forEach(callback => {
       try {
         callback(event);
@@ -57,6 +64,7 @@ class CacheService {
    * Invalidar todos los caches (útil después de cualquier operación CRUD)
    */
   invalidateAll() {
+    console.log('[cacheService] 💥 invalidateAll() llamado');
     this.invalidate({ all: true });
   }
 

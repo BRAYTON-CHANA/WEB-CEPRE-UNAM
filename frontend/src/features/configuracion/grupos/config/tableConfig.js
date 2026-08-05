@@ -35,7 +35,7 @@ export const getTableLevelConfigs = (gruposCrud, handleAddGrupo, handleAsignarPl
       { title: 'CODIGO_GRUPO', type: 'string' },
       //{ title: 'NOMBRE_GRUPO', type: 'string' },
       { title: 'NOMBRE_AREA', type: 'string' },
-      { title: 'NOMBRE_TURNO', type: 'string' },
+      { title: 'NOMBRE_HORARIO', type: 'string' },
       { title: 'NOMBRE_AULA', type: 'string' },
       { title: 'CAPACIDAD_MAXIMA', type: 'number' },
       { title: 'FECHA_INICIO', type: 'string' },

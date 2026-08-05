@@ -9,6 +9,7 @@ import DateTimeInput from '@/shared/components/ui/inputs/DateTimeInput';
 import SelectInput from '@/shared/components/ui/inputs/SelectInput';
 import UniqueSelectInput from '@/shared/components/ui/inputs/UniqueSelectInput';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
+import ReferenceArrayInput from '@/shared/components/ui/inputs/ReferenceArrayInput';
 import FunctionSelectInput from '@/shared/components/ui/inputs/FunctionSelectInput';
 import CascadeSearchInput from '@/shared/components/ui/inputs/CascadeSearchInput';
 import TextAreaInput from '@/shared/components/ui/inputs/TextAreaInput';
@@ -49,6 +50,7 @@ export const INPUT_COMPONENTS = {
   dropdown: SelectInput,  // Alias para select
   'unique-select': UniqueSelectInput,  // Valores únicos de columna
   'reference-select': ReferenceSelectInput,  // Referencias FK con display legible
+  'reference-array': ReferenceArrayInput,    // Referencias FK multi-select con botón add
   'function-select': FunctionSelectInput,  // Funciones SQL parametrizadas
   'cascade-search': CascadeSearchInput,  // Búsqueda en cascada con múltiples selects
 

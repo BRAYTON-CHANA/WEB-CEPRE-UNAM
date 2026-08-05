@@ -1,5 +1,5 @@
 import React from 'react';
-import Layout from '@/shared/components/layout/Layout';
+import { CepreLayout } from '@/features/layout';
 import { Link } from 'react-router-dom';
 
 const MODULES = [
@@ -95,7 +95,7 @@ const REPORT_MODULE = {
 
 function Asistencias() {
   return (
-    <Layout>
+    <CepreLayout>
       <div className="min-h-screen py-14" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
         <div className="max-w-4xl mx-auto px-6">
 
@@ -183,7 +183,7 @@ function Asistencias() {
           </div>
         </div>
       </div>
-    </Layout>
+    </CepreLayout>
   );
 }
 

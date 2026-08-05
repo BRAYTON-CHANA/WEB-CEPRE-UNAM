@@ -27,9 +27,26 @@ const TableActions = ({
     const dropdown = [];
 
     Object.entries(actions).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        dropdown.push(...value.filter(item => item.enabled !== false));
+      if (key === 'direct' && Array.isArray(value)) {
+        direct.push(...value.filter(item => {
+          if (item.enabled === false) return false;
+          if (typeof item.showIf === 'function' && !item.showIf(row)) return false;
+          return true;
+        }));
+      } else if ((key === 'custom' || key === 'dropdown') && Array.isArray(value)) {
+        dropdown.push(...value.filter(item => {
+          if (item.enabled === false) return false;
+          if (typeof item.showIf === 'function' && !item.showIf(row)) return false;
+          return true;
+        }));
+      } else if (Array.isArray(value)) {
+        dropdown.push(...value.filter(item => {
+          if (item.enabled === false) return false;
+          if (typeof item.showIf === 'function' && !item.showIf(row)) return false;
+          return true;
+        }));
       } else if (typeof value === 'object' && value !== null && value.enabled === true) {
+        if (typeof value.showIf === 'function' && !value.showIf(row)) return;
         direct.push({ ...value, key });
       }
     });
@@ -124,18 +141,24 @@ const TableActions = ({
         </div>
       )}
 
-      {/* Botones directos para objetos habilitados */}
-      {directActions.map((action) => (
+      {/* Botones directos */}
+      {directActions.map((action, idx) => (
         <button
-          key={action.key}
+          key={action.key || idx}
           onClick={() => action.onClick(row, rowIndex)}
-          className={`px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5 ${
+          className={`px-2.5 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5 ${
             action.className || 'text-gray-600 hover:bg-gray-100'
           }`}
           title={action.label || action.key}
         >
-          <Icon name={action.icon || 'circle'} className="w-4 h-4" />
-          <span>{action.label || action.key}</span>
+          {action.icon && (
+            typeof action.icon === 'string'
+              ? <Icon name={action.icon} className="w-3.5 h-3.5" />
+              : <span className="w-3.5 h-3.5 flex items-center justify-center">{action.icon}</span>
+          )}
+          {action.showLabel !== false && (
+            <span>{action.label || action.key}</span>
+          )}
         </button>
       ))}
     </div>

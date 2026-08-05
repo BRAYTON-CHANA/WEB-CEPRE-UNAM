@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { MODAL_DEFAULTS } from '../constants/modalConstants';
 import { useModal } from '../hooks/useModal';
 import { useModalClasses } from '../hooks/useModalClasses';
@@ -44,7 +45,6 @@ const Modal = ({
   animation = MODAL_DEFAULTS.animation,
   fullscreenOnMobile = MODAL_DEFAULTS.fullscreenOnMobile,
   className = '',
-  widthClass = 'w-auto',
   
   // Accesibilidad
   ariaLabel = null,
@@ -81,7 +81,6 @@ const Modal = ({
     headerClassName,
     bodyClassName,
     footerClassName,
-    widthClass,
     headerGradient,
     headerPattern
   });
@@ -95,7 +94,7 @@ const Modal = ({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div 
       className={overlayClasses}
       onClick={handleOutsideClickFinal}
@@ -143,7 +142,8 @@ const Modal = ({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

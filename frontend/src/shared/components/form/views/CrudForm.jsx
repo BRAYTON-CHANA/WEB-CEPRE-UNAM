@@ -14,11 +14,12 @@ const CrudForm = ({
   mode = 'create',
   primaryKey = 'id',
   recordId = null,
+  viewName = null,
 
   // Campos del formulario (definidos manualmente)
   fields,
   validation = {},
-  
+
   // Layout y multi-step (nuevo)
   layout = null,
   multiStep = null,
@@ -32,6 +33,8 @@ const CrudForm = ({
   // UI
   submitText,
   className = '',
+  submitClassName = '',
+  submitWrapperClassName = '',
 
   // Debug
   showWarnings = false,
@@ -52,8 +55,9 @@ const CrudForm = ({
     loading,
     error: crudError,
     isInitialized,
-    submit
-  } = useCrudForm(tableName, mode, recordId, primaryKey);
+    submit,
+    reload
+  } = useCrudForm(tableName, mode, recordId, primaryKey, viewName);
 
   // Memoizar initialValues para evitar re-renders en cascada
   const initialValues = useMemo(() => {
@@ -167,7 +171,7 @@ const CrudForm = ({
       <div className="p-4 bg-red-50 border border-red-200 rounded-md">
         <p className="text-sm text-red-600">Error: {crudError}</p>
         <button
-          onClick={() => window.location.reload()}
+          onClick={reload}
           className="mt-2 text-sm text-blue-600 hover:underline"
         >
           Reintentar
@@ -208,6 +212,8 @@ const CrudForm = ({
         submitText={submitText}
         loading={isSubmitting}
         className={className}
+        submitClassName={submitClassName}
+        submitWrapperClassName={submitWrapperClassName}
         showWarnings={showWarnings}
         showVisualDebugs={showVisualDebugs}
         confirmSubmit={confirmSubmit}

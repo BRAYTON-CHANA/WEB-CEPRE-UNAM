@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import Layout from '@/shared/components/layout/Layout';
+import { CepreLayout } from '@/features/layout';
 import { Link } from 'react-router-dom';
 import { usePeriodos } from '@/features/asistencias/docentes/hooks/usePeriodos';
 import { useDocentes } from '@/features/asistencias/docentes/hooks/useDocentes';
@@ -68,7 +68,7 @@ function AsistenciasDocentes() {
   const periodoNombre = periodos.find(p => p.ID_PERIODO === periodoActivo)?.NOMBRE_PERIODO ?? '';
 
   return (
-    <Layout>
+    <CepreLayout>
       <div className="min-h-screen py-10" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
         <div className="max-w-screen-2xl mx-auto px-6">
 
@@ -147,7 +147,7 @@ function AsistenciasDocentes() {
           )}
         </div>
       </div>
-    </Layout>
+    </CepreLayout>
   );
 }
 

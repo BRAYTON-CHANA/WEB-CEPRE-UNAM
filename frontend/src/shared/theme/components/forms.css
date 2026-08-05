@@ -18,3 +18,29 @@
 .form-help {
   @apply text-gray-500 text-sm mt-1;
 }
+
+/* Restaurar icono nativo del calendario en inputs date/time
+   Tailwind v4 aplica appearance:none a todos los inputs, ocultando el picker.
+   Además, el html tiene colorScheme=dark por defecto, lo que renderiza el
+   icono en blanco (invisible sobre bg-white). Forzamos color-scheme: light. */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"] {
+  appearance: auto;
+  -webkit-appearance: auto;
+  color-scheme: light;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  filter: none;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}

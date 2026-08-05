@@ -27,10 +27,10 @@ class DatabaseManager {
   static async connect() {
     if (!DatabaseManager.supabase) {
       const url = process.env.SUPABASE_URL;
-      const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+      const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
 
       if (!url || !key) {
-        throw new Error('SUPABASE_URL y SUPABASE_ANON_KEY/SUPABASE_SERVICE_ROLE_KEY deben estar configurados');
+        throw new Error('SUPABASE_URL y SUPABASE_SECRET_KEY/SUPABASE_PUBLISHABLE_KEY deben estar configurados');
       }
 
       DatabaseManager.supabase = createClient(url, key);

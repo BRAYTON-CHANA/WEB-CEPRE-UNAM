@@ -75,6 +75,7 @@ const SidebarMenu = ({
   };
 
   const renderMenuItem = (item, depth = 0) => {
+    if (item.hidden) return null;
     const {
       name,
       icon,
@@ -179,7 +180,7 @@ const SidebarMenu = ({
       {/* Lista de items */}
       <nav className="sidebar-menu__nav">
         <ul className="sidebar-menu__list">
-          {items.map(item => renderMenuItem(item))}
+          {items.map(item => renderMenuItem(item)).filter(Boolean)}
         </ul>
       </nav>
 

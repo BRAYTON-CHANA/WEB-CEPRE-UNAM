@@ -22,10 +22,10 @@
   --color-error: #ef4444;         /* Color para errores */
   
   /* Colores específicos de componentes */
-  --color-sidebar-bg: #ffff;    /* Fondo de sidebar */
-  --color-sidebar-text: #000000;  /* Texto de sidebar */
-  --color-sidebar-muted: #000000; /* Texto deshabilitado sidebar */
-  --color-sidebar-accent: #000000; /* Acento sidebar */
+  --color-sidebar-bg: #ffffff;      /* Fondo de sidebar (blanco) */
+  --color-sidebar-text: #1e293b;    /* Texto de sidebar (slate-800) */
+  --color-sidebar-muted: #64748b;   /* Texto muted (slate-500) */
+  --color-sidebar-accent: #3b82f6;  /* Acento (blue-500) */
   
   /* Colores para inputs de fecha/hora */
   --color-input-bg: #ffffff;

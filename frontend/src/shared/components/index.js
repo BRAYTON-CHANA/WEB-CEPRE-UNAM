@@ -1,6 +1,5 @@
 export { default as Layout } from './layout/Layout';
-export { default as Header } from './layout/Header';
-export { default as Footer } from './layout/Footer';
+export { default as ArrayEditorModal } from './ui/ArrayEditorModal';
 
 // Exportación de iconos
 export * from './ui/icons';

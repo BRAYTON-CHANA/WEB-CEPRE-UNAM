@@ -1,12 +1,12 @@
 import React from 'react';
-import Layout from '@/shared/components/layout/Layout';
+import { CepreLayout } from '@/features/layout';
 import TestFunctionView from './TestFunctionView';
 
 function TestFunction() {
   return (
-    <Layout>
+    <CepreLayout>
       <TestFunctionView />
-    </Layout>
+    </CepreLayout>
   );
 }
 

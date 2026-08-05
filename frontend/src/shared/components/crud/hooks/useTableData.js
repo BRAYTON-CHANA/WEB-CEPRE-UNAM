@@ -13,31 +13,38 @@ export function useTableData(tableName, filters = {}) {
 
   const fetchData = useCallback(async () => {
     if (!tableName) {
+      console.log('[useTableData] ⏹️ No se proporcionó nombre de tabla, omitiendo fetch');
       setError('No se proporcionó nombre de tabla');
       return;
     }
 
+    console.log('[useTableData] 🌐 Iniciando fetch', { tableName, filters });
     setLoading(true);
     setError(null);
 
     try {
       const result = await db.select(tableName, filters);
-      setRecords(result);
+      const normalized = Array.isArray(result) ? result : (result || []);
+      console.log('[useTableData] ✅ Datos recibidos', { tableName, count: normalized.length, firstRow: normalized[0] });
+      setRecords(normalized);
     } catch (err) {
+      console.error(`[useTableData] ❌ Error en useTableData (${tableName}):`, err);
       setError(err.message || 'Error de conexión');
-      console.error(`Error en useTableData (${tableName}):`, err);
     } finally {
+      console.log('[useTableData] 🏁 fetch finalizado', { tableName });
       setLoading(false);
     }
   }, [tableName, JSON.stringify(filters)]);
 
   useEffect(() => {
+    console.log('[useTableData] ⚡ useEffect: llamando fetchData', { tableName });
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, tableName]);
 
   const refresh = useCallback(() => {
-    fetchData();
-  }, [fetchData]);
+    console.log('[useTableData] 🔄 refresh() llamado manualmente', { tableName });
+    return fetchData();
+  }, [fetchData, tableName]);
 
   return {
     records,

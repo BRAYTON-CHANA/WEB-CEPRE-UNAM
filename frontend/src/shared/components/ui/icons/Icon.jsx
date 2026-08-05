@@ -43,6 +43,15 @@ const Icon = ({
     ),
     close: (
       <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    ban: (
+      <>
+        <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M5.64 5.64l12.72 12.72" strokeLinecap="round" strokeLinejoin="round" />
+      </>
+    ),
+    shield: (
+      <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z" strokeLinecap="round" strokeLinejoin="round" />
     )
   };
 

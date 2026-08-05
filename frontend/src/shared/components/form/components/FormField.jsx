@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo, useCallback } from 'react';
 import { getInputComponent } from '../utils/inputMapping';
-import { evaluateHidden, evaluateBlocked } from '../utils/conditionEvaluator';
+import { evaluateHidden, evaluateBlocked, evaluateOperatorSet } from '../utils/conditionEvaluator';
 
 /**
  * Componente para renderizar un campo de formulario individual
@@ -27,7 +27,9 @@ const FormField = ({
     showTypeIndicator,
     hidden,
     blocked,
-    hiddenValue
+    hiddenValue,
+    searchable,
+    options
   } = field;
 
   // Evaluar si el campo debe ocultarse (renombrado de condition a hidden)
@@ -37,6 +39,33 @@ const FormField = ({
   if (isHidden) {
     return null;
   }
+
+  // Evaluar labelWhen: primer label cuya condición se cumpla, o label por defecto
+  const resolvedLabel = useMemo(() => {
+    if (!field.labelWhen?.length) return label;
+    for (const { condition, label: altLabel } of field.labelWhen) {
+      if (condition && evaluateOperatorSet(condition, formData)) return altLabel;
+    }
+    return label;
+  }, [field.labelWhen, label, formData]);
+
+  // Evaluar placeholderWhen: primer placeholder cuya condición se cumpla, o placeholder por defecto
+  const resolvedPlaceholder = useMemo(() => {
+    if (!field.placeholderWhen?.length) return placeholder;
+    for (const { condition, placeholder: altPlaceholder } of field.placeholderWhen) {
+      if (condition && evaluateOperatorSet(condition, formData)) return altPlaceholder;
+    }
+    return placeholder;
+  }, [field.placeholderWhen, placeholder, formData]);
+
+  // Evaluar searchableWhen: primer searchable cuya condición se cumpla, o searchable por defecto
+  const resolvedSearchable = useMemo(() => {
+    if (!field.searchableWhen?.length) return searchable;
+    for (const { condition, searchable: altSearchable } of field.searchableWhen) {
+      if (condition && evaluateOperatorSet(condition, formData)) return altSearchable;
+    }
+    return searchable;
+  }, [field.searchableWhen, searchable, formData]);
 
   // Evaluar si el campo debe bloquearse
   const { isBlocked, shouldClear } = evaluateBlocked(blocked, formData);
@@ -65,13 +94,13 @@ const FormField = ({
     value: value !== undefined && value !== null ? value : '',
     onChange,
     onBlur,
-    label,
-    placeholder,
+    label: resolvedLabel,
+    placeholder: resolvedPlaceholder,
     required,
     disabled: disabled || isBlocked,
     error,
     touched: touched || false
-  }), [name, value, onChange, onBlur, label, placeholder, required, disabled, isBlocked, error, touched]);
+  }), [name, value, onChange, onBlur, resolvedLabel, resolvedPlaceholder, required, disabled, isBlocked, error, touched]);
 
   // Memoizar props adicionales para evitar re-renders innecesarios
   const conditionalProps = useMemo(() => ({
@@ -152,7 +181,7 @@ const FormField = ({
       case 'dropdown':
         return {
           options: field.options || [],
-          searchable: field.searchable,
+          searchable: resolvedSearchable,
           multiSelect: field.multiSelect,
           allowClear: field.allowClear
         };
@@ -163,7 +192,8 @@ const FormField = ({
           columnName: field.columnName,
           searchable: field.searchable,
           allowCreate: field.allowCreate,
-          createTitle: field.createTitle
+          createTitle: field.createTitle,
+          showRefreshButton: field.showRefreshButton ?? true
         };
 
       case 'reference-select':
@@ -176,13 +206,36 @@ const FormField = ({
           referenceFilters: field.referenceFilters,
           referenceSelf: field.referenceSelf,
           referenceSelfFilter: field.referenceSelfFilter,
-          referenceSelfTable: field.referenceSelfTable,        // ← NUEVO
-          referenceSelfValueColumn: field.referenceSelfValueColumn, // ← NUEVO
+          referenceSelfTable: field.referenceSelfTable,
+          referenceSelfValueColumn: field.referenceSelfValueColumn,
           referenceOriginalValue: field.referenceOriginalValue,
           blocked: field.blocked,
           placeholder: field.placeholder,
           searchable: field.searchable,
-          showRefreshButton: field.showRefreshButton
+          showRefreshButton: field.showRefreshButton,
+          showAddButton: field.showAddButton,
+          addComponent: field.addComponent,
+          addModalTitle: field.addModalTitle,
+          addModalSize: field.addModalSize,
+          referenceDisplayFields: field.referenceDisplayFields
+        };
+
+      case 'reference-array':
+        return {
+          referenceTable: field.referenceTable,
+          referenceField: field.referenceField,
+          referenceLabelField: field.referenceLabelField,
+          referenceQuery: field.referenceQuery,
+          referenceDescriptionField: field.referenceDescriptionField,
+          referenceFilters: field.referenceFilters,
+          blocked: field.blocked,
+          placeholder: field.placeholder,
+          searchable: field.searchable,
+          showRefreshButton: field.showRefreshButton,
+          showAddButton: field.showAddButton,
+          addComponent: field.addComponent,
+          addModalTitle: field.addModalTitle,
+          addModalSize: field.addModalSize
         };
 
       case 'function-select':
@@ -319,19 +372,7 @@ const FormField = ({
   );
 };
 
-// Memoize FormField to prevent unnecessary re-renders
-const MemoizedFormField = React.memo(FormField, (prevProps, nextProps) => {
-  // Only re-render if these props actually changed
-  return (
-    prevProps.value === nextProps.value &&
-    prevProps.error === nextProps.error &&
-    prevProps.touched === nextProps.touched &&
-    prevProps.showVisualDebugs === nextProps.showVisualDebugs &&
-    prevProps.onChange === nextProps.onChange &&
-    prevProps.onBlur === nextProps.onBlur &&
-    // For formData, do shallow comparison
-    prevProps.formData === nextProps.formData
-  );
-});
+// Memoize FormField to prevent unnecessary re-renders (shallow comparison by default)
+const MemoizedFormField = React.memo(FormField);
 
 export default MemoizedFormField;

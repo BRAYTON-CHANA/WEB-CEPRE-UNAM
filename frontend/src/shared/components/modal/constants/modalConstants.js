@@ -1,16 +1,21 @@
 // Constants para el componente Modal
 
-// Tamaños predefinidos
+// Tamaños predefinidos (ancho)
 export const MODAL_SIZES = {
-  sm: 'max-w-sm',
-  md: 'max-w-md', 
-  lg: 'max-w-lg',
-  xl: 'max-w-xl',
-  '2xl': 'max-w-2xl',
-  '3xl': 'max-w-3xl',
-  '4xl': 'max-w-4xl',
-  '5xl': 'max-w-5xl',
+  sm:   'max-w-sm',
+  md:   'max-w-xl',
+  lg:   'max-w-3xl',
+  xl:   'max-w-5xl',
   full: 'max-w-full'
+};
+
+// Alturas máximas por tamaño
+export const MODAL_MAX_HEIGHTS = {
+  sm:   'max-h-[60vh]',
+  md:   'max-h-[70vh]',
+  lg:   'max-h-[80vh]',
+  xl:   'max-h-[90vh]',
+  full: 'max-h-[95vh]'
 };
 
 // Posiciones
@@ -97,7 +102,7 @@ export const MODAL_PATTERNS = {
 
 // Valores por defecto
 export const MODAL_DEFAULTS = {
-  size: 'md',
+  size: 'lg',
   position: 'center',
   overlayColor: 'blur',
   overlayOpacity: 30,

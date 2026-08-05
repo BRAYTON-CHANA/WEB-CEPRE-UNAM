@@ -1,5 +1,5 @@
 import React from 'react';
-import Layout from '@/shared/components/layout/Layout';
+import { CepreLayout } from '@/features/layout';
 import { Table } from '@/shared/components/table';
 
 /**
@@ -168,7 +168,7 @@ function TestTable() {
   };
 
   return (
-    <Layout>
+    <CepreLayout>
       <div style={{ padding: '2rem' }}>
         <h1 className="text-3xl font-bold mb-6">🧪 Test Table Component</h1>
         
@@ -224,7 +224,7 @@ function TestTable() {
           </ul>
         </div>
       </div>
-    </Layout>
+    </CepreLayout>
   );
 }
 

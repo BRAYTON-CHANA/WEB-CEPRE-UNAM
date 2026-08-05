@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
+import { ConfigLayout } from '@/features/layout';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
-import TableMultiLevelRender from '@/shared/components/table/views/TableMultiLevelRender';
+import TableMultiLevel from '@/shared/components/table/views/TableMultiLevel';
 import { useTableData } from '@/shared/components/crud/hooks/useTableData';
 import { exportSesionesToExcel, exportAllSesionesToExcel } from '@/features/configuracion/reportes/grupos/utils/exportSesionesToExcel';
 import { exportSesionesToPdf, exportAllSesionesToPdf } from '@/features/configuracion/reportes/grupos/utils/exportSesionesToPdf';
@@ -99,7 +99,7 @@ function ReportesGrupos() {
   }));
 
   return (
-    <LayoutWithSidebar>
+    <ConfigLayout>
       <ExportOptionsModal
         isOpen={!!exportModalPending}
         title={
@@ -210,7 +210,7 @@ function ReportesGrupos() {
               </p>
             </div>
             <div className="overflow-x-auto">
-              <TableMultiLevelRender
+              <TableMultiLevel
                 data={records}
                 levelConfigs={tableLevelConfigs}
               />
@@ -276,7 +276,7 @@ function ReportesGrupos() {
           </div>
         )}
       </div>
-    </LayoutWithSidebar>
+    </ConfigLayout>
   );
 }
 

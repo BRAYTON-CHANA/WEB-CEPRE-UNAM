@@ -1,533 +1,200 @@
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import TablePagination from '../components/TablePagination';
 import TableActions from '../components/TableActions';
 import TableControls from '../components/TableControls';
-import CreateButton from '../components/CreateButton';
-import SelectionInfo from '../components/SelectionInfo';
-import SmartColumn from '../components/SmartColumn';
-import TableLoading from '../components/TableLoading';
-import { useTableSort, useTableSelection, useTableExpansion, useTableFilters, useTableData, useTableStyles, useTablePagination, useTableGrouping } from '../hooks';
-import { getDataType, processHeader, getUniqueValues } from '../../../utils/dataUtils';
-import { getContextualUniqueValues, getOriginalUniqueValues } from '../utils/dataUtils';
+import { useTableSort, useTableSelection, useTableData, useTableStyles, useTablePagination } from '../hooks';
+import { getDataType, processHeader } from '../../../utils/dataUtils';
 import { renderCell } from '../../../utils/cellRenderer.jsx';
-import { renderExpandedContent, calculateColumnSpan } from '../utils/tableUtils.jsx';
-import { 
-  TABLE_DEFAULTS, 
-  TABLE_CLASSES, 
-  SCROLL_CLASSES
-} from '../constants/tableConstants';
+import { TABLE_DEFAULTS, TABLE_CLASSES } from '../constants/tableConstants';
 
 /**
- * Componente Table reutilizable y altamente personalizable
- * Soporta numeración, ordenamiento, selección y múltiples variantes visuales
+ * Table — componente de tabla genérico y reutilizable.
+ * Soporta: numeración, sort, selección con checkboxes, paginación, acciones de fila.
  */
-const Table = ({ 
-  // Props requeridos
-  headers, 
-  data, 
+const Table = ({
+  headers,
+  data,
   actions,
-  
-  // Props opcionales - Filtros fijos
-  fixatedFilters = null,  // Array de {column, op, value}
-  
-  // Props opcionales - Visual y Presentación
-  showCount = TABLE_DEFAULTS.showCount,
+
+  fixatedFilters = null,
+
+  showCount    = TABLE_DEFAULTS.showCount,
   emptyMessage = TABLE_DEFAULTS.emptyMessage,
-  variant = TABLE_DEFAULTS.variant,
-  striped = TABLE_DEFAULTS.striped,
-  hover = TABLE_DEFAULTS.hover,
-  bordered = TABLE_DEFAULTS.bordered,
-  
-  // Props opcionales - Funcionalidades
-  sortable = TABLE_DEFAULTS.sortable,
+  variant      = TABLE_DEFAULTS.variant,
+  striped      = TABLE_DEFAULTS.striped,
+  hover        = TABLE_DEFAULTS.hover,
+  bordered     = TABLE_DEFAULTS.bordered,
+
+  sortable   = TABLE_DEFAULTS.sortable,
   selectable = TABLE_DEFAULTS.selectable,
-  expandable = TABLE_DEFAULTS.expandable,
-  groupable = TABLE_DEFAULTS.groupable,
-  filterable = TABLE_DEFAULTS.filterable,
   pagination = TABLE_DEFAULTS.pagination,
-  
-  // Props opcionales - Control de Ancho
+
   fit = TABLE_DEFAULTS.fit,
-  
-  // Props opcionales - Selección avanzada
+
   boundColumn = TABLE_DEFAULTS.boundColumn,
   onGetSelects = TABLE_DEFAULTS.onGetSelects,
-  
-  // Props opcionales - Personalización
-  className = TABLE_DEFAULTS.className,
-  headerClassName = TABLE_DEFAULTS.headerClassName,
-  rowClassName = TABLE_DEFAULTS.rowClassName,
-  cellClassName = TABLE_DEFAULTS.cellClassName,
-  
-  // Props opcionales - Comportamiento
-  loading = TABLE_DEFAULTS.loading,
-  onRowClick = TABLE_DEFAULTS.onRowClick,
-  onSort = TABLE_DEFAULTS.onSort,
-  onSelect = TABLE_DEFAULTS.onSelect,
-  
-  // Props opcionales - Paginación
-  itemsPerPage = TABLE_DEFAULTS.itemsPerPage,
-  currentPage = TABLE_DEFAULTS.currentPage,
-  onPageChange = TABLE_DEFAULTS.onPageChange
-}) => {
-  // Refs para tracking de cambios (evitar logs excesivos)
-  const lastDataRef = React.useRef(0);
-  const lastHeadersRef = React.useRef(0);
-  const headersLoggedRef = React.useRef(false);
 
-  // Hooks personalizados reutilizables (deben ir primero)
+  className       = TABLE_DEFAULTS.className,
+  headerClassName = TABLE_DEFAULTS.headerClassName,
+  rowClassName    = TABLE_DEFAULTS.rowClassName,
+  cellClassName   = TABLE_DEFAULTS.cellClassName,
+
+  loading    = TABLE_DEFAULTS.loading,
+  onRowClick = TABLE_DEFAULTS.onRowClick,
+  onSort     = TABLE_DEFAULTS.onSort,
+  onSelect   = TABLE_DEFAULTS.onSelect,
+
+  itemsPerPage       = TABLE_DEFAULTS.itemsPerPage,
+  currentPage        = TABLE_DEFAULTS.currentPage,
+  onPageChange       = TABLE_DEFAULTS.onPageChange,
+  paginationClassName = TABLE_DEFAULTS.paginationClassName,
+}) => {
   const { sortConfig, handleSort } = useTableSort(sortable, onSort);
   const { selectedRows, handleSelect, handleSelectAll, getSelectedValues } = useTableSelection(data, onSelect, boundColumn, onGetSelects);
-  const { handleExpand, isExpanded } = useTableExpansion();
-  const { activeFilters, handleFilterChange, clearAllFilters, hasActiveFilters, initializeColumnFilters, resetColumnInitialization } = useTableFilters(filterable);
-
-  // Hooks específicos del componente
-  const { preFilteredData, processedData } = useTableData({
-    data,
-    fixatedFilters,
-    sortable,
-    sortConfig,
-    filterable,
-    activeFilters
-  });
-  
-  const { groupedData, handleGroupExpand, isGroupExpanded } = useTableGrouping(groupable, processedData);
-  
+  const { processedData } = useTableData({ data, fixatedFilters, sortable, sortConfig });
   const { getTableClasses, getHeaderClasses, getRowClasses, getContainerClasses, getCellClasses, getInteractiveClasses } = useTableStyles({
-    variant,
-    bordered,
-    className,
-    headerClassName,
-    rowClassName,
-    hover,
-    striped,
-    fit
+    variant, bordered, className, headerClassName, rowClassName, hover, striped, fit
+  });
+  const { localItemsPerPage, localCurrentPage, paginatedData, handleItemsPerPageChange, handlePageChange } = useTablePagination({
+    itemsPerPage, currentPage, onPageChange, pagination
   });
 
-  // Hook de paginación
-  const { 
-    localItemsPerPage, 
-    localCurrentPage, 
-    paginatedData, 
-    handleItemsPerPageChange, 
-    handlePageChange 
-  } = useTablePagination({
-    itemsPerPage,
-    currentPage,
-    onPageChange,
-    pagination
-  });
-
-  // Track data changes
-  if (data.length !== lastDataRef.current || headers.length !== lastHeadersRef.current) {
-    lastDataRef.current = data.length;
-    lastHeadersRef.current = headers.length;
-    headersLoggedRef.current = false;
-  }
-
-  // Inicializar filtros con todos los valores seleccionados por defecto
-  React.useEffect(() => {
-    if (filterable && headers.length > 0 && data.length > 0) {
-      headers.forEach(header => {
-        const headerInfo = processHeader(header);
-        const uniqueValues = getUniqueValues(data, headerInfo.title);
-        // Pasar solo el title para evitar bucle infinito
-        initializeColumnFilters(headerInfo.title, uniqueValues);
-      });
-    }
-  }, [filterable, headers.length, data.length]);
-
-  // Detectar cambios en datos y resetear filtros para reinicialización
-  const dataSignatureRef = React.useRef(null);
-  
-  React.useEffect(() => {
-    // Crear firma simple de los datos
-    const newSignature = data.length > 0 
-      ? `${data.length}-${headers.map(h => processHeader(h).title).join(',')}`
-      : 'empty';
-    
-    // Si la firma cambió, los datos son diferentes - resetear filtros
-    if (dataSignatureRef.current && dataSignatureRef.current !== newSignature) {
-      resetColumnInitialization();
-    }
-    
-    dataSignatureRef.current = newSignature;
-  }, [data.length, headers]);
-  // Renderizado de celda
-  const renderCellWrapper = (row, header, rowIndex, columnType) => {
-    return renderCell(row[header], rowIndex, header, columnType);
-  };
-
-  // Renderizado de contenido expandible
-  const renderExpandedContentWrapper = (row) => {
-    return renderExpandedContent(row, expandable);
-  };
-
-  
-  
-  // Memoizar procesamiento de headers para evitar ciclos de renderizado
   const processedHeaders = React.useMemo(() => {
-    // Calculate processed headers with all needed metadata
-    if (!data.length > 0 || !headers.length > 0) {
-      return [];
-    }
-    
+    if (!headers.length) return [];
     return headers.map((header, index) => {
-      const { title, type } = processHeader(header);
-      const columnDataType = header.type || getDataType(preFilteredData, title);
-      // ← CAMBIO CRÍTICO: Usar preFilteredData para calcular uniqueValues
-      // Así el menú de filtros solo muestra valores que pasaron fixatedFilters
-      const columnUniqueValues = getContextualUniqueValues(preFilteredData, activeFilters, title);
-      const columnOriginalValues = getOriginalUniqueValues(preFilteredData, title);
-      
-      // Track headers logged (solo una vez)
-      if (index === 0 && !headersLoggedRef.current) {
-        headersLoggedRef.current = true;
-      }
-      
-      return {
-        original: header,
-        processed: { title, type },
-        detectedType: columnDataType,
-        uniqueValues: columnUniqueValues,
-        originalValues: columnOriginalValues,
-        index
-      };
+      const meta = processHeader(header);
+      const detectedType = meta.type !== 'string' ? meta.type : getDataType(data, meta.field);
+      return { ...meta, detectedType, index };
     });
-  }, [headers.length, data.length, activeFilters, preFilteredData]);
-
-  // Función para verificar si hay acciones de fila que mostrar
-  const hasRowActions = () => {
-    return (
-      actions?.edit?.enabled ||
-      actions?.delete?.enabled ||
-      (actions?.custom && actions.custom.length > 0)
-    );
-  };
-
-  // Calcular valores originales para todas las columnas
-  const originalValues = React.useMemo(() => {
-    const values = {};
-    headers.forEach(header => {
-      values[header] = getOriginalUniqueValues(data, header);
-    });
-    return values;
   }, [headers, data]);
 
-  
+  const renderCellForColumn = (row, meta, rowIndex) => {
+    if (meta.render) {
+      return meta.render(row[meta.field], row);
+    }
+    if (meta.fields && meta.type === 'stacked') {
+      const [primaryField, secondaryField] = meta.fields;
+      return renderCell(
+        { primary: row[primaryField], secondary: row[secondaryField] },
+        rowIndex, meta.title, 'stacked', meta.colorMap
+      );
+    }
+    return renderCell(row[meta.field], rowIndex, meta.field, meta.detectedType, meta.colorMap);
+  };
+
+  const hasRowActions = () =>
+    actions?.edit?.enabled ||
+    actions?.delete?.enabled ||
+    (actions?.custom  && actions.custom.length  > 0) ||
+    (actions?.direct  && actions.direct.length  > 0) ||
+    (actions?.dropdown && actions.dropdown.length > 0);
+
+  const colSpan = headers.length + (showCount ? 1 : 0) + (selectable ? 1 : 0) + (hasRowActions() ? 1 : 0);
+
   return (
     <div>
-      {/* Botones superiores */}
-      <div className="flex justify-between items-center mb-4">
-        {/* Botón de crear */}
-        <CreateButton 
-          action={actions?.create} 
-          loading={loading} 
-        />
-        
-        {/* Información de selección */}
-        <SelectionInfo 
-          selectedCount={selectedRows.size}
-          getSelectedValues={getSelectedValues}
-          boundColumn={boundColumn}
-        />
-      </div>
-      
-      {/* Estado de carga */}
-      {loading && <TableLoading />}
-      
-      {/* Contenedor de la tabla con overflow visible para menús */}
+      {/* Loading inline */}
+      {loading && (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+        </div>
+      )}
+
       <div className={getContainerClasses()}>
-      <table className={getTableClasses()}>
-        <thead className={getHeaderClasses()}>
-          <tr>
-            {/* Columna inteligente: conteo o expansión */}
-            {(showCount || expandable) && (
-              <th className={`${fit ? TABLE_CLASSES.header.fitBase : TABLE_CLASSES.header.base} ${cellClassName}`}>
-                {showCount ? '#' : ''}
-              </th>
-            )}
-            
-            {/* Columna de selección */}
-            {selectable && (
-              <th className={`${fit ? TABLE_CLASSES.header.fitBase : TABLE_CLASSES.header.base} ${cellClassName}`}>
-                <input
-                  type="checkbox"
-                  checked={selectedRows.size === data.length && data.length > 0}
-                  onChange={(e) => handleSelectAll(e.target.checked)}
-                  className={`${TABLE_CLASSES.checkbox} ${getInteractiveClasses()}`}
-                />
-              </th>
-            )}
-            
-            {/* Encabezados de datos */}
-            {processedHeaders.map((headerData, index) => {
-              const { original: header, processed: { title, type }, detectedType: columnDataType, uniqueValues: columnUniqueValues, originalValues: columnOriginalValues } = headerData;
-              
-              return (
-                <th
-                  key={headerData.index}
-                  className={`${getHeaderClasses()} ${cellClassName}`}
-                >
-                  <div className="flex items-center">
-                    {title}
-                    <TableControls
-                      sortable={sortable}
-                      filterable={filterable}
-                      header={title}
-                      uniqueValues={columnUniqueValues}
-                      originalValues={columnOriginalValues}
-                      activeFilters={activeFilters}
-                      onFilterChange={handleFilterChange}
-                      dataType={columnDataType}
-                      sortConfig={sortConfig}
-                      onSortSelect={handleSort}
-                    />
-                  </div>
+        <table className={getTableClasses()}>
+          <thead className={getHeaderClasses()}>
+            <tr>
+              {showCount && (
+                <th className={`${fit ? TABLE_CLASSES.header.fitBase : TABLE_CLASSES.header.base} ${cellClassName}`}>#</th>
+              )}
+              {selectable && (
+                <th className={`${fit ? TABLE_CLASSES.header.fitBase : TABLE_CLASSES.header.base} ${cellClassName}`}>
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.size === data.length && data.length > 0}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className={`${TABLE_CLASSES.checkbox} ${getInteractiveClasses()}`}
+                  />
                 </th>
-              );
-            })}
-            
-            {/* Columna de acciones */}
-            {hasRowActions() && (
-              <th className={`${TABLE_CLASSES.header.base} ${cellClassName}`}>
-                Acciones
-              </th>
-            )}
-          </tr>
-        </thead>
-        
-        <tbody className="divide-y divide-gray-200">
-          {groupable?.active && groupedData ? (
-            // Modo agrupado
-            groupedData.map((group, groupIndex) => {
-              const isGroupExpandedState = isGroupExpanded(group.key);
-              
-              return (
-                <React.Fragment key={group.key}>
-                  {/* Fila de grupo */}
-                  <tr 
-                    className={`${groupable.className || 'bg-white text-black font-semibold'} cursor-pointer hover:bg-gray-50`}
-                    onClick={() => handleGroupExpand(group.key)}
-                  >
-                    {/* Columna de conteo/expansión */}
-                    <td className={`px-6 py-3 whitespace-nowrap text-sm ${cellClassName}`}>
-                      <div className="flex items-center">
-                        {/* Botón expandir grupo */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleGroupExpand(group.key);
-                          }}
-                          className="p-1 rounded hover:bg-gray-100 transition-colors mr-2"
-                          title={isGroupExpandedState ? "Contraer grupo" : "Expandir grupo"}
-                        >
-                          <svg 
-                            className={`w-4 h-4 text-gray-600 transition-transform ${isGroupExpandedState ? 'rotate-180' : ''}`} 
-                            fill="none" 
-                            stroke="currentColor" 
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                        {/* Valor del grupo + conteo */}
-                        <span>
-                          {group.value} ({group.count})
-                        </span>
-                      </div>
-                    </td>
-                    
-                    {/* Columna de selección */}
-                    {selectable && (
-                      <td className={`px-6 py-3 whitespace-nowrap text-sm ${cellClassName}`}>
-                        <input
-                          type="checkbox"
-                          checked={group.indices.every(idx => selectedRows.has(idx))}
-                          onChange={(e) => {
-                            group.indices.forEach(idx => handleSelect(idx, e.target.checked));
-                          }}
-                          className={`${TABLE_CLASSES.checkbox} ${getInteractiveClasses()}`}
-                        />
-                      </td>
-                    )}
-                    
-                    {/* Columnas vacías para alinear con headers */}
-                    {headers.map((_, colIndex) => (
-                      <td key={colIndex} className={`px-6 py-3 whitespace-nowrap text-sm ${cellClassName}`}></td>
-                    ))}
-                    
-                    {/* Columna de acciones */}
-                    {hasRowActions() && (
-                      <td className={`px-6 py-3 whitespace-nowrap text-sm ${cellClassName}`}></td>
-                    )}
-                  </tr>
-                  
-                  {/* Filas de datos del grupo (cuando expandido) */}
-                  {isGroupExpandedState && group.rows.map((row, rowIndex) => {
-                    const actualIndex = data.indexOf(row);
-                    const isRowExpanded = isExpanded(actualIndex);
-                    const isSelected = selectedRows.has(actualIndex);
-                    
-                    return (
-                      <React.Fragment key={`${group.key}-${rowIndex}`}>
-                        <tr 
-                          className={getRowClasses(rowIndex, isRowExpanded)}
-                          onClick={() => onRowClick && onRowClick(row, actualIndex)}
-                        >
-                          {/* Columna inteligente: conteo o expansión */}
-                          <SmartColumn
-                            showCount={showCount}
-                            expandable={expandable}
-                            actualIndex={actualIndex}
-                            isExpanded={isRowExpanded}
-                            onExpand={handleExpand}
-                            cellClassName={cellClassName}
-                          />
-                          
-                          {/* Selección */}
-                          {selectable && (
-                            <td className={`${getCellClasses()} ${cellClassName}`}>
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={(e) => handleSelect(actualIndex, e.target.checked)}
-                                className={`${TABLE_CLASSES.checkbox} ${getInteractiveClasses()}`}
-                              />
-                            </td>
-                          )}
-                          
-                          {/* Datos */}
-                          {headers.map((header, colIndex) => {
-                            const { title, type } = processHeader(header);
-                            const columnDataType = header.type || getDataType(data, title);
-                            return (
-                              <td key={colIndex} className={`${getCellClasses()} ${cellClassName}`}>
-                                {renderCellWrapper(row, title, rowIndex, columnDataType)}
-                              </td>
-                            );
-                          })}
-                          
-                          {/* Acciones */}
-                          {hasRowActions() && (
-                            <td className={`${getCellClasses()} ${cellClassName}`}>
-                              <TableActions
-                                actions={actions}
-                                row={row}
-                                rowIndex={actualIndex}
-                                cellClassName={cellClassName}
-                              />
-                            </td>
-                          )}
-                        </tr>
-                        
-                        {/* Contenido expandible */}
-                        {isRowExpanded && (
-                          <tr>
-                            <td 
-                              colSpan={calculateColumnSpan(headers.length, showCount, selectable, expandable, hasRowActions())}
-                              className="p-0"
-                            >
-                              {renderExpandedContentWrapper(row)}
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
-                </React.Fragment>
-              );
-            })
-          ) : (
-            // Modo normal (sin agrupación)
-            paginatedData(processedData).length === 0 ? (
+              )}
+              {processedHeaders.map((h) => {
+                const sortable_col = sortable && !h.render && !(h.fields && h.fields.length > 1);
+                return (
+                  <th key={h.index} className={`${getHeaderClasses()} ${cellClassName}`}>
+                    <div className="flex items-center">
+                      {h.title}
+                      <TableControls
+                        sortable={sortable_col}
+                        header={h.field}
+                        dataType={h.detectedType}
+                        sortConfig={sortConfig}
+                        onSortSelect={handleSort}
+                      />
+                    </div>
+                  </th>
+                );
+              })}
+              {hasRowActions() && (
+                <th className={`${TABLE_CLASSES.header.base} ${cellClassName}`}>Acciones</th>
+              )}
+            </tr>
+          </thead>
+
+          <tbody className="divide-y divide-gray-200">
+            {paginatedData(processedData).length === 0 ? (
               <tr>
-                <td 
-                  colSpan={calculateColumnSpan(headers.length, showCount, selectable, expandable, hasRowActions())}
-                  className="px-6 py-4 text-center text-gray-500"
-                >
+                <td colSpan={colSpan} className="px-6 py-4 text-center text-gray-500">
                   {emptyMessage}
                 </td>
               </tr>
             ) : (
               paginatedData(processedData).map((row, rowIndex) => {
                 const actualIndex = data.indexOf(row);
-                const isRowExpanded = isExpanded(actualIndex);
                 const isSelected = selectedRows.has(actualIndex);
-                
                 return (
-                  <React.Fragment key={rowIndex}>
-                    <tr 
-                      className={getRowClasses(rowIndex, isRowExpanded)}
-                      onClick={() => onRowClick && onRowClick(row, actualIndex)}
-                    >
-                      {/* Columna inteligente: conteo o expansión */}
-                      <SmartColumn
-                        showCount={showCount}
-                        expandable={expandable}
-                        actualIndex={actualIndex}
-                        isExpanded={isRowExpanded}
-                        onExpand={handleExpand}
-                        cellClassName={cellClassName}
-                      />
-                      
-                      {/* Selección */}
-                      {selectable && (
-                        <td className={`${getCellClasses()} ${cellClassName}`}>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={(e) => handleSelect(actualIndex, e.target.checked)}
-                            className={`${TABLE_CLASSES.checkbox} ${getInteractiveClasses()}`}
-                          />
-                        </td>
-                      )}
-                      
-                      {/* Datos */}
-                      {headers.map((header, colIndex) => {
-                        const { title, type } = processHeader(header);
-                        const columnDataType = header.type || getDataType(data, title);
-                        return (
-                          <td key={colIndex} className={`${getCellClasses()} ${cellClassName}`}>
-                            {renderCellWrapper(row, title, rowIndex, columnDataType)}
-                          </td>
-                        );
-                      })}
-                      
-                      {/* Acciones */}
-                      {hasRowActions() && (
-                        <td className={`${getCellClasses()} ${cellClassName}`}>
-                          <TableActions
-                            actions={actions}
-                            row={row}
-                            rowIndex={actualIndex}
-                            cellClassName={cellClassName}
-                          />
-                        </td>
-                      )}
-                    </tr>
-                    
-                    {/* Contenido expandible */}
-                    {isRowExpanded && (
-                      <tr>
-                        <td 
-                          colSpan={calculateColumnSpan(headers.length, showCount, selectable, expandable, hasRowActions())}
-                          className="p-0"
-                        >
-                          {renderExpandedContentWrapper(row)}
-                        </td>
-                      </tr>
+                  <tr
+                    key={rowIndex}
+                    className={getRowClasses(rowIndex)}
+                    onClick={() => onRowClick && onRowClick(row, actualIndex)}
+                  >
+                    {showCount && (
+                      <td className={`${fit ? TABLE_CLASSES.header.fitBase : TABLE_CLASSES.header.base} ${cellClassName}`}>
+                        {actualIndex + 1}
+                      </td>
                     )}
-                  </React.Fragment>
+                    {selectable && (
+                      <td className={`${getCellClasses()} ${cellClassName}`}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => handleSelect(actualIndex, e.target.checked)}
+                          className={`${TABLE_CLASSES.checkbox} ${getInteractiveClasses()}`}
+                        />
+                      </td>
+                    )}
+                    {processedHeaders.map((meta) => (
+                      <td key={meta.index} className={`${getCellClasses()} ${cellClassName}`}>
+                        {renderCellForColumn(row, meta, rowIndex)}
+                      </td>
+                    ))}
+                    {hasRowActions() && (
+                      <td className={`${getCellClasses()} ${cellClassName}`}>
+                        <TableActions
+                          actions={actions}
+                          row={row}
+                          rowIndex={actualIndex}
+                          cellClassName={cellClassName}
+                        />
+                      </td>
+                    )}
+                  </tr>
                 );
               })
-            )
-          )}
-        </tbody>
-      </table>
+            )}
+          </tbody>
+        </table>
       </div>
-      
-      {/* Paginación */}
+
       <TablePagination
         pagination={pagination}
         processedData={processedData}
@@ -535,6 +202,7 @@ const Table = ({
         currentPage={localCurrentPage}
         onPageChange={handlePageChange}
         onItemsPerPageChange={handleItemsPerPageChange}
+        paginationClassName={paginationClassName}
       />
     </div>
   );

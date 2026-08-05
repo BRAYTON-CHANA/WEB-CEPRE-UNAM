@@ -235,43 +235,6 @@ const ColorInput = ({
     );
   };
 
-  // Renderizar información del color
-  const renderColorInfo = () => {
-    const colorInfo = getColorInfo();
-    const rgb = hexToRgb(color);
-
-    return (
-      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-        <div className="text-sm text-gray-700">
-          <div className="font-medium mb-2">Información del color:</div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div>
-              <span className="text-gray-500">HEX:</span>
-              <span className="ml-1 font-mono">{colorInfo.hex}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">RGB:</span>
-              <span className="ml-1 font-mono">
-                {rgb ? `${rgb.r}, ${rgb.g}, ${rgb.b}` : '-'}
-              </span>
-            </div>
-          </div>
-        </div>
-        
-        {/* Indicador de validación */}
-        <div className="mt-2 flex items-center text-xs">
-          <div className={`
-            w-2 h-2 rounded-full mr-2
-            ${error ? 'bg-red-500' : 'bg-green-500'}
-          `} />
-          <span className={error ? 'text-red-600' : 'text-green-600'}>
-            {error ? 'Color inválido' : 'Color válido'}
-          </span>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="space-y-4">
       {/* Input de color hexadecimal + picker */}
@@ -299,9 +262,6 @@ const ColorInput = ({
       </div>
 
       {renderColorPalette()}
-
-      {/* Información del color */}
-      {renderColorInfo()}
     </div>
   );
 };

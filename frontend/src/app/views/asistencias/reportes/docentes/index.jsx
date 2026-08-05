@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Layout from '@/shared/components/layout/Layout';
+import { CepreLayout } from '@/features/layout';
 import { Link } from 'react-router-dom';
 import { usePeriodos } from '@/features/asistencias/grupos/hooks/usePeriodos';
 import { SedeTabs } from '@/features/asistencias/grupos/components/SedeTabs';
@@ -101,7 +101,7 @@ function AsistenciasReportesDocentes() {
   };
 
   return (
-    <Layout>
+    <CepreLayout>
       <div className="min-h-screen py-10" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
         <div className="max-w-screen-2xl mx-auto px-6">
           
@@ -207,7 +207,6 @@ function AsistenciasReportesDocentes() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-gray-900 text-sm truncate">{docente.APELLIDOS} {docente.NOMBRES}</h3>
-                            <p className="text-xs text-gray-500">{docente.TIPO_DOCENTE}</p>
                           </div>
                         </div>
                         <div className="space-y-1 mb-3">
@@ -247,7 +246,7 @@ function AsistenciasReportesDocentes() {
           )}
         </div>
       </div>
-    </Layout>
+    </CepreLayout>
   );
 }
 

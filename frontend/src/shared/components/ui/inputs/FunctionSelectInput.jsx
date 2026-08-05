@@ -186,13 +186,20 @@ const FunctionSelectInput = React.memo(({
   }
 
   return (
-    <>
-      <div className={showRefreshButton ? 'flex items-center gap-1' : undefined}>
-        <div className={showRefreshButton ? 'flex-1 min-w-0' : undefined}>
+    <div className="relative">
+      {label && (
+        <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-2">
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </label>
+      )}
+      <div className="flex items-end gap-1">
+        <div className="flex-1 min-w-0">
           <SelectInput
             {...props}
             name={name}
             label={label}
+            hideLabel={true}
             value={currentValue}
             onChange={onChange}
             options={processedOptions}
@@ -213,13 +220,10 @@ const FunctionSelectInput = React.memo(({
             onClick={refresh}
             disabled={loading}
             title="Actualizar opciones"
-            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-40"
+            className="flex-shrink-0 self-end h-10 w-10 flex items-center justify-center rounded-md border border-gray-300 bg-white text-gray-400 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-40"
           >
-            <svg
-              className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`}
-              fill="none" stroke="currentColor" viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+            <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </button>
@@ -241,7 +245,7 @@ const FunctionSelectInput = React.memo(({
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 });
 

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTableData, useCrudForms, CrudMultiLevelManager } from '@/shared/components/crud';
-import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
+import { ConfigLayout } from '@/features/layout';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
 import Table from '@/shared/components/table/views/Table';
 import { Modal } from '@/shared/components/modal';
@@ -144,7 +144,7 @@ function PlazasDocentesConfig() {
   ];
 
   return (
-    <LayoutWithSidebar>
+    <ConfigLayout>
       <div className="px-4 py-6 space-y-6">
         {/* Título - siempre visible */}
         <div>
@@ -260,7 +260,7 @@ function PlazasDocentesConfig() {
           </div>
         </Modal>
       </div>
-    </LayoutWithSidebar>
+    </ConfigLayout>
   );
 }
 

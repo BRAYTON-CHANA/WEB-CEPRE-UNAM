@@ -115,12 +115,16 @@ export const useFunctionData = (config) => {
   // Función para cargar datos (memoizada)
   const loadData = useCallback(async () => {
     if (!functionName || !shouldLoadData || !hasAllRequiredValues) {
+      console.log('[useFunctionData] ⏹️ loadData omitido', { functionName, shouldLoadData, hasAllRequiredValues });
       setOptions([]);
       return;
     }
 
+    console.log('[useFunctionData] 🌐 loadData iniciado', { functionName, cacheKey, activeParams });
+
     // Usar cache si está disponible
     if (cache.has(cacheKey)) {
+      console.log('[useFunctionData] 💾 Usando cache', { cacheKey });
       setOptions(cache.get(cacheKey));
       hasLoadedRef.current = true;
       return;
@@ -128,6 +132,7 @@ export const useFunctionData = (config) => {
 
     // Evitar peticiones duplicadas simultáneas
     if (pendingRequests.has(cacheKey)) {
+      console.log('[useFunctionData] ⏳ Petición pendiente, esperando...', { cacheKey });
       const data = await pendingRequests.get(cacheKey);
       setOptions(data);
       hasLoadedRef.current = true;
@@ -140,7 +145,10 @@ export const useFunctionData = (config) => {
     // Crear promise y guardarla para evitar duplicados
     const requestPromise = (async () => {
       try {
-        const data = await functionService.execute(functionName, freezeParams ? (frozenParamsRef.current ?? activeParams) : activeParams);
+        const params = freezeParams ? (frozenParamsRef.current ?? activeParams) : activeParams;
+        console.log('[useFunctionData] 📡 Ejecutando functionService.execute', { functionName, params });
+        const data = await functionService.execute(functionName, params);
+        console.log('[useFunctionData] ✅ Datos recibidos', { functionName, count: data?.length });
         
         // Transformar al formato de opciones
         // Soporta templates en labelField y descriptionField: '{CAMPO}' -> valor del registro
@@ -159,10 +167,11 @@ export const useFunctionData = (config) => {
         }));
 
         cache.set(cacheKey, formattedOptions);
+        console.log('[useFunctionData] 💾 Opciones guardadas en cache', { cacheKey, count: formattedOptions.length });
         
         return formattedOptions;
       } catch (err) {
-        console.error('[useFunctionData] Error:', err.message);
+        console.error('[useFunctionData] ❌ Error:', err.message);
         throw err;
       }
     })();
@@ -179,17 +188,21 @@ export const useFunctionData = (config) => {
     } finally {
       pendingRequests.delete(cacheKey);
       setLoading(false);
+      console.log('[useFunctionData] 🏁 loadData finalizado', { functionName });
     }
   }, [cacheKey, functionName, shouldLoadData, hasAllRequiredValues, valueField, labelField, descriptionField, statusField, activeParams, freezeParams]);
 
   // Efecto para carga inicial y cuando cambian dependencias
   useEffect(() => {
+    console.log('[useFunctionData] ⚡ useEffect: refreshTrigger o loadData cambiaron', { functionName, refreshTrigger });
     loadData();
-  }, [loadData, refreshTrigger]);
+  }, [loadData, refreshTrigger, functionName]);
 
   // Efecto para escuchar invalidaciones de cache
   useEffect(() => {
+    console.log('[useFunctionData] 👂 Suscribiendo a cacheService', { functionName });
     const unsubscribe = cacheService.subscribe((event) => {
+      console.log('[useFunctionData] 📨 Evento de cacheService recibido', { functionName, event });
       if (event.all || event.functionName === functionName) {
         // Limpiar cache Y pendingRequests de esta función
         if (event.all) {
@@ -208,13 +221,17 @@ export const useFunctionData = (config) => {
           pendingRequests.delete(cacheKey);
         }
 
+        console.log('[useFunctionData] 🔄 Forzando recarga por invalidación de cache', { functionName });
         // Forzar recarga
         hasLoadedRef.current = false;
         setRefreshTrigger(prev => prev + 1);
       }
     });
 
-    return unsubscribe;
+    return () => {
+      console.log('[useFunctionData] 👂 Desuscribiendo de cacheService', { functionName });
+      unsubscribe();
+    };
   }, [functionName, cacheKey]);
 
   const refresh = useCallback(() => {
@@ -223,7 +240,8 @@ export const useFunctionData = (config) => {
     cache.delete(cacheKey);
     pendingRequests.delete(cacheKey);
     setRefreshTrigger(prev => prev + 1);
-  }, [cacheKey]);
+    cacheService.invalidate({ functionName });
+  }, [cacheKey, functionName]);
 
   return { options, loading, error, processedParams: activeParams, refresh };
 };

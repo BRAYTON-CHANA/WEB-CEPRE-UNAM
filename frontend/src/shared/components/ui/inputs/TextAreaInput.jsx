@@ -276,18 +276,6 @@ const TextAreaInput = ({
         )}
       </div>
 
-      {/* Información de contenido */}
-      {baseInputProps.value && (
-        <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
-          <div className="flex justify-between">
-            <span>Estadísticas:</span>
-            <span>
-              {totalLines} líneas, {charCount} caracteres
-              {showWordCount && `, ${wordCount} palabras`}
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

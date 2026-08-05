@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import SelectInput from './SelectInput';
+import Modal from '@/shared/components/modal/views/Modal';
 import { useReferenceData } from '@/shared/hooks/useReferenceData';
 import { evaluateOperatorSet } from '@/shared/components/form/utils/conditionEvaluator';
 import { db } from '@/shared/api';
@@ -53,11 +54,21 @@ const ReferenceSelectInput = React.memo(({
   formData = {},
   onReferenceSelectLoadComplete = null,
   showRefreshButton = false,
+  showAddButton = false,
+  addComponent: AddComponent = null,
+  addModalTitle = 'Nueva referencia',
+  addModalSize = 'lg',
+  referenceDisplayFields = [],
+  required = false,
   ...props
 }) => {
   // Estado para manejar errores
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Estado para modal de agregar
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [addSuccessRecord, setAddSuccessRecord] = useState(null);
   
   // ← NUEVO: Capturar valor original en el primer render (sticky durante edición)
   const originalValueRef = useRef(referenceOriginalValue || props.value);
@@ -166,6 +177,7 @@ const ReferenceSelectInput = React.memo(({
       labelField: referenceLabelField,
       labelTemplate: referenceQuery,
       descriptionField: referenceDescriptionField,
+      referenceDisplayFields,
       filters: processedFilters,
       referenceSelfValue: referenceSelf ? currentValue : null,
       referenceSelfFilter: processedSelfFilters,
@@ -173,10 +185,35 @@ const ReferenceSelectInput = React.memo(({
     };
   }, [
     referenceTable, referenceField, referenceLabelField, referenceQuery,
-    referenceDescriptionField, processedFilters, referenceSelf, currentValue, processedSelfFilters, referenceOriginalValue
+    referenceDescriptionField, referenceDisplayFields, processedFilters, referenceSelf, currentValue, processedSelfFilters, referenceOriginalValue
   ]);
 
   const { options, loading, refresh } = useReferenceData(shouldLoadData ? config : null);
+
+  // Aplicar valor creado desde modal add
+  useEffect(() => {
+    if (addSuccessRecord && addSuccessRecord[referenceField] != null) {
+      const newId = addSuccessRecord[referenceField];
+      if (setValue && typeof setValue === 'function') {
+        setValue(name, newId);
+      } else if (props.onChange && typeof props.onChange === 'function') {
+        props.onChange(name, newId);
+      }
+      setAddSuccessRecord(null);
+    }
+  }, [addSuccessRecord, referenceField, name, setValue, props.onChange]);
+
+  const handleAddSuccess = (result) => {
+    const data = result?.data ?? result;
+    const record = Array.isArray(data) ? data[0] : data;
+    setAddSuccessRecord(record);
+    setIsAddOpen(false);
+    refresh();
+  };
+
+  const handleAddError = (error) => {
+    console.error('[ReferenceSelectInput] Error creando referencia:', error);
+  };
 
   // Llamar callback cuando loading termina
   const prevLoadingRef = useRef(loading);
@@ -341,13 +378,20 @@ const ReferenceSelectInput = React.memo(({
   };
 
   return (
-    <>
-      <div className={showRefreshButton ? 'flex items-center gap-1' : undefined}>
-        <div className={showRefreshButton ? 'flex-1 min-w-0' : undefined}>
+    <div className="relative">
+      {label && (
+        <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-2">
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </label>
+      )}
+      <div className="flex items-end gap-1">
+        <div className="flex-1 min-w-0">
           <SelectInput
             {...props}
             name={name}
             label={label}
+            hideLabel={true}
             options={options}
             loading={loading}
             searchable={searchable}
@@ -356,24 +400,67 @@ const ReferenceSelectInput = React.memo(({
             optionDescription="description"
           />
         </div>
+        {showAddButton && AddComponent && (
+          <button
+            type="button"
+            onClick={() => setIsAddOpen(true)}
+            title={addModalTitle}
+            className="flex-shrink-0 self-end h-10 w-10 flex items-center justify-center rounded-md border border-gray-300 bg-white text-gray-400 hover:text-green-600 hover:border-green-400 hover:bg-green-50 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        )}
         {showRefreshButton && (
           <button
             type="button"
             onClick={refresh}
             disabled={loading}
             title="Actualizar opciones"
-            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-40"
+            className="flex-shrink-0 self-end h-10 w-10 flex items-center justify-center rounded-md border border-gray-300 bg-white text-gray-400 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-40"
           >
-            <svg
-              className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`}
-              fill="none" stroke="currentColor" viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+            <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </button>
         )}
       </div>
+
+      {referenceDisplayFields.length > 0 && currentValue && (
+        <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {referenceDisplayFields.map(({ field, label }) => {
+            const selectedOption = options.find(opt => String(opt.value) === String(currentValue));
+            const rawValue = selectedOption?.raw?.[field] ?? selectedOption?.[field] ?? '';
+            return (
+              <div key={field} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md">
+                <p className="text-xs text-gray-500 mb-0.5">{label}</p>
+                <p className="text-sm text-gray-800 font-medium truncate">
+                  {rawValue || <span className="text-gray-400 italic">—</span>}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {showAddButton && AddComponent && (
+        <Modal
+          isOpen={isAddOpen}
+          onClose={() => setIsAddOpen(false)}
+          title={addModalTitle}
+          size={addModalSize}
+          closeOnOutsideClick={false}
+          bodyClassName="p-6"
+        >
+          <AddComponent
+            mode="create"
+            onSuccess={handleAddSuccess}
+            onError={handleAddError}
+          />
+        </Modal>
+      )}
       
       {/* Modal de error */}
       {showErrorModal && (
@@ -390,7 +477,7 @@ const ReferenceSelectInput = React.memo(({
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 });
 

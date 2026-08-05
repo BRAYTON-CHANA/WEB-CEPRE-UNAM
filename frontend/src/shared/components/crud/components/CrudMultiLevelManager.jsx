@@ -2,107 +2,40 @@ import React from 'react';
 import { CrudForm } from '@/shared/components/form';
 import { Modal } from '@/shared/components/modal';
 import FormConfirmModal from '@/shared/components/form/components/FormConfirmModal';
-import TableMultiLevelRender from '@/shared/components/table/views/TableMultiLevelRender';
-import CrudHeader from '../views/CrudHeader';
-import CrudFooter from '../views/CrudFooter';
 
 /**
- * CrudMultiLevelManager — Encapsula layout, tabla multinivel y todos los modales CRUD
- * para múltiples niveles/tablas.
+ * CrudMultiLevelManager — render prop que gestiona modales CRUD para N tablas.
+ * El caller es dueño del layout, tabla y header.
  *
- * Props:
- *   data, loading, error          — desde useTableData
- *   tableLevelConfigs             — config para TableMultiLevelRender (con handlers ya inyectados)
- *   headerProps                   — { headerTitle, headerDescription, actions: [...] }
- *   footerProps                   — opcional
- *   crudLevels                    — Array de configs CRUD, uno por tabla:
- *     [
- *       {
- *         crud: useCrudFormsResult,
- *         tableName: 'SEDES',
- *         primaryKey: 'ID_SEDE',
- *         formFields: [...],
- *         formLayout: null,
- *         multiStep: {...},
- *         validation: {...},
- *         confirmSubmit: true,
- *         modalConfig: {
- *           createTitle: '...',
- *           editTitle: '...',
- *           deleteTitle: '...',
- *           deleteMessage: (row) => '...',
- *           widthClass: 'w-1/2',
- *           createFormKey: 'free' | func,
- *           editFormKey: 'free' | func
- *         },
- *         onCreateSuccess: (result) => {},   // opcional, antes de handleFormSuccess
- *         onEditSuccess:   (result) => {},
- *         onCreateClose:   () => {},          // opcional, al cerrar modal crear
- *         onEditClose:     () => {},          // opcional, al cerrar modal editar
- *       }
- *     ]
+ * @param {Array} crudLevels — configs CRUD por tabla:
+ *   [{
+ *     crud: useCrudFormsResult,
+ *     tableName, primaryKey, formFields,
+ *     formLayout, multiStep, validation, confirmSubmit,
+ *     modalConfig: { createTitle, editTitle, deleteTitle, deleteMessage, size,
+ *                    createFormKey, editFormKey },
+ *     onCreateSuccess, onEditSuccess, onCreateClose, onEditClose
+ *   }]
+ * @param {Function} children — ({ handlers }) => JSX
+ *   handlers: array con { handleCreate, handleEdit, handleDelete, refreshTrigger,
+ *                          notification, closeNotification } por nivel
  */
-function CrudMultiLevelManager({
-  data,
-  loading,
-  error,
-  tableLevelConfigs,
-  headerProps,
-  footerProps,
-  crudLevels
-}) {
+function CrudMultiLevelManager({ crudLevels = [], children }) {
+  const handlers = crudLevels.map(level => ({
+    handleCreate:      level.crud.handleCreate,
+    handleEdit:        level.crud.handleEdit,
+    handleDelete:      level.crud.handleDelete,
+    refreshTrigger:    level.crud.refreshTrigger,
+    notification:      level.crud.notification,
+    closeNotification: level.crud.closeNotification
+  }));
+
   return (
     <>
-      <div className="px-8 py-8 space-y-8 pb-12">
-        {/* Header */}
-        {headerProps && (
-          <CrudHeader
-            headerTitle={headerProps.headerTitle}
-            headerDescription={headerProps.headerDescription}
-            actions={headerProps.actions || []}
-          />
-        )}
-
-        {/* Loading */}
-        {loading && (
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center">
-            <div className="inline-block w-6 h-6 border-2 border-gray-200 border-t-blue-600 rounded-full animate-spin mb-3" />
-            <p className="text-gray-500 text-sm">Cargando datos...</p>
-          </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <div className="bg-red-50 rounded-xl border border-red-100 p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center shrink-0">
-                <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-red-800 font-medium text-sm">Error al cargar datos</h3>
-                <p className="text-red-600 text-sm mt-0.5">{error.message}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Tabla */}
-        {!loading && !error && (
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
-            <TableMultiLevelRender
-              data={data}
-              levelConfigs={tableLevelConfigs}
-            />
-          </div>
-        )}
-
-        <CrudFooter {...footerProps} />
-      </div>
+      {children?.(handlers)}
 
       {/* ===== MODALES POR CADA NIVEL CRUD ===== */}
-      {crudLevels?.map((level, idx) => {
+      {crudLevels.map((level, idx) => {
         const {
           crud,
           tableName,
@@ -120,8 +53,7 @@ function CrudMultiLevelManager({
           editTitle = 'Editar Registro',
           deleteTitle = '¿Eliminar registro?',
           deleteMessage = (row) => `¿Estás seguro de que deseas eliminar este registro?`,
-          widthClass = 'w-1/2',
-          size = 'md',
+          size = 'lg',
           createFormKey = 'free',
           editFormKey = 'free'
         } = modalConfig;
@@ -143,7 +75,6 @@ function CrudMultiLevelManager({
                 crud.handleCloseCreate();
               }}
               title={createTitle}
-              widthClass={widthClass}
               size={size}
               closeOnOutsideClick={false}
             >
@@ -175,7 +106,6 @@ function CrudMultiLevelManager({
                 crud.handleCloseEdit();
               }}
               title={editTitle}
-              widthClass={widthClass}
               size={size}
               closeOnOutsideClick={false}
             >

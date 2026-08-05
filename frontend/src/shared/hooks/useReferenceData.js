@@ -58,6 +58,7 @@ export const useReferenceData = (config) => {
   const labelField = config?.labelField;
   const labelTemplate = config?.labelTemplate;
   const descriptionField = config?.descriptionField;
+  const referenceDisplayFields = config?.referenceDisplayFields || [];
   const filters = config?.filters;
   const referenceSelfValue = config?.referenceSelfValue;  // ← NUEVO: Valor self para post-procesado
   const referenceSelfFilter = config?.referenceSelfFilter; // ← NUEVO: Filtros adicionales para self loading
@@ -86,6 +87,11 @@ export const useReferenceData = (config) => {
     }
     
     if (descriptionField) fields.push(descriptionField);
+
+    // Incluir campos de visualización readonly
+    referenceDisplayFields.forEach(({ field }) => {
+      if (field && !fields.includes(field)) fields.push(field);
+    });
     
     const uniqueFields = [...new Set(fields)]; // Eliminar duplicados
     // Solo loguear si es la primera vez o cambian los campos
@@ -93,7 +99,7 @@ export const useReferenceData = (config) => {
     //   console.log('reference-select: Campos necesarios calculados:', uniqueFields);
     // }
     return uniqueFields;
-  }, [valueField, labelField, labelTemplate, descriptionField]);
+  }, [valueField, labelField, labelTemplate, descriptionField, referenceDisplayFields]);
 
   // Generar clave de cache robusta
   const cacheKey = useMemo(() => {
@@ -194,6 +200,19 @@ export const useReferenceData = (config) => {
     load();
   }, [load, refreshTrigger]);
 
+  const refresh = useCallback(() => {
+    cache.delete(cacheKey);
+    pendingRequests.delete(cacheKey);
+    for (const [key] of optionsCache) {
+      if (key.startsWith(cacheKey)) {
+        optionsCache.delete(key);
+      }
+    }
+    hasAttemptedLoad.current = false;
+    setRefreshTrigger(prev => prev + 1);
+    cacheService.invalidate({ tableName });
+  }, [cacheKey, tableName]);
+
   // Efecto para escuchar invalidaciones de cache
   useEffect(() => {
     const unsubscribe = cacheService.subscribe((event) => {
@@ -225,7 +244,6 @@ export const useReferenceData = (config) => {
         
         // Resetear estado y forzar recarga
         hasAttemptedLoad.current = false;
-        setRecords([]);
         setRefreshTrigger(prev => prev + 1);
       }
     });
@@ -300,12 +318,17 @@ export const useReferenceData = (config) => {
   useEffect(() => {
     const loadOriginalRecord = async () => {
       // Solo cargar si tenemos config válida y un valor original
-      if (!tableName || !valueField || !referenceOriginalValue || loading) {
+      // Guard robusto: atrapa null, undefined, "", [], [""], etc.
+      const isEmptyValue = referenceOriginalValue == null
+        || referenceOriginalValue === ''
+        || (Array.isArray(referenceOriginalValue) && referenceOriginalValue.length === 0)
+        || (Array.isArray(referenceOriginalValue) && referenceOriginalValue.every(v => v == null || v === ''));
+      if (!tableName || !valueField || isEmptyValue || loading) {
         return;
       }
 
-      // Ya está cargado, no recargar
-      if (originalRecord) {
+      // Ya está cargado (incluye sentinel false para prevenir retry loops)
+      if (originalRecord !== null) {
         return;
       }
 
@@ -322,9 +345,11 @@ export const useReferenceData = (config) => {
           setOriginalRecord(originalData);
         } else {
           console.warn(`[useReferenceData] ⚠️ No se encontró registro original para ${valueField}=${referenceOriginalValue}`);
+          setOriginalRecord(false);
         }
       } catch (err) {
         console.error(`[useReferenceData] ❌ Error cargando registro original:`, err);
+        setOriginalRecord(false);
       }
     };
 
@@ -400,7 +425,7 @@ export const useReferenceData = (config) => {
     return transformedOptions;
   }, [records, selfRecord, labelTemplate, labelField, valueField, descriptionField, tableName, cacheKey, filters]);
 
-  return { options, loading, refresh: load };
+  return { options, loading, refresh };
 };
 
 export default useReferenceData;

@@ -1,72 +1,118 @@
 import React from 'react';
-import { PAGINATION_CONFIG } from '../constants/tableConstants';
+
+const ITEMS_PER_PAGE_OPTIONS = [5, 10, 25, 50, 100, 500, 1000];
+
+const DEFAULT_CONTAINER =
+  'px-5 py-3 border-t border-gray-100 bg-gray-50/70 rounded-b-xl flex flex-wrap items-center justify-between gap-3';
+
+const BTN_BASE =
+  'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border transition-all duration-150 select-none';
+const BTN_ACTIVE =
+  'border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-600 disabled:hover:bg-transparent';
 
 /**
- * Componente para la paginación de la tabla
+ * Componente de paginación con diseño refinado.
+ *
+ * @prop {boolean} pagination          - Si false, no renderiza nada
+ * @prop {Array}   processedData       - Datos totales (para conteo)
+ * @prop {number}  itemsPerPage        - Ítems por página actual
+ * @prop {number}  currentPage         - Página actual
+ * @prop {Function} onPageChange       - Callback de cambio de página
+ * @prop {Function} onItemsPerPageChange - Callback de cambio de tamaño
+ * @prop {string}  paginationClassName - Override completo del className del contenedor
  */
-const TablePagination = ({ 
-  pagination, 
-  processedData, 
-  itemsPerPage, 
-  currentPage, 
+const TablePagination = ({
+  pagination,
+  processedData,
+  itemsPerPage,
+  currentPage,
   onPageChange,
-  onItemsPerPageChange 
+  onItemsPerPageChange,
+  paginationClassName,
 }) => {
-  if (!pagination) {
-    return null;
-  }
+  if (!pagination) return null;
 
-  const totalPages = Math.ceil(processedData.length / itemsPerPage);
-  
-  // Opciones para itemsPerPage - siempre mostrar todas las opciones
-  const itemsPerPageOptions = [5, 10, 25, 50, 100, 500, 1000];
+  const total      = processedData.length;
+  const totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
+  const from       = total === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const to         = Math.min(currentPage * itemsPerPage, total);
+
+  const goTo = (page) => onPageChange && onPageChange(page);
 
   return (
-    <div className="mt-4 flex justify-between items-center">
-      <div className="flex items-center space-x-4">
-        <div className="text-sm text-gray-700">
-          {processedData.length > 0 
-            ? `Mostrando ${((currentPage - 1) * itemsPerPage) + 1} a ${Math.min(currentPage * itemsPerPage, processedData.length)} de ${processedData.length} resultados`
-            : `No hay resultados`
+    <div className={paginationClassName || DEFAULT_CONTAINER}>
+      {/* Izquierda: info + selector */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <span className="text-xs text-gray-500 tabular-nums">
+          {total === 0
+            ? 'Sin resultados'
+            : <><span className="font-semibold text-gray-700">{from}–{to}</span> de <span className="font-semibold text-gray-700">{total}</span></>
           }
-        </div>
-        
-        {/* Selector de items por página - siempre visible */}
-        <div className="flex items-center space-x-2">
-          <label className="text-sm text-gray-700">Items por página:</label>
+        </span>
+
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-400 whitespace-nowrap">Por página</label>
           <select
             value={itemsPerPage}
             onChange={(e) => onItemsPerPageChange && onItemsPerPageChange(Number(e.target.value))}
-            className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400 cursor-pointer"
           >
-            {itemsPerPageOptions.map(option => (
-              <option key={option} value={option}>
-                {option}
-              </option>
+            {ITEMS_PER_PAGE_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
             ))}
           </select>
         </div>
       </div>
-      
-      {/* Navegación - siempre visible si hay paginación activada */}
-      {processedData.length > 0 && (
-        <div className="flex space-x-2">
+
+      {/* Derecha: navegación */}
+      {total > 0 && (
+        <div className="flex items-center gap-1.5">
           <button
-            onClick={() => onPageChange && onPageChange(Math.max(1, currentPage - 1))}
+            onClick={() => goTo(1)}
             disabled={currentPage === 1}
-            className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            className={`${BTN_BASE} ${BTN_ACTIVE}`}
+            title="Primera página"
           >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            </svg>
+          </button>
+
+          <button
+            onClick={() => goTo(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className={`${BTN_BASE} ${BTN_ACTIVE}`}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
             Anterior
           </button>
-          <span className="px-3 py-1 text-sm">
-            Página {currentPage} de {totalPages || 1}
+
+          <span className="px-3 py-1.5 text-xs font-medium text-gray-500 tabular-nums whitespace-nowrap">
+            {currentPage} / {totalPages}
           </span>
+
           <button
-            onClick={() => onPageChange && onPageChange(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage === totalPages || totalPages === 0}
-            className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            onClick={() => goTo(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+            className={`${BTN_BASE} ${BTN_ACTIVE}`}
           >
             Siguiente
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          <button
+            onClick={() => goTo(totalPages)}
+            disabled={currentPage === totalPages}
+            className={`${BTN_BASE} ${BTN_ACTIVE}`}
+            title="Última página"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
           </button>
         </div>
       )}

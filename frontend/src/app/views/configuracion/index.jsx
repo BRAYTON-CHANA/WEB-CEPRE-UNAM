@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import LayoutWithSidebar from '@/shared/components/layout/LayoutWithSidebar';
+import { ConfigLayout } from '@/features/layout';
 import { exportarBDJson } from '@/shared/utils/exportDB';
 
 /**
@@ -24,7 +24,7 @@ function Configuracion() {
   };
 
   return (
-    <LayoutWithSidebar>
+    <ConfigLayout>
       <div className="p-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">Configuración</h1>
         <p className="text-gray-600 mb-8">Selecciona una opción del menú lateral para comenzar.</p>
@@ -73,7 +73,7 @@ function Configuracion() {
           )}
         </div>
       </div>
-    </LayoutWithSidebar>
+    </ConfigLayout>
   );
 }
 

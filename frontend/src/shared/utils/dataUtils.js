@@ -87,19 +87,34 @@ export const getDataType = (data, header) => {
 };
 
 /**
- * Procesa un header para extraer title y type de manera uniforme
- * @param {string|Object} header - Header como string u objeto {title, type}
- * @returns {Object} - Objeto con title y type
+ * Procesa un header para extraer todos sus metadatos de manera uniforme.
+ *
+ * Formatos soportados:
+ *   'campo'                                         → string simple
+ *   { title, type }                                 → columna con tipo visual
+ *   { title, field, type, colorMap }                → campo explícito + badge/etc
+ *   { title, fields: ['a','b'], type: 'stacked' }   → columna compuesta
+ *   { title, field, render: (value, row) => JSX }   → render fn custom
+ *
+ * @param {string|Object} header
+ * @returns {{ title, field, fields, type, render, colorMap }}
  */
 export const processHeader = (header) => {
-  // Procesamiento sin logs para evitar spam
   if (typeof header === 'string') {
-    return { title: header, type: 'string' };
+    return { title: header, field: header, fields: null, type: 'string', render: null, colorMap: null };
   }
-  
+
+  const title  = header.title  || 'Unknown';
+  const fields = header.fields || null;
+  const field  = header.field  || (fields ? fields[0] : title);
+
   return {
-    title: header.title || 'Unknown',
-    type: header.type || 'string'
+    title,
+    field,
+    fields,
+    type:     header.type     || 'string',
+    render:   header.render   || null,
+    colorMap: header.colorMap || null,
   };
 };
 

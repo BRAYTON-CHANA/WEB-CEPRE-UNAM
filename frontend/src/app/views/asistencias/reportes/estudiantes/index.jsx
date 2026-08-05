@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Layout from '@/shared/components/layout/Layout';
+import { CepreLayout } from '@/features/layout';
 import { Link } from 'react-router-dom';
 import { usePeriodos } from '@/features/asistencias/grupos/hooks/usePeriodos';
 import { SedeTabs } from '@/features/asistencias/grupos/components/SedeTabs';
@@ -145,7 +145,7 @@ function ReportesEstudiantes() {
   };
 
   return (
-    <Layout>
+    <CepreLayout>
       {modalGrupo && (
         <ModalSeleccionFechas
           grupo={modalGrupo}
@@ -299,7 +299,7 @@ function ReportesEstudiantes() {
           )}
         </div>
       </div>
-    </Layout>
+    </CepreLayout>
   );
 }
 
