@@ -1,4 +1,4 @@
-import DatabaseManager from '../database/DatabaseManager.js';
+import DatabaseManager from '../../lib/database/DatabaseManager.js';
 import 'dotenv/config';
 
 export default async function handler(req, res) {

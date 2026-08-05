@@ -1,4 +1,4 @@
-import { sendEmail } from './shared/emailService.js';
+import { sendEmail } from '../lib/shared/emailService.js';
 import 'dotenv/config';
 
 export default async function handler(req, res) {

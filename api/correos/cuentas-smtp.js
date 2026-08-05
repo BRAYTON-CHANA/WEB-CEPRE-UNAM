@@ -1,6 +1,6 @@
-import DatabaseManager from '../database/DatabaseManager.js';
-import { encrypt } from '../shared/cryptoService.js';
-import { withAuth } from '../middleware/auth.js';
+import DatabaseManager from '../../lib/database/DatabaseManager.js';
+import { encrypt } from '../../lib/shared/cryptoService.js';
+import { withAuth } from '../../lib/middleware/auth.js';
 import 'dotenv/config';
 
 function buildSmtpPayload(input) {
