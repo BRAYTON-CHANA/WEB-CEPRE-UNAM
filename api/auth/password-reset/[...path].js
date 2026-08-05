@@ -1,6 +1,6 @@
-import passwordResetRequest from '../../../../lib/handlers/auth/password-reset/request.js';
-import passwordResetVerify from '../../../../lib/handlers/auth/password-reset/verify.js';
-import passwordResetUpdate from '../../../../lib/handlers/auth/password-reset/update.js';
+import passwordResetRequest from '../../../lib/handlers/auth/password-reset/request.js';
+import passwordResetVerify from '../../../lib/handlers/auth/password-reset/verify.js';
+import passwordResetUpdate from '../../../lib/handlers/auth/password-reset/update.js';
 
 const passwordResetHandlers = {
   request: passwordResetRequest,
