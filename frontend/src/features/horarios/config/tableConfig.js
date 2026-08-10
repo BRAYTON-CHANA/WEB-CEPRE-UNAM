@@ -2,7 +2,7 @@
  * Configuración de tabla multinivel para Horarios y Bloques
  */
 
-export const getHorariosLevelConfig = (horariosCrud, handleAddBloqueToHorario) => ({
+export const getHorariosLevelConfig = (horariosCrud, handleEditarBloques) => ({
   level: 1,
   headers: [
     { title: 'NOMBRE_HORARIO', type: 'string', groupBy: true, label: 'Horario' },
@@ -27,12 +27,12 @@ export const getHorariosLevelConfig = (horariosCrud, handleAddBloqueToHorario) =
       className: 'text-red-600 hover:bg-red-100',
       onClick: (row) => horariosCrud.handleDelete(row)
     },
-    addBloque: {
+    editarBloques: {
       enabled: true,
-      icon: 'plus',
-      label: 'Añadir Bloque',
+      icon: 'edit',
+      label: 'Editar Bloques',
       className: 'text-green-600 hover:bg-green-100',
-      onClick: (row) => handleAddBloqueToHorario(row)
+      onClick: (row) => handleEditarBloques(row)
     }
   }
 });

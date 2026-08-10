@@ -48,12 +48,20 @@ const ScheduleTemplate = ({
   deleteMode = false,
   selectedCells = new Set(),
   onCellToggle = null,
-  onCellDelete = null
+  onCellDelete = null,
+  // Reordenación opcional con flechas (hover)
+  onMoveUp = null,
+  onMoveDown = null,
+  canMoveUp = null,
+  canMoveDown = null
 }) => {
   const [pendingDelete, setPendingDelete] = useState(null);
 
   const headerRows = matrix.length;
   const colCount = headerRows > 0 && Array.isArray(matrix[0]) ? matrix[0].length : 0;
+
+  // Reordenación opcional: solo si se pasan callbacks
+  const showArrows = !!(onMoveUp || onMoveDown);
 
   const getCellKey = (colIndex, bloqueOrden) => `${colIndex}-${bloqueOrden}`;
 
@@ -120,6 +128,12 @@ const ScheduleTemplate = ({
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr>
+              {showArrows && (
+                <th
+                  rowSpan={columnDates.length > 0 ? 2 : 1}
+                  className="bg-slate-50 border border-slate-200 border-r-2 border-slate-300 sticky top-0 left-0 z-20 w-10 align-middle"
+                />
+              )}
               <th
                 rowSpan={columnDates.length > 0 ? 2 : 1}
                 className="bg-slate-50 p-3 text-xs font-medium text-slate-600 border border-slate-200 border-r-2 border-slate-300 sticky top-0 left-0 z-20 w-28 align-middle"
@@ -167,14 +181,59 @@ const ScheduleTemplate = ({
           <tbody>
             {blocks.length === 0 ? (
               <tr>
-                <td colSpan={colCount + 1} className="p-8 text-center text-gray-400 text-sm border border-slate-200">
+                <td colSpan={colCount + 1 + (showArrows ? 1 : 0)} className="p-8 text-center text-gray-400 text-sm border border-slate-200">
                   No hay bloques definidos
                 </td>
               </tr>
             ) : blocks.map((block, blockIndex) => {
               const isBreak = block.type === 'break';
+              const upEnabled = canMoveUp ? canMoveUp(block) : blockIndex > 0;
+              const downEnabled = canMoveDown ? canMoveDown(block) : blockIndex < blocks.length - 1;
               return (
-                <tr key={block.key || `b-${blockIndex}`} className={isBreak ? 'bg-gray-50' : ''}>
+                <tr
+                  key={block.key || `b-${blockIndex}`}
+                  className={`group ${isBreak ? 'bg-gray-50' : ''}`}
+                >
+                  {showArrows && (
+                    <td className="bg-slate-50/80 p-1 border border-slate-200 border-r-2 border-slate-300 w-10 align-middle">
+                      <div className="flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          disabled={!upEnabled}
+                          onClick={(e) => { e.stopPropagation(); upEnabled && onMoveUp?.(block); }}
+                          className={[
+                            'w-7 h-5 flex items-center justify-center rounded border transition-colors',
+                            upEnabled
+                              ? 'text-slate-500 border-slate-300 bg-white hover:text-blue-700 hover:border-blue-400 hover:bg-blue-50 cursor-pointer'
+                              : 'text-slate-300 border-slate-200 bg-slate-50 cursor-not-allowed'
+                          ].join(' ')}
+                          title="Mover arriba"
+                          aria-label="Mover bloque arriba"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!downEnabled}
+                          onClick={(e) => { e.stopPropagation(); downEnabled && onMoveDown?.(block); }}
+                          className={[
+                            'w-7 h-5 flex items-center justify-center rounded border transition-colors',
+                            downEnabled
+                              ? 'text-slate-500 border-slate-300 bg-white hover:text-blue-700 hover:border-blue-400 hover:bg-blue-50 cursor-pointer'
+                              : 'text-slate-300 border-slate-200 bg-slate-50 cursor-not-allowed'
+                          ].join(' ')}
+                          title="Mover abajo"
+                          aria-label="Mover bloque abajo"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  )}
                   <td className="bg-white p-3 text-xs border border-slate-200 border-r-2 border-slate-300 w-28">
                     {block.label && (
                       <div className="text-slate-700 font-medium mb-1 truncate" title={block.label}>

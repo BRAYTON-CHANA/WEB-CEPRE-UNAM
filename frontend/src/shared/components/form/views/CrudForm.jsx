@@ -48,7 +48,10 @@ const CrudForm = ({
   createFunction = null,
 
   // Función custom para editar
-  editFunction = null
+  editFunction = null,
+
+  // Valores iniciales personalizados (para campos no persistentes como archivos)
+  initialFormValues = {}
 }) => {
   const [fieldErrors, setFieldErrors] = useState([]);
   const [submitAttempted, setSubmitAttempted] = useState(false);
@@ -66,8 +69,8 @@ const CrudForm = ({
   } = useCrudForm(tableName, mode, recordId, primaryKey, viewName, createFunction, editFunction);
 
   // Memoizar initialValues para evitar re-renders en cascada
-  const initialValues = useMemo(() => {
-    return mode === 'edit' && record
+  const formInitialValues = useMemo(() => {
+    const base = mode === 'edit' && record
       ? fields.reduce((acc, field) => {
           const value = record[field.name];
           // Preservar 0 y false como valores válidos, solo usar '' para null/undefined
@@ -79,7 +82,8 @@ const CrudForm = ({
           acc[field.name] = field.defaultValue !== undefined ? field.defaultValue : '';
           return acc;
         }, {});
-  }, [mode, record, fields]);
+    return { ...base, ...initialFormValues };
+  }, [mode, record, fields, initialFormValues]);
 
   // Resetear errores cuando cambia el schema
   useEffect(() => {
@@ -91,7 +95,7 @@ const CrudForm = ({
   /**
    * Manejar submit del formulario
    */
-  const handleSubmit = async (formData) => {
+  const handleSubmit = async (submitData, rawFormData) => {
     setSubmitAttempted(true);
     setFieldErrors([]);
     setIsSubmitting(true);
@@ -107,7 +111,7 @@ const CrudForm = ({
     }
 
     // Validar campos del form contra el schema
-    const mismatches = validateFieldsAgainstSchema(formData, schema, fields, tableName);
+    const mismatches = validateFieldsAgainstSchema(submitData, schema, fields, tableName);
 
     if (mismatches.length > 0) {
       setFieldErrors(mismatches);
@@ -117,11 +121,11 @@ const CrudForm = ({
     }
 
     // Construir payload (filtrar campos que no están en schema, excluir PK y campos ignoreField)
-    const payload = buildPayload(formData, schema, primaryKey, fields, mode === 'edit' ? record : null);
+    const payload = buildPayload(submitData, schema, primaryKey, fields, mode === 'edit' ? record : null);
 
     try {
-      // Enviar al backend
-      const result = await submit(payload, recordId);
+      // Enviar al backend (formData se pasa para funciones custom con ignoreField)
+      const result = await submit(payload, recordId, rawFormData);
 
       // Éxito
       onSuccess?.(result);
@@ -208,8 +212,9 @@ const CrudForm = ({
 
       {/* Formulario base */}
       <Form
+        key={record ? `form-${record[primaryKey]}` : 'form-loading'}
         fields={fields}
-        initialValues={initialValues}
+        initialValues={formInitialValues}
         onSubmit={handleSubmit}
         validation={validation}
         layout={layout}

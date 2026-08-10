@@ -125,8 +125,10 @@ export const useCrudForm = (tableName, mode = 'create', recordId = null, primary
 
   /**
    * Submit según el modo (create o edit)
+   * El tercer argumento (formData) se pasa a createFunction/editFunction
+   * para que puedan acceder a campos con ignoreField (ej. archivos).
    */
-  const submit = useCallback(async (data, id = null) => {
+  const submit = useCallback(async (data, id = null, formData = null) => {
     console.log('[useCrudForm] submit llamado');
     console.log('[useCrudForm] modo:', mode);
     console.log('[useCrudForm] data:', data);
@@ -134,12 +136,12 @@ export const useCrudForm = (tableName, mode = 'create', recordId = null, primary
 
     if (mode === 'create' && createFunction) {
       console.log('[useCrudForm] Llamando createFunction...');
-      return await createFunction(data);
+      return await createFunction(data, id, formData);
     }
 
     if (mode === 'edit' && editFunction) {
       console.log('[useCrudForm] Llamando editFunction...');
-      return await editFunction(data, id || recordId);
+      return await editFunction(data, id || recordId, formData);
     }
 
     if (mode === 'create') {

@@ -27,13 +27,6 @@ export const periodosFormFields = [
     type: 'date',
     label: 'Fecha de Fin',
     required: true
-  },
-  {
-    name: 'ACTIVO',
-    type: 'boolean',
-    label: 'Activo',
-    required: false,
-    defaultValue: true
   }
 ];
 

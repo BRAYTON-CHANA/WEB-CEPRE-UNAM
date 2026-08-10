@@ -287,3 +287,11 @@ export const MergeFieldIcon = (props) => (
     <path d="M10 7h4a3 3 0 013 3v4" />
   </IconBase>
 );
+
+export const DownloadIcon = (props) => (
+  <IconBase {...props} strokeWidth={2}>
+    <path d="M12 3v12" />
+    <path d="M7 10l5 5 5-5" />
+    <path d="M5 21h14" />
+  </IconBase>
+);

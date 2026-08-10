@@ -1,0 +1,109 @@
+import { db } from '@/shared/api';
+import { tokenUtils } from '@/shared/utils/tokenUtils';
+
+const API_URL = '/api/storage';
+
+/**
+ * Convierte un File del browser a base64 (Data URL).
+ */
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Error leyendo el archivo'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function getFileFromFormData(formData) {
+  if (!formData) return null;
+  const archivo = formData.ARCHIVO;
+  if (Array.isArray(archivo) && archivo.length > 0) return archivo[0];
+  if (archivo instanceof File) return archivo;
+  return null;
+}
+
+async function requestStorage(action, body) {
+  const token = tokenUtils.getToken();
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ action, ...body }),
+  });
+
+  const result = await response.json();
+  if (!result.success) throw new Error(result.message || 'Error en operación de storage');
+  return result.data;
+}
+
+async function subirArchivoRequisito(idRequisito, file) {
+  const fileBase64 = await fileToBase64(file);
+  const data = await requestStorage('upload', {
+    domain: 'requisitos',
+    id: idRequisito,
+    filename: file.name,
+    contentType: file.type,
+    file: fileBase64,
+  });
+  return {
+    path: data.path,
+    filename: data.filename,
+    contentType: data.contentType,
+    size: data.size ?? file.size,
+  };
+}
+
+/**
+ * Crea un requisito docente, sube el archivo si existe y actualiza metadatos.
+ */
+export async function createRequisito(data, _id, formData) {
+  const insertResult = await db.insert('REQUISITOS_DOCENTES', data);
+  const record = Array.isArray(insertResult) ? insertResult[0] : insertResult;
+  const id = record?.ID_REQUISITO;
+
+  if (!id) throw new Error('No se pudo obtener el ID del requisito creado');
+
+  const file = getFileFromFormData(formData);
+  if (file) {
+    const { path, filename, contentType, size } = await subirArchivoRequisito(id, file);
+    await db.update('REQUISITOS_DOCENTES', id, {
+      STORAGE_PATH: path,
+      FILENAME: filename,
+      CONTENT_TYPE: contentType,
+      TAMAÑO_BYTES: size,
+    }, 'ID_REQUISITO');
+  }
+
+  return { success: true, data: record };
+}
+
+/**
+ * Actualiza un requisito docente, reemplaza el archivo si se seleccionó uno nuevo.
+ */
+export async function updateRequisito(id, data, formData, originalRecord) {
+  await db.update('REQUISITOS_DOCENTES', id, data, 'ID_REQUISITO');
+
+  const file = getFileFromFormData(formData);
+  if (file) {
+    const { path, filename, contentType, size } = await subirArchivoRequisito(id, file);
+    await db.update('REQUISITOS_DOCENTES', id, {
+      STORAGE_PATH: path,
+      FILENAME: filename,
+      CONTENT_TYPE: contentType,
+      TAMAÑO_BYTES: size,
+    }, 'ID_REQUISITO');
+  }
+
+  return { success: true, data: originalRecord };
+}
+
+/**
+ * Genera URL firmada temporal para descargar el archivo asociado.
+ */
+export async function getRequisitoUrl(path) {
+  const data = await requestStorage('url', { bucket: 'postulaciones-adjuntos', path });
+  return data.url;
+}

@@ -165,7 +165,8 @@ const FormField = ({
           minTime: field.minTime,
           maxTime: field.maxTime,
           showSeconds: field.showSeconds,
-          format24Hour: field.format24Hour
+          format24Hour: field.format24Hour,
+          allowManualInput: field.allowManualInput
         };
 
       case 'datetime':

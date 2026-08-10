@@ -21,6 +21,11 @@ export function useMultiLevelFetch(levelConfigs) {
   const fetchLevel1 = useCallback(async () => {
     if (!levelConfigs?.length) return;
     const config = levelConfigs[0];
+    if (!config.tableName) {
+      setRecords([]);
+      setError(null);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -50,7 +55,7 @@ export function useMultiLevelFetch(levelConfigs) {
     }));
 
     try {
-      const filters = { [config.parentKey]: parentValue };
+      const filters = { ...(config.filters || {}), [config.parentKey]: parentValue };
       const data = await backend.select(config.tableName, filters);
       setChildrenCache(prev => ({
         ...prev,

@@ -1,21 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useTableData, useCrudForms } from '@/shared/components/crud';
+import { useTableData } from '@/shared/components/crud';
 import { TableMultiLevelEditable } from '@/shared/components/table';
 import { CrudHeader } from '@/shared/components/crud';
 import { ConfigLayout } from '@/features/layout';
 import { Modal } from '@/shared/components/modal';
 import FormConfirmModal from '@/shared/components/form/components/FormConfirmModal';
 import { CrudForm } from '@/shared/components/form';
-import { tableConfig, getTableLevelConfigs } from '@/features/periodos/config/tableConfig';
-import { periodosFormFields, periodosMultiStep, periodosValidation, periodosModalConfig } from '@/features/periodos/config/formConfig';
-import { headerProps, getHeaderActions } from '@/features/periodos/config/headerConfig';
+import { tableConfig, getTableLevelConfigs } from '@/features/requisitos_docentes/config/tableConfig';
+import { requisitosFormFields, requisitosMultiStep, requisitosValidation, requisitosModalConfig } from '@/features/requisitos_docentes/config/formConfig';
+import { headerProps, getHeaderActions } from '@/features/requisitos_docentes/config/headerConfig';
+import { createRequisito, updateRequisito, getRequisitoUrl } from '@/features/requisitos_docentes/services/requisitosDocentesService';
 import { db } from '@/shared/api';
 
 /**
- * Configuración de PERIODOS
- * CRUD con TableMultiLevelEditable (campo ACTIVO editable inline).
+ * Configuración de REQUISITOS_DOCENTES
+ * Biblioteca de documentos/plantillas con TableMultiLevelEditable (ACTIVO editable inline).
  */
-function PeriodosConfig() {
+function RequisitosDocentesConfig() {
   const { records, loading, error, refresh } = useTableData(tableConfig.tableName);
   const [tableRecords, setTableRecords] = useState(records || []);
 
@@ -25,13 +26,14 @@ function PeriodosConfig() {
 
   const handleSaveSuccess = useCallback((recordId, field, newValue) => {
     setTableRecords(prev =>
-      prev.map(row => String(row.ID_PERIODO) === String(recordId) ? { ...row, [field]: newValue } : row)
+      prev.map(row => String(row.ID_REQUISITO) === String(recordId) ? { ...row, [field]: newValue } : row)
     );
   }, []);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [editInitialValues, setEditInitialValues] = useState({});
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [rowToDelete, setRowToDelete] = useState(null);
@@ -52,7 +54,23 @@ function PeriodosConfig() {
     setIsCreateOpen(true);
   };
 
-  const handleEdit = (row) => {
+  const handleEdit = async (row) => {
+    const fileInitial = {};
+    if (row.STORAGE_PATH) {
+      try {
+        const url = await getRequisitoUrl(row.STORAGE_PATH);
+        fileInitial.ARCHIVO = {
+          name: row.FILENAME || row.STORAGE_PATH.split('/').pop(),
+          type: row.CONTENT_TYPE || '',
+          size: row.TAMAÑO_BYTES || 0,
+          url
+        };
+      } catch (err) {
+        console.error('Error obteniendo URL del archivo:', err);
+      }
+    }
+
+    setEditInitialValues(fileInitial);
     setSelectedRecord(row);
     setIsEditOpen(true);
   };
@@ -71,13 +89,13 @@ function PeriodosConfig() {
     if (!rowToDelete) return;
     setDeleteLoading(true);
     try {
-      await db.delete('PERIODOS', rowToDelete.ID_PERIODO, 'ID_PERIODO');
+      await db.delete('REQUISITOS_DOCENTES', rowToDelete.ID_REQUISITO, 'ID_REQUISITO');
       await refresh();
       setIsDeleteOpen(false);
       setRowToDelete(null);
-      showNotification('success', 'Operación Exitosa', 'El periodo ha sido eliminado.');
+      showNotification('success', 'Operación Exitosa', 'El requisito ha sido eliminado.');
     } catch (err) {
-      showNotification('error', 'Error', err.message || 'Ocurrió un error al eliminar el periodo.');
+      showNotification('error', 'Error', err.message || 'Ocurrió un error al eliminar el requisito.');
     } finally {
       setDeleteLoading(false);
     }
@@ -88,7 +106,7 @@ function PeriodosConfig() {
     setIsEditOpen(false);
     setSelectedRecord(null);
     await refresh();
-    showNotification('success', 'Operación Exitosa', 'El periodo ha sido guardado correctamente.');
+    showNotification('success', 'Operación Exitosa', 'El requisito ha sido guardado correctamente.');
   };
 
   const handleError = (err) => {
@@ -136,20 +154,21 @@ function PeriodosConfig() {
       <Modal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title={periodosModalConfig.createTitle}
+        title={requisitosModalConfig.createTitle}
         size="lg"
         closeOnOutsideClick={false}
       >
         <div className="p-6">
           <CrudForm
-            key="create-periodos"
-            tableName="PERIODOS"
+            key="create-requisitos"
+            tableName="REQUISITOS_DOCENTES"
             mode="create"
-            fields={periodosFormFields}
-            primaryKey="ID_PERIODO"
-            multiStep={periodosMultiStep}
+            fields={requisitosFormFields}
+            primaryKey="ID_REQUISITO"
+            multiStep={requisitosMultiStep}
             confirmSubmit
-            validation={periodosValidation}
+            validation={requisitosValidation}
+            createFunction={createRequisito}
             onSuccess={handleSuccess}
             onError={handleError}
           />
@@ -162,23 +181,26 @@ function PeriodosConfig() {
         onClose={() => {
           setIsEditOpen(false);
           setSelectedRecord(null);
+          setEditInitialValues({});
         }}
-        title={periodosModalConfig.editTitle}
+        title={requisitosModalConfig.editTitle}
         size="lg"
         closeOnOutsideClick={false}
       >
         <div className="p-6">
           {selectedRecord && (
             <CrudForm
-              key={`edit-periodos-${selectedRecord.ID_PERIODO}`}
-              tableName="PERIODOS"
+              key={`edit-requisitos-${selectedRecord.ID_REQUISITO}`}
+              tableName="REQUISITOS_DOCENTES"
               mode="edit"
-              recordId={selectedRecord.ID_PERIODO}
-              fields={periodosFormFields}
-              primaryKey="ID_PERIODO"
-              multiStep={periodosMultiStep}
+              recordId={selectedRecord.ID_REQUISITO}
+              fields={requisitosFormFields}
+              primaryKey="ID_REQUISITO"
+              multiStep={requisitosMultiStep}
               confirmSubmit
-              validation={periodosValidation}
+              validation={requisitosValidation}
+              editFunction={(data, id, formData) => updateRequisito(id, data, formData, selectedRecord)}
+              initialFormValues={editInitialValues}
               onSuccess={handleSuccess}
               onError={handleError}
             />
@@ -192,8 +214,8 @@ function PeriodosConfig() {
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
         config={{
-          title: periodosModalConfig.deleteTitle,
-          message: rowToDelete ? periodosModalConfig.deleteMessage(rowToDelete) : '¿Estás seguro?',
+          title: requisitosModalConfig.deleteTitle,
+          message: rowToDelete ? requisitosModalConfig.deleteMessage(rowToDelete) : '¿Estás seguro?',
           confirmText: deleteLoading ? 'Eliminando...' : 'Sí, eliminar',
           cancelText: 'Cancelar'
         }}
@@ -240,4 +262,4 @@ function PeriodosConfig() {
   );
 }
 
-export default PeriodosConfig;
+export default RequisitosDocentesConfig;

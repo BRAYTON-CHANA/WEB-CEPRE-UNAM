@@ -8,6 +8,7 @@ import { getHorariosLevelConfig, getHorarioBloquesLevelConfig } from '@/features
 import { horariosFormFields, horariosMultiStep, horariosValidation, horariosModalConfig } from '@/features/horarios/config/horariosFormConfig';
 import { bloqueBaseFields, bloqueMultiStep, bloqueValidation, bloqueModalConfig } from '@/features/horarios/config/horarioBloquesFormConfig';
 import { headerProps, getHeaderActions } from '@/features/horarios/config/headerConfig';
+import EditarBloquesView from '@/features/horarios/components/EditarBloquesView';
 
 const FETCH_CONFIGS = [
   { tableName: 'VW_HORARIOS', primaryKey: 'ID_HORARIO', filters: {} },
@@ -35,38 +36,47 @@ function HorariosConfig() {
     onRefresh: refresh
   });
 
-  const [selectedHorarioForNewBloque, setSelectedHorarioForNewBloque] = useState(null);
-  const [editingHorarioId, setEditingHorarioId] = useState(null);
+  // Horario seleccionado para la vista "Editar Bloques" (null = tabla normal)
+  const [editingBloquesHorario, setEditingBloquesHorario] = useState(null);
+  // Próximo ORDEN al crear un bloque (auto-calculado: max(ORDEN) + 1)
+  const [nextBloqueOrden, setNextBloqueOrden] = useState(1);
 
   const bloquesCrud = useCrudForms({
     tableName: 'HORARIO_BLOQUES',
     primaryKey: 'ID_BLOQUE',
     onRefresh: () => {
-      const horarioId = selectedHorarioForNewBloque ?? editingHorarioId;
-      if (horarioId !== null) {
-        refreshChildren(1, horarioId);
+      if (editingBloquesHorario) {
+        refreshChildren(1, editingBloquesHorario.ID_HORARIO);
       }
     }
   });
 
+  // Campos de bloque: si estamos editando bloques de un horario, preestablecer ID_HORARIO
+  // y ocultar ORDEN (auto-calculado al final, se reordena con flechas)
   const bloqueFormFields = useMemo(() => {
-    if (selectedHorarioForNewBloque === null) return bloqueBaseFields;
+    if (!editingBloquesHorario) return bloqueBaseFields;
     return bloqueBaseFields.map(field => {
       if (field.name === 'ID_HORARIO') {
-        return { ...field, defaultValue: selectedHorarioForNewBloque, disabled: true };
+        return { ...field, defaultValue: editingBloquesHorario.ID_HORARIO, disabled: true };
+      }
+      if (field.name === 'ORDEN') {
+        return {
+          ...field,
+          defaultValue: nextBloqueOrden,
+          hidden: true,
+          required: false
+        };
       }
       return field;
     });
-  }, [selectedHorarioForNewBloque]);
+  }, [editingBloquesHorario, nextBloqueOrden]);
 
-  const handleAddBloqueToHorario = (horarioRow) => {
-    setSelectedHorarioForNewBloque(horarioRow.ID_HORARIO);
-    bloquesCrud.handleCreate();
+  const handleEditarBloques = (horarioRow) => {
+    setEditingBloquesHorario(horarioRow);
   };
 
-  const handleEditBloque = (row) => {
-    setEditingHorarioId(row.ID_HORARIO);
-    bloquesCrud.handleEdit(row);
+  const handleBackToHorarios = () => {
+    setEditingBloquesHorario(null);
   };
 
   const handleExpand = (levelIndex, parentValue) => {
@@ -74,8 +84,8 @@ function HorariosConfig() {
   };
 
   const tableLevelConfigs = [
-    getHorariosLevelConfig(horariosCrud, handleAddBloqueToHorario),
-    getHorarioBloquesLevelConfig({ ...bloquesCrud, handleEdit: handleEditBloque })
+    getHorariosLevelConfig(horariosCrud, handleEditarBloques),
+    getHorarioBloquesLevelConfig({ ...bloquesCrud })
   ];
 
   const crudLevels = [
@@ -101,22 +111,8 @@ function HorariosConfig() {
       confirmSubmit: true,
       modalConfig: {
         ...bloqueModalConfig,
-        createFormKey: selectedHorarioForNewBloque ?? 'free'
-      },
-      onCreateSuccess: () => {
-        if (selectedHorarioForNewBloque !== null) {
-          refreshChildren(1, selectedHorarioForNewBloque);
-        }
-        setSelectedHorarioForNewBloque(null);
-      },
-      onCreateClose: () => setSelectedHorarioForNewBloque(null),
-      onEditSuccess: () => {
-        if (editingHorarioId !== null) {
-          refreshChildren(1, editingHorarioId);
-        }
-        setEditingHorarioId(null);
-      },
-      onEditClose: () => setEditingHorarioId(null)
+        createFormKey: editingBloquesHorario?.ID_HORARIO ?? 'free'
+      }
     }
   ];
 
@@ -130,42 +126,55 @@ function HorariosConfig() {
   return (
     <ConfigLayout>
       <CrudMultiLevelManager crudLevels={crudLevels}>
-        {([horarioHandler, bloqueHandler]) => (
-          <div className="px-8 py-8 space-y-8 pb-12">
-            <CrudHeader
-              headerTitle={headerProps.headerTitle}
-              headerDescription={headerProps.headerDescription}
-              titleClassName={headerProps.titleClassName}
-              descriptionClassName={headerProps.descriptionClassName}
-              actions={getHeaderActions(horariosCrud)}
-            />
-
-            {loading && (
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center">
-                <div className="inline-block w-6 h-6 border-2 border-gray-200 border-t-blue-600 rounded-full animate-spin mb-3" />
-                <p className="text-gray-500 text-sm">Cargando datos...</p>
-              </div>
-            )}
-
-            {error && (
-              <div className="bg-red-50 rounded-xl border border-red-100 p-6">
-                <p className="text-red-700 text-sm"><strong>Error:</strong> {error.message}</p>
-              </div>
-            )}
-
-            {!loading && !error && (
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
-                <TableMultiLevel
-                  key={`${horarioHandler.refreshTrigger}-${bloqueHandler?.refreshTrigger ?? 0}`}
-                  data={records}
-                  levelConfigs={tableLevelConfigs}
-                  onExpand={handleExpand}
-                  childrenData={childrenData}
-                  childrenLoading={childrenLoading}
+        {([horarioHandler]) => (
+          <>
+            {/* Vista: Editar Bloques de un horario específico */}
+            {editingBloquesHorario ? (
+              <EditarBloquesView
+                horario={editingBloquesHorario}
+                bloquesCrud={bloquesCrud}
+                onBack={handleBackToHorarios}
+                onNextOrdenChange={setNextBloqueOrden}
+              />
+            ) : (
+              /* Vista normal: tabla de horarios */
+              <div className="px-8 py-8 space-y-8 pb-12">
+                <CrudHeader
+                  headerTitle={headerProps.headerTitle}
+                  headerDescription={headerProps.headerDescription}
+                  titleClassName={headerProps.titleClassName}
+                  descriptionClassName={headerProps.descriptionClassName}
+                  actions={getHeaderActions(horariosCrud)}
                 />
+
+                {loading && (
+                  <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center">
+                    <div className="inline-block w-6 h-6 border-2 border-gray-200 border-t-blue-600 rounded-full animate-spin mb-3" />
+                    <p className="text-gray-500 text-sm">Cargando datos...</p>
+                  </div>
+                )}
+
+                {error && (
+                  <div className="bg-red-50 rounded-xl border border-red-100 p-6">
+                    <p className="text-red-700 text-sm"><strong>Error:</strong> {error.message}</p>
+                  </div>
+                )}
+
+                {!loading && !error && (
+                  <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
+                    <TableMultiLevel
+                      key={horarioHandler.refreshTrigger}
+                      data={records}
+                      levelConfigs={tableLevelConfigs}
+                      onExpand={handleExpand}
+                      childrenData={childrenData}
+                      childrenLoading={childrenLoading}
+                    />
+                  </div>
+                )}
               </div>
             )}
-          </div>
+          </>
         )}
       </CrudMultiLevelManager>
     </ConfigLayout>

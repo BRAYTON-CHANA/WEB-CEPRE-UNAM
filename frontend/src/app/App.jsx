@@ -42,6 +42,7 @@ import ReportesDocentes from '@/app/views/configuracion/reportes/docentes';
 import UsuariosConfig from '@/app/views/configuracion/sistema/usuarios';
 import PermisosConfig from '@/app/views/configuracion/sistema/permisos';
 import RolesConfig from '@/app/views/configuracion/sistema/roles';
+import RequisitosDocentesConfig from '@/app/views/configuracion/sistema/requisitos-docentes';
 
 
 import Asistencias from '@/app/views/asistencias';
@@ -126,6 +127,7 @@ function App() {
       <Route path="/configuracion/sistema/usuarios" element={<UsuariosConfig />} />
       <Route path="/configuracion/sistema/permisos" element={<PermisosConfig />} />
       <Route path="/configuracion/sistema/roles" element={<RolesConfig />} />
+      <Route path="/configuracion/sistema/requisitos-docentes" element={<RequisitosDocentesConfig />} />
 
       <Route path="/configuracion/correos/correos" element={<CorreosConfig />} />
       <Route path="/configuracion/correos/password-reset" element={<PasswordResetConfig />} />

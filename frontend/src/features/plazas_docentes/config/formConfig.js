@@ -33,28 +33,6 @@ export const plazaFormFields = [
     placeholder: 'Seleccione un curso'
   },
   {
-    name: 'ID_DOCENTE',
-    type: 'function-select',
-    label: 'Docente',
-    required: false,
-    functionName: 'fn_docentes_por_curso',
-    functionParams: {
-      p_id_curso: '{ID_CURSO}'
-    },
-    optionalParams: ['p_id_curso'],
-    valueField: 'id_docente',
-    labelField: '{nombre_completo}',
-    descriptionField: '{dni}',
-    blocked: {
-      and: [
-        { field: 'ID_CURSO', op: '=', value: '' }
-      ]
-    },
-    placeholder: 'Seleccione un curso primero',
-    searchable: true
-  },
-  
-  {
     name: 'IDENTIFICADOR_DOCENTE',
     type: 'text',
     label: 'Identificador de Plaza',
@@ -67,13 +45,6 @@ export const plazaFormFields = [
     label: 'Pago por Hora',
     required: true,
     placeholder: '0.00'
-  },
-  {
-    name: 'ACTIVO',
-    type: 'boolean',
-    label: 'Activo',
-    required: false,
-    defaultValue: true
   }
 ];
 

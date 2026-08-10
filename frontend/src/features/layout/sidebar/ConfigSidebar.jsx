@@ -202,6 +202,13 @@ const ConfigSidebar = () => {
           icon: <GridIcon />,
           href: '/configuracion/sistema/permisos',
           active: location.pathname === '/configuracion/sistema/permisos'
+        },
+        {
+          id: 'requisitos-docentes',
+          name: 'Requisitos Docentes',
+          icon: <GridIcon />,
+          href: '/configuracion/sistema/requisitos-docentes',
+          active: location.pathname === '/configuracion/sistema/requisitos-docentes'
         }
       ]
     },

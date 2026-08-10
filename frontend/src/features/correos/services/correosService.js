@@ -86,3 +86,23 @@ export async function sendEmailById(idCorreo) {
   if (!result.success) throw new Error(result.message || 'Error enviando el correo');
   return result.data;
 }
+
+/**
+ * Obtiene una URL firmada temporal para descargar un adjunto de Supabase Storage.
+ * @param {string} path - Path del archivo en el bucket correos-adjuntos
+ * @returns {Promise<string>} URL firmada
+ */
+export async function getAttachmentUrl(path) {
+  const token = tokenUtils.getToken();
+  const response = await fetch('/api/storage', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ action: 'url', bucket: 'correos-adjuntos', path }),
+  });
+  const result = await response.json();
+  if (!result.success) throw new Error(result.message || 'Error generando URL del adjunto');
+  return result.data.url;
+}

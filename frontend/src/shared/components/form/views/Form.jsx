@@ -460,7 +460,7 @@ const Form = ({
 
       } else {
 
-        onSubmit(submitData);
+        onSubmit(submitData, formData);
 
       }
 
@@ -488,7 +488,7 @@ const Form = ({
 
       const submitData = prepareSubmitData();
 
-      onSubmit(submitData);
+      onSubmit(submitData, formData);
 
       setPendingSubmitData(null);
 

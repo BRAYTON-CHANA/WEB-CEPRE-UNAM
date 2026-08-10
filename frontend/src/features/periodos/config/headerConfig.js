@@ -3,10 +3,10 @@ export const headerProps = {
   headerDescription: 'Administra los periodos académicos del CEPRE'
 };
 
-export const getHeaderActions = (periodosCrud) => [
+export const getHeaderActions = ({ handleCreate }) => [
   {
     text: 'Crear Periodo',
-    onClick: periodosCrud.handleCreate,
+    onClick: handleCreate,
     font: 'bg-green-600 hover:bg-green-700 text-white'
   }
 ];
