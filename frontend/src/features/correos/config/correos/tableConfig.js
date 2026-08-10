@@ -22,7 +22,8 @@ export const getTableLevelConfigs = (correosCrud) => [
       { title: 'CREADO_EN', type: 'string', label: 'Creado' },
       { title: 'ENVIO_AUTOMATICO', type: 'boolean', label: 'Auto' },
       { title: 'BLOQUEADO', type: 'boolean', label: 'Bloqueado' },
-      { title: 'PERSONALIZADO', type: 'boolean', label: 'Personalizado' }
+      { title: 'PERSONALIZADO', type: 'boolean', label: 'Personalizado' },
+      { title: 'OBSERVACIONES', type: 'string', label: 'Observaciones' }
     ],
     boundColumn: 'ID_CORREO',
     actions: {
@@ -31,6 +32,15 @@ export const getTableLevelConfigs = (correosCrud) => [
         icon: 'edit',
         label: 'Editar',
         className: 'text-blue-600 hover:bg-blue-100',
+        showIf: (row) => row.ESTADO !== 'enviado',
+        onClick: (row) => correosCrud.handleEdit(row)
+      },
+      observaciones: {
+        enabled: true,
+        icon: 'message-square',
+        label: 'Observaciones',
+        className: 'text-blue-600 hover:bg-blue-100',
+        showIf: (row) => row.ESTADO === 'enviado',
         onClick: (row) => correosCrud.handleEdit(row)
       },
       delete: {
@@ -39,7 +49,25 @@ export const getTableLevelConfigs = (correosCrud) => [
         label: 'Eliminar',
         className: 'text-red-600 hover:bg-red-100',
         onClick: (row) => correosCrud.handleDelete(row)
-      }
+      },
+      enviar: {
+        enabled: true,
+        icon: 'send',
+        label: 'Enviar',
+        className: 'text-green-600 hover:bg-green-100',
+        showIf: (row) => row.ESTADO === 'pendiente',
+        onClick: (row) => correosCrud.handleEnviar?.(row)
+      },
+      ver: [
+        {
+          enabled: true,
+          icon: 'eye',
+          label: 'Ver correo',
+          className: 'text-gray-700',
+          showIf: (row) => !!row.CUERPO_HTML,
+          onClick: (row) => {}
+        }
+      ]
     }
   }
 ];

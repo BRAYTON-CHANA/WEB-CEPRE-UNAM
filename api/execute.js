@@ -20,15 +20,20 @@ export default async function handler(req, res) {
   const { functionName, params } = req.body;
 
   try {
-    // Convertir filtros array → objeto plano
+    // Si todos los filtros son '=', convertir a objeto plano para compatibilidad legacy.
+    // Si hay otros operadores (in, not in, etc.) se deja el array para DatabaseManager.select.
     if (params.filters && Array.isArray(params.filters)) {
-      const plainFilters = {};
-      for (const filter of params.filters) {
-        if (filter.op === '=') {
-          plainFilters[filter.field] = filter.value;
+      const onlyEquals = params.filters.every(f => f.op === '=' || f.op === undefined);
+      if (onlyEquals) {
+        const plainFilters = {};
+        for (const filter of params.filters) {
+          const op = filter.op === undefined ? '=' : filter.op;
+          if (op === '=') {
+            plainFilters[filter.field] = filter.value;
+          }
         }
+        params.filters = plainFilters;
       }
-      params.filters = plainFilters;
     }
 
     const func = DatabaseManager[functionName];

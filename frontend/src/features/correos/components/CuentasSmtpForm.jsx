@@ -53,6 +53,8 @@ function CuentasSmtpForm({ mode = 'create', record = null, onSuccess, onError })
         delete payload.SMTP_PASSWORD;
       }
 
+      payload.SMTP_PORT = 587;
+
       if (mode === 'create') {
         await cuentasSmtpService.create(payload);
       } else {

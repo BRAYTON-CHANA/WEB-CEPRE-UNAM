@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTableData } from '@/shared/components/crud';
-import { TableMultiLevel } from '@/shared/components/table';
+import { TableMultiLevelEditable } from '@/shared/components/table';
 import { CrudHeader } from '@/shared/components/crud';
 import { ConfigLayout } from '@/features/layout';
 import { Modal } from '@/shared/components/modal';
@@ -12,6 +12,17 @@ import { cuentasSmtpService } from '@/features/correos/services/cuentasSmtpServi
 
 function CuentasSmtpConfig() {
   const { records, loading, error, refresh } = useTableData(tableConfig.tableName);
+  const [tableRecords, setTableRecords] = useState(records || []);
+
+  useEffect(() => {
+    setTableRecords(records || []);
+  }, [records]);
+
+  const handleSaveSuccess = useCallback((recordId, field, newValue) => {
+    setTableRecords(prev =>
+      prev.map(row => String(row.ID_CUENTA) === String(recordId) ? { ...row, [field]: newValue } : row)
+    );
+  }, []);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -105,9 +116,12 @@ function CuentasSmtpConfig() {
 
         {!loading && !error && (
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
-            <TableMultiLevel
-              data={records}
+            <TableMultiLevelEditable
+              data={tableRecords}
               levelConfigs={tableLevelConfigs}
+              saveMode="auto"
+              externalLoading={loading}
+              onSaveSuccess={handleSaveSuccess}
             />
           </div>
         )}

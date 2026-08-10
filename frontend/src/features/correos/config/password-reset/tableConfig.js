@@ -22,21 +22,6 @@ export const getTableLevelConfigs = (passwordResetCrud) => [
       { title: 'CREADO_EN', type: 'string', label: 'Creado' }
     ],
     boundColumn: 'ID_RESET',
-    actions: {
-      edit: {
-        enabled: true,
-        icon: 'edit',
-        label: 'Editar',
-        className: 'text-blue-600 hover:bg-blue-100',
-        onClick: (row) => passwordResetCrud.handleEdit(row)
-      },
-      delete: {
-        enabled: true,
-        icon: 'trash',
-        label: 'Eliminar',
-        className: 'text-red-600 hover:bg-red-100',
-        onClick: (row) => passwordResetCrud.handleDelete(row)
-      }
-    }
+    actions: {}
   }
 ];

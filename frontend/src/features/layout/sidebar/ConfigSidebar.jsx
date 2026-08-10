@@ -212,27 +212,6 @@ const ConfigSidebar = () => {
       expanded: expandedMenus.correos,
       children: [
         {
-          id: 'correos',
-          name: 'Correos',
-          icon: <InboxIcon />,
-          href: '/configuracion/correos/correos',
-          active: location.pathname === '/configuracion/correos/correos'
-        },
-        {
-          id: 'tipos_correo',
-          name: 'Tipos de Correo',
-          icon: <TagIcon />,
-          href: '/configuracion/correos/tipos',
-          active: location.pathname === '/configuracion/correos/tipos'
-        },
-        {
-          id: 'password_reset',
-          name: 'Códigos de Reset',
-          icon: <KeyIcon />,
-          href: '/configuracion/correos/password-reset',
-          active: location.pathname === '/configuracion/correos/password-reset'
-        },
-        {
           id: 'cuentas_smtp',
           name: 'Cuentas SMTP',
           icon: <ServerIcon />,
@@ -240,12 +219,19 @@ const ConfigSidebar = () => {
           active: location.pathname === '/configuracion/correos/cuentas-smtp'
         },
         {
-          id: 'asignacion_cuentas_sedes',
-          name: 'Asignación Cuentas x Sede',
-          icon: <LinkIcon />,
-          href: '/configuracion/correos/asignacion-cuentas-sedes',
-          active: location.pathname === '/configuracion/correos/asignacion-cuentas-sedes'
-        }
+          id: 'correos',
+          name: 'Correos',
+          icon: <InboxIcon />,
+          href: '/configuracion/correos/correos',
+          active: location.pathname === '/configuracion/correos/correos'
+        },
+        {
+          id: 'password_reset',
+          name: 'Código Reset',
+          icon: <KeyIcon />,
+          href: '/configuracion/correos/password-reset',
+          active: location.pathname === '/configuracion/correos/password-reset'
+        },
       ]
     },
     {

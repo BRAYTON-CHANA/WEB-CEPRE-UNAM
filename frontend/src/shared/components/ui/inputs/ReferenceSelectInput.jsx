@@ -181,7 +181,7 @@ const ReferenceSelectInput = React.memo(({
       filters: processedFilters,
       referenceSelfValue: referenceSelf ? currentValue : null,
       referenceSelfFilter: processedSelfFilters,
-      referenceOriginalValue: referenceSelf ? originalValueRef.current : null
+      referenceOriginalValue: originalValueRef.current
     };
   }, [
     referenceTable, referenceField, referenceLabelField, referenceQuery,

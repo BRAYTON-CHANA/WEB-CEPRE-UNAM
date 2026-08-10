@@ -42,7 +42,13 @@ const CrudForm = ({
 
   // Confirmación modal
   confirmSubmit = false,
-  confirmConfig = {}
+  confirmConfig = {},
+
+  // Función custom para crear
+  createFunction = null,
+
+  // Función custom para editar
+  editFunction = null
 }) => {
   const [fieldErrors, setFieldErrors] = useState([]);
   const [submitAttempted, setSubmitAttempted] = useState(false);
@@ -57,7 +63,7 @@ const CrudForm = ({
     isInitialized,
     submit,
     reload
-  } = useCrudForm(tableName, mode, recordId, primaryKey, viewName);
+  } = useCrudForm(tableName, mode, recordId, primaryKey, viewName, createFunction, editFunction);
 
   // Memoizar initialValues para evitar re-renders en cascada
   const initialValues = useMemo(() => {

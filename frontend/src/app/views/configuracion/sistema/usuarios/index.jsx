@@ -3,7 +3,10 @@ import { useTableData, useCrudForms, CrudMultiLevelManager, CrudHeader } from '@
 import { TableMultiLevelEditable } from '@/shared/components/table';
 import { useAuthContext } from '@/shared/context/AuthContext';
 import { authService } from '@/features/login/services/authService';
+import cacheService from '@/shared/services/cacheService';
 import Toast from '@/shared/components/ui/Toast';
+import Modal from '@/shared/components/modal/views/Modal';
+import PerfilView from '@/features/usuarios/components/PerfilView';
 import { ConfigLayout } from '@/features/layout';
 import { tableConfig, getTableLevelConfigs } from '@/features/usuarios/config/tableConfig';
 import { usuariosFormFields, usuariosValidation, usuariosModalConfig } from '@/features/usuarios/config/formConfig';
@@ -18,6 +21,8 @@ function UsuariosConfig() {
   const { token } = useAuthContext();
   const [tableRecords, setTableRecords] = useState(records || []);
   const [notification, setNotification] = useState(null);
+  const [perfilModalOpen, setPerfilModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
     setTableRecords(records || []);
@@ -48,7 +53,35 @@ function UsuariosConfig() {
     }
   }, [token]);
 
-  const tableLevelConfigs = getTableLevelConfigs(usuariosCrud, handleResetPassword);
+  const handleVerPerfil = useCallback((row) => {
+    setSelectedUser(row);
+    setPerfilModalOpen(true);
+  }, []);
+
+  const createUsuario = useCallback(async (formData) => {
+    const id_roles = Array.isArray(formData.ID_ROLES)
+      ? formData.ID_ROLES.map(r => (typeof r === 'object' ? Number(r.ID_ROL) : Number(r))).filter(Boolean)
+      : [];
+
+    const payload = {
+      dni: formData.DNI,
+      apellidos: formData.APELLIDOS,
+      nombres: formData.NOMBRES,
+      password: formData.DNI,
+      email: formData.EMAIL || null,
+      telefono: formData.TELEFONO || null,
+      direccion: formData.DIRECCION || null,
+      fecha_nacimiento: formData.FECHA_NACIMIENTO || null,
+      sexo: formData.SEXO || null,
+      id_roles
+    };
+
+    const result = await authService.register(payload);
+    cacheService.invalidateAll();
+    return result;
+  }, []);
+
+  const tableLevelConfigs = getTableLevelConfigs({ usuariosCrud, onResetPassword: handleResetPassword, onVerPerfil: handleVerPerfil });
 
   const crudLevels = [
     {
@@ -59,7 +92,8 @@ function UsuariosConfig() {
       formLayout: null,
       validation: usuariosValidation,
       confirmSubmit: true,
-      modalConfig: usuariosModalConfig
+      modalConfig: usuariosModalConfig,
+      createFunction: createUsuario
     }
   ];
 
@@ -130,6 +164,20 @@ function UsuariosConfig() {
           );
         }}
       </CrudMultiLevelManager>
+
+      <Modal
+        isOpen={perfilModalOpen}
+        onClose={() => setPerfilModalOpen(false)}
+        title="Perfil de usuario"
+        size="xl"
+      >
+        <div className="px-4 pb-4">
+          <PerfilView
+            user={selectedUser}
+            activeRole={selectedUser?.ROLES_NOMBRES?.[0]}
+          />
+        </div>
+      </Modal>
     </ConfigLayout>
   );
 }

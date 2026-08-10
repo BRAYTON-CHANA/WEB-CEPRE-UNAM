@@ -14,6 +14,8 @@ export const getTableLevelConfigs = (docentesCrud) => [
     headers: [
       { title: 'DNI', type: 'string', label: 'DNI' },
       { title: 'NOMBRE_COMPLETO', type: 'string', label: 'Docente', subtitle: { field: 'EMAIL' } },
+      { title: 'RUC', type: 'string', label: 'RUC' },
+      { title: 'CONDICION_LABORAL', type: 'string', label: 'Condición laboral' },
       { title: 'ACTIVO', type: 'boolean', label: 'Activo', editable: true, targetTable: 'DOCENTES', targetField: 'ACTIVO' }
     ],
     boundColumn: 'ID_DOCENTE',

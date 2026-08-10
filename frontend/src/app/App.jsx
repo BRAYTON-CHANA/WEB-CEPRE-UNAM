@@ -8,6 +8,7 @@ import Home from '@/app/views/home';
 import Login from '@/app/views/login';
 import RecoverPassword from '@/features/login/views/RecoverPassword';
 import ChangePassword from '@/features/login/views/ChangePassword';
+import Perfil from '@/app/views/perfil';
 import Modules from '@/app/views/modules';
 import TestDatabase from '@/app/views/modules/test-database';
 import TestTable from '@/app/views/modules/test-table';
@@ -30,10 +31,8 @@ import GruposConfig from '@/app/views/configuracion/periodo_academico/grupos';
 import PostulantesConfig from '@/app/views/configuracion/periodo_academico/postulantes';
 import CarrerasConfig from '@/app/views/configuracion/academico/carreras';
 import CorreosConfig from '@/app/views/configuracion/correos/correos';
-import TiposCorreoConfig from '@/app/views/configuracion/correos/tipos';
 import PasswordResetConfig from '@/app/views/configuracion/correos/password-reset';
 import CuentasSmtpConfig from '@/app/views/configuracion/correos/cuentas-smtp';
-import AsignacionCuentasSedesConfig from '@/app/views/configuracion/correos/asignacion-cuentas-sedes';
 import ProgramacionGrupoConfig from '@/app/views/configuracion/periodo_academico/programacion_grupo';
 // import ProgramacionPlazasDocentes from '@/app/views/configuracion/programacion_plazas_docentes'; // TEMP: En mantenimiento
 import ReportesIndex from '@/app/views/configuracion/reportes';
@@ -85,6 +84,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/recuperar-contrasena" element={<RecoverPassword />} />
       <Route path="/cambiar-contrasena" element={<ChangePassword />} />
+      <Route path="/perfil" element={<Perfil />} />
       <Route path="/modules" element={<Modules />} />
       <Route path="/modules/test-database" element={<TestDatabase />} />
       <Route path="/modules/test-table" element={<TestTable />} />
@@ -128,10 +128,8 @@ function App() {
       <Route path="/configuracion/sistema/roles" element={<RolesConfig />} />
 
       <Route path="/configuracion/correos/correos" element={<CorreosConfig />} />
-      <Route path="/configuracion/correos/tipos" element={<TiposCorreoConfig />} />
       <Route path="/configuracion/correos/password-reset" element={<PasswordResetConfig />} />
       <Route path="/configuracion/correos/cuentas-smtp" element={<CuentasSmtpConfig />} />
-      <Route path="/configuracion/correos/asignacion-cuentas-sedes" element={<AsignacionCuentasSedesConfig />} />
 
       <Route path="/configuracion/reportes" element={<ReportesIndex />} />
       <Route path="/configuracion/reportes/grupos" element={<ReportesGrupos />} />

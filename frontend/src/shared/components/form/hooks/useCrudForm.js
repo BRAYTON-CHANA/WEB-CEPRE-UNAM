@@ -38,7 +38,7 @@ function crudFormReducer(state, action) {
  * Hook para manejar formularios conectados a backend CRUD
  * Maneja carga de schema, datos de registro (modo edit), y submit
  */
-export const useCrudForm = (tableName, mode = 'create', recordId = null, primaryKey = 'id', viewName = null) => {
+export const useCrudForm = (tableName, mode = 'create', recordId = null, primaryKey = 'id', viewName = null, createFunction = null, editFunction = null) => {
   const [state, dispatch] = useReducer(crudFormReducer, initialState);
 
   // Usar viewName para lectura de registro, tabla base para schema y mutaciones
@@ -131,7 +131,17 @@ export const useCrudForm = (tableName, mode = 'create', recordId = null, primary
     console.log('[useCrudForm] modo:', mode);
     console.log('[useCrudForm] data:', data);
     console.log('[useCrudForm] recordId/id:', id || recordId);
-    
+
+    if (mode === 'create' && createFunction) {
+      console.log('[useCrudForm] Llamando createFunction...');
+      return await createFunction(data);
+    }
+
+    if (mode === 'edit' && editFunction) {
+      console.log('[useCrudForm] Llamando editFunction...');
+      return await editFunction(data, id || recordId);
+    }
+
     if (mode === 'create') {
       console.log('[useCrudForm] Llamando createRecord...');
       return await createRecord(data);
@@ -139,7 +149,7 @@ export const useCrudForm = (tableName, mode = 'create', recordId = null, primary
       console.log('[useCrudForm] Llamando updateRecord...');
       return await updateRecord(id || recordId, data);
     }
-  }, [mode, createRecord, updateRecord, recordId, primaryKey]);
+  }, [mode, createRecord, updateRecord, recordId, primaryKey, createFunction, editFunction]);
 
   /**
    * Limpiar errores

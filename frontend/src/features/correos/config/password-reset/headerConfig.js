@@ -8,10 +8,10 @@ export const headerProps = {
   descriptionClassName: ''
 };
 
-export const getHeaderActions = (passwordResetCrud) => [
+export const getHeaderActions = ({ onClean, loading }) => [
   {
-    text: 'Crear Código de Reset',
-    onClick: passwordResetCrud.handleCreate,
-    font: 'bg-green-600 hover:bg-green-700 text-white'
+    text: loading ? 'Limpiando...' : 'Eliminar Códigos Usados/Expirados',
+    onClick: loading ? undefined : onClean,
+    font: 'bg-red-600 hover:bg-red-700 text-white disabled:opacity-50'
   }
 ];

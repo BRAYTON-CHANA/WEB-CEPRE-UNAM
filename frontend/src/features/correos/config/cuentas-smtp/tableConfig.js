@@ -14,10 +14,8 @@ export const getTableLevelConfigs = (cuentasSmtpCrud) => [
     headers: [
       { title: 'NOMBRE_CUENTA', type: 'string', label: 'Cuenta' },
       { title: 'SMTP_HOST', type: 'string', label: 'Host' },
-      { title: 'SMTP_PORT', type: 'number', label: 'Puerto' },
       { title: 'SMTP_USER', type: 'string', label: 'Usuario' },
-      { title: 'SMTP_FROM', type: 'string', label: 'Remitente' },
-      { title: 'ACTIVO', type: 'boolean', label: 'Activo' },
+      { title: 'ACTIVO', type: 'boolean', label: 'Activo', editable: true, targetTable: 'CUENTAS_SMTP', targetField: 'ACTIVO' },
       { title: 'CREADO_EN', type: 'string', label: 'Creado' }
     ],
     boundColumn: 'ID_CUENTA',

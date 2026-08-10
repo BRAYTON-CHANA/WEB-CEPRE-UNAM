@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTableData, useCrudForms, CrudMultiLevelManager, CrudHeader } from '@/shared/components/crud';
 import { TableMultiLevel } from '@/shared/components/table';
+import { db } from '@/shared/api';
 import { ConfigLayout } from '@/features/layout';
 import { tableConfig, getTableLevelConfigs } from '@/features/correos/config/password-reset/tableConfig';
 import { passwordResetFormFields, passwordResetMultiStep, passwordResetValidation, passwordResetModalConfig } from '@/features/correos/config/password-reset/formConfig';
@@ -18,6 +19,36 @@ function PasswordResetConfig() {
     primaryKey: 'ID_RESET',
     onRefresh: refresh
   });
+
+  const [cleanLoading, setCleanLoading] = useState(false);
+
+  const handleClean = async () => {
+    if (cleanLoading) return;
+    const confirmed = window.confirm(
+      '¿Estás seguro de que deseas eliminar todos los códigos usados o expirados?'
+    );
+    if (!confirmed) return;
+    setCleanLoading(true);
+    try {
+      await db.query(
+        'DELETE FROM "PASSWORD_RESET_CODES" WHERE "USADO" = true OR "EXPIRA_EN" < NOW()'
+      );
+      refresh();
+      passwordResetCrud.showNotification(
+        'success',
+        'Limpieza Exitosa',
+        'Se eliminaron los códigos usados o expirados.'
+      );
+    } catch (error) {
+      passwordResetCrud.showNotification(
+        'error',
+        'Error al Limpiar',
+        error.message || 'No se pudieron eliminar los códigos.'
+      );
+    } finally {
+      setCleanLoading(false);
+    }
+  };
 
   const tableLevelConfigs = getTableLevelConfigs(passwordResetCrud);
 
@@ -39,14 +70,7 @@ function PasswordResetConfig() {
     <ConfigLayout>
       <CrudMultiLevelManager crudLevels={crudLevels}>
         {([h]) => {
-          const enrichedLevelConfigs = tableLevelConfigs.map(level => ({
-            ...level,
-            actions: level.actions ? {
-              ...level.actions,
-              edit: level.actions.edit ? { ...level.actions.edit, onClick: h.handleEdit } : undefined,
-              delete: level.actions.delete ? { ...level.actions.delete, onClick: h.handleDelete } : undefined
-            } : undefined
-          }));
+          const enrichedLevelConfigs = tableLevelConfigs;
 
           return (
             <div className="px-8 py-8 space-y-8 pb-12">
@@ -55,7 +79,7 @@ function PasswordResetConfig() {
                 headerDescription={headerProps.headerDescription}
                 titleClassName={headerProps.titleClassName}
                 descriptionClassName={headerProps.descriptionClassName}
-                actions={getHeaderActions(passwordResetCrud)}
+                actions={getHeaderActions({ onClean: handleClean, loading: cleanLoading })}
               />
 
               {loading && (

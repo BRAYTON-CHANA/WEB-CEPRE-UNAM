@@ -409,6 +409,7 @@ export const useReferenceData = (config) => {
     const uniqueValues = [...new Set(optionValues)];
     //console.log(`[useReferenceData] Opciones valores:`, optionValues);
     //console.log(`[useReferenceData] Valores únicos:`, uniqueValues, `Total: ${optionValues.length}, Únicos: ${uniqueValues.length}`);
+
     if (optionValues.length !== uniqueValues.length) {
       console.error(`[useReferenceData] ⚠️ DUPLICADOS DETECTADOS!`);
       // Encontrar duplicados
@@ -423,7 +424,7 @@ export const useReferenceData = (config) => {
     }
     
     return transformedOptions;
-  }, [records, selfRecord, labelTemplate, labelField, valueField, descriptionField, tableName, cacheKey, filters]);
+  }, [records, originalRecord, selfRecord, labelTemplate, labelField, valueField, descriptionField, tableName, cacheKey, filters]);
 
   return { options, loading, refresh };
 };

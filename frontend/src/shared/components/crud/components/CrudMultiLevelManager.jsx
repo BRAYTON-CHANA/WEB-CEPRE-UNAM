@@ -45,7 +45,9 @@ function CrudMultiLevelManager({ crudLevels = [], children }) {
           multiStep,
           validation,
           confirmSubmit = true,
-          modalConfig = {}
+          modalConfig = {},
+          createFunction = null,
+          editFunction = null
         } = level;
 
         const {
@@ -89,6 +91,7 @@ function CrudMultiLevelManager({ crudLevels = [], children }) {
                   multiStep={multiStep}
                   confirmSubmit={confirmSubmit}
                   validation={validation}
+                  createFunction={createFunction}
                   onSuccess={(result) => {
                     level.onCreateSuccess?.(result);
                     crud.handleFormSuccess(result);
@@ -122,6 +125,7 @@ function CrudMultiLevelManager({ crudLevels = [], children }) {
                     multiStep={multiStep}
                     confirmSubmit={confirmSubmit}
                     validation={validation}
+                    editFunction={editFunction}
                     onSuccess={(result) => {
                       level.onEditSuccess?.(result);
                       crud.handleFormSuccess(result);

@@ -12,19 +12,14 @@ export const cuentasSmtpFormFields = [
   },
   {
     name: 'SMTP_HOST',
-    type: 'text',
-    label: 'Host SMTP',
+    type: 'select',
+    label: 'Proveedor SMTP',
     required: true,
-    placeholder: 'Ej: smtp.office365.com'
-  },
-  {
-    name: 'SMTP_PORT',
-    type: 'integer',
-    label: 'Puerto SMTP',
-    required: true,
-    defaultValue: 587,
-    min: 1,
-    max: 65535
+    options: [
+      { value: 'smtp.office365.com', label: 'Outlook / Office 365' },
+      { value: 'smtp.gmail.com', label: 'Gmail' }
+    ],
+    placeholder: 'Seleccione un proveedor'
   },
   {
     name: 'SMTP_USER',
@@ -39,13 +34,6 @@ export const cuentasSmtpFormFields = [
     label: 'Contraseña SMTP',
     required: true,
     placeholder: 'Contraseña del correo saliente'
-  },
-  {
-    name: 'SMTP_FROM',
-    type: 'text',
-    label: 'Correo Remitente',
-    required: true,
-    placeholder: 'Ej: correo@unam.edu.pe'
   },
   {
     name: 'ACTIVO',
@@ -71,20 +59,12 @@ export const cuentasSmtpValidation = {
   SMTP_HOST: {
     required: { value: true, message: 'El host SMTP es obligatorio' }
   },
-  SMTP_PORT: {
-    required: { value: true, message: 'El puerto SMTP es obligatorio' },
-    min: { value: 1, message: 'El puerto debe ser mayor a 0' },
-    max: { value: 65535, message: 'El puerto no puede ser mayor a 65535' }
-  },
   SMTP_USER: {
     required: { value: true, message: 'El usuario SMTP es obligatorio' }
   },
   SMTP_PASSWORD: {
     required: { value: true, message: 'La contraseña SMTP es obligatoria' }
   },
-  SMTP_FROM: {
-    required: { value: true, message: 'El correo remitente es obligatorio' }
-  }
 };
 
 export const cuentasSmtpModalConfig = {

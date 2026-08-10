@@ -8,7 +8,7 @@ export const tableConfig = {
 /**
  * Genera el levelConfig para TableMultiLevelRender.
  */
-export const getTableLevelConfigs = (usuariosCrud, onResetPassword) => [
+export const getTableLevelConfigs = ({ usuariosCrud, onResetPassword, onVerPerfil }) => [
   {
     level: 1,
     headers: [
@@ -38,9 +38,16 @@ export const getTableLevelConfigs = (usuariosCrud, onResetPassword) => [
       dropdown: [
         {
           enabled: true,
+          icon: 'user',
+          label: 'Ver perfil',
+          className: 'text-slate-900 hover:bg-slate-100',
+          onClick: (row) => onVerPerfil(row)
+        },
+        {
+          enabled: true,
           icon: 'shield',
           label: 'Reiniciar contraseña',
-          className: 'text-orange-600 hover:bg-orange-100',
+          className: 'text-slate-900 hover:bg-slate-100',
           showIf: (row) => !!row.DNI,
           onClick: (row) => onResetPassword(row)
         }

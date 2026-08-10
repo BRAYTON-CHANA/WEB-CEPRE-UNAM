@@ -101,9 +101,16 @@ const CepreHeader = () => {
                   <span className="w-7 h-7 rounded-full bg-[#2D366F] text-white text-xs font-bold flex items-center justify-center">
                     {userInitials}
                   </span>
-                  <span className="text-sm font-semibold text-slate-700">
-                    {firstName}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-700">
+                      {firstName}
+                    </span>
+                    {activeRole && (
+                      <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#2D366F]/10 text-[#2D366F]">
+                        {activeRole}
+                      </span>
+                    )}
+                  </div>
                   <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
@@ -125,6 +132,20 @@ const CepreHeader = () => {
                           </span>
                         </div>
                       </div>
+                    </div>
+                    {/* Profile link */}
+                    <div className="border-b border-slate-100 py-1">
+                      <Link
+                        to="/perfil"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                          <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        Mi perfil
+                      </Link>
                     </div>
                     {/* Role switcher */}
                     <div className="py-2">
@@ -220,6 +241,17 @@ const CepreHeader = () => {
                         </span>
                       </div>
                     </div>
+                    <Link
+                      to="/perfil"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors mb-2"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                      </svg>
+                      Mi perfil
+                    </Link>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                       Cambiar rol
                     </p>

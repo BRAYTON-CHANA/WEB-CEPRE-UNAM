@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTableData, useCrudForms, CrudMultiLevelManager, CrudHeader } from '@/shared/components/crud';
+import ViewCorreoModal from '@/features/correos/components/ViewCorreoModal';
+import CorreoComposer from '@/features/correos/components/CorreoComposer';
+import { sendEmailById } from '@/features/correos/services/correosService';
 import { TableMultiLevel } from '@/shared/components/table';
 import { ConfigLayout } from '@/features/layout';
 import { tableConfig, getTableLevelConfigs } from '@/features/correos/config/correos/tableConfig';
@@ -20,6 +23,21 @@ function CorreosConfig() {
   });
 
   const tableLevelConfigs = getTableLevelConfigs(correosCrud);
+  const [viewEmail, setViewEmail] = useState(null);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const handleView = (row) => setViewEmail(row);
+
+  const handleEnviar = async (row) => {
+    if (!row?.ID_CORREO) return;
+    const ok = window.confirm(`¿Enviar el correo "${row.ASUNTO || '(sin asunto)'}" ahora?`);
+    if (!ok) return;
+    try {
+      await sendEmailById(row.ID_CORREO);
+      refresh();
+    } catch (err) {
+      alert(`Error al enviar: ${err.message}`);
+    }
+  };
 
   const crudLevels = [
     {
@@ -44,7 +62,10 @@ function CorreosConfig() {
             actions: level.actions ? {
               ...level.actions,
               edit: level.actions.edit ? { ...level.actions.edit, onClick: h.handleEdit } : undefined,
-              delete: level.actions.delete ? { ...level.actions.delete, onClick: h.handleDelete } : undefined
+              observaciones: level.actions.observaciones ? { ...level.actions.observaciones, onClick: h.handleEdit } : undefined,
+              delete: level.actions.delete ? { ...level.actions.delete, onClick: h.handleDelete } : undefined,
+              enviar: level.actions.enviar ? { ...level.actions.enviar, onClick: handleEnviar } : undefined,
+              ver: level.actions.ver ? level.actions.ver.map(action => ({ ...action, onClick: handleView })) : undefined
             } : undefined
           }));
 
@@ -55,7 +76,7 @@ function CorreosConfig() {
                 headerDescription={headerProps.headerDescription}
                 titleClassName={headerProps.titleClassName}
                 descriptionClassName={headerProps.descriptionClassName}
-                actions={getHeaderActions(correosCrud)}
+                actions={getHeaderActions(correosCrud, () => setComposerOpen(true))}
               />
 
               {loading && (
@@ -80,6 +101,13 @@ function CorreosConfig() {
                   />
                 </div>
               )}
+
+              <ViewCorreoModal email={viewEmail} onClose={() => setViewEmail(null)} />
+              <CorreoComposer
+                isOpen={composerOpen}
+                onClose={() => setComposerOpen(false)}
+                onSuccess={() => { refresh(); setComposerOpen(false); }}
+              />
             </div>
           );
         }}

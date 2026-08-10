@@ -4,6 +4,7 @@
 export const correosFormFields = [
   {
     name: 'TIPO',
+    hidden: { and: [{ field: 'ESTADO', op: '=', value: 'enviado' }] },
     type: 'reference-select',
     label: 'Tipo de Correo',
     required: true,
@@ -15,6 +16,7 @@ export const correosFormFields = [
   },
   {
     name: 'ID_USUARIOS',
+    hidden: { and: [{ field: 'ESTADO', op: '=', value: 'enviado' }] },
     type: 'reference-array',
     label: 'Usuarios Destinatarios',
     referenceTable: 'USUARIOS',
@@ -27,7 +29,22 @@ export const correosFormFields = [
     showRefreshButton: true
   },
   {
+    name: 'CC',
+    hidden: { and: [{ field: 'ESTADO', op: '=', value: 'enviado' }] },
+    type: 'reference-array',
+    label: 'CC (Copia)',
+    referenceTable: 'USUARIOS',
+    referenceField: 'EMAIL',
+    referenceLabelField: 'EMAIL',
+    referenceQuery: '{APELLIDOS} {NOMBRES} - {EMAIL}',
+    searchable: true,
+    placeholder: 'Seleccionar correos CC...',
+    required: false,
+    showRefreshButton: true
+  },
+  {
     name: 'ASUNTO',
+    hidden: { and: [{ field: 'ESTADO', op: '=', value: 'enviado' }] },
     type: 'text',
     label: 'Asunto',
     required: true,
@@ -35,6 +52,7 @@ export const correosFormFields = [
   },
   {
     name: 'CUERPO_HTML',
+    hidden: { and: [{ field: 'ESTADO', op: '=', value: 'enviado' }] },
     type: 'textarea',
     label: 'Cuerpo HTML',
     required: true,
@@ -42,6 +60,7 @@ export const correosFormFields = [
   },
   {
     name: 'CUERPO_TEXTO',
+    hidden: { and: [{ field: 'ESTADO', op: '=', value: 'enviado' }] },
     type: 'textarea',
     label: 'Cuerpo Texto',
     required: false,
@@ -49,6 +68,7 @@ export const correosFormFields = [
   },
   {
     name: 'ESTADO',
+    hidden: { and: [{ field: 'ESTADO', op: '=', value: 'enviado' }] },
     type: 'select',
     label: 'Estado',
     required: true,
@@ -62,6 +82,7 @@ export const correosFormFields = [
   },
   {
     name: 'PRIORIDAD',
+    hidden: { and: [{ field: 'ESTADO', op: '=', value: 'enviado' }] },
     type: 'select',
     label: 'Prioridad',
     required: true,
@@ -74,6 +95,7 @@ export const correosFormFields = [
   },
   {
     name: 'FECHA_PROGRAMADA',
+    hidden: { and: [{ field: 'ESTADO', op: '=', value: 'enviado' }] },
     type: 'datetime',
     label: 'Fecha Programada',
     required: false,
@@ -81,6 +103,7 @@ export const correosFormFields = [
   },
   {
     name: 'ENVIO_AUTOMATICO',
+    hidden: { and: [{ field: 'ESTADO', op: '=', value: 'enviado' }] },
     type: 'boolean',
     label: 'Envío Automático',
     required: false,
@@ -88,6 +111,7 @@ export const correosFormFields = [
   },
   {
     name: 'BLOQUEADO',
+    hidden: { and: [{ field: 'ESTADO', op: '=', value: 'enviado' }] },
     type: 'boolean',
     label: 'Bloqueado',
     required: false,
@@ -95,10 +119,18 @@ export const correosFormFields = [
   },
   {
     name: 'PERSONALIZADO',
+    hidden: { and: [{ field: 'ESTADO', op: '=', value: 'enviado' }] },
     type: 'boolean',
     label: 'Personalizado',
     required: false,
     defaultValue: false
+  },
+  {
+    name: 'OBSERVACIONES',
+    type: 'textarea',
+    label: 'Observaciones',
+    required: false,
+    placeholder: 'Notas o comentarios del correo'
   }
 ];
 

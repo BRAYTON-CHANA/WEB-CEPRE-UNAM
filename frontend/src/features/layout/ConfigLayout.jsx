@@ -9,7 +9,7 @@ import ConfigSidebar from './sidebar/ConfigSidebar';
  * Uso: <ConfigLayout>...contenido...</ConfigLayout>
  */
 const ConfigLayout = ({ children, sidebar = ConfigSidebar }) => (
-  <LayoutWithSidebar header={CepreHeader} footer={CepreFooter} sidebar={sidebar} defaultOpen={false}>
+  <LayoutWithSidebar header={CepreHeader} footer={CepreFooter} sidebar={sidebar} defaultOpen={true}>
     {children}
   </LayoutWithSidebar>
 );

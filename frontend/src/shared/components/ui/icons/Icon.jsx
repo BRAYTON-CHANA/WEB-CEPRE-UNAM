@@ -4,7 +4,7 @@ import React from 'react';
  * Componente Icon - Renderiza iconos SVG reutilizables
  * 
  * Props:
- * - name: Nombre del icono (plus, edit, trash, eye, mail, download, more-vertical)
+ * - name: Nombre del icono (plus, edit, trash, eye, mail, download, more-vertical, user)
  * - className: Clases CSS adicionales (default: 'w-4 h-4')
  * - strokeWidth: Grosor del trazo (default: 2)
  */
@@ -52,6 +52,12 @@ const Icon = ({
     ),
     shield: (
       <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+    user: (
+      <>
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="12" cy="7" r="4" strokeLinecap="round" strokeLinejoin="round" />
+      </>
     )
   };
 

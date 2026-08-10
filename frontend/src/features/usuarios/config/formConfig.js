@@ -6,7 +6,7 @@ export const usuariosFormFields = [
     name: 'DNI',
     type: 'text',
     label: 'DNI',
-    required: false,
+    required: true,
     placeholder: '8 dígitos',
     maxLength: 8
   },
@@ -78,6 +78,9 @@ export const usuariosFormFields = [
 ];
 
 export const usuariosValidation = {
+  DNI: {
+    required: { value: true, message: 'El DNI es obligatorio' }
+  },
   APELLIDOS: {
     required: { value: true, message: 'Los apellidos son obligatorios' }
   },
