@@ -3,9 +3,18 @@ import SidebarMenu from '@/shared/components/layout/SidebarMenu';
 import logo from '@/shared/assets/images/unam-logo.png';
 
 const CepreSidebar = () => {
+  const items = [
+    {
+      id: 'asistencias',
+      name: 'Asistencias',
+      icon: 'fas fa-clipboard-check',
+      href: '/asistencias',
+    },
+  ];
+
   return (
     <SidebarMenu
-      items={[]}
+      items={items}
       className="!w-[260px] h-full shadow-[4px_0_24px_-12px_rgba(0,0,0,0.05)]"
       header={
         <div className="flex items-center gap-3">

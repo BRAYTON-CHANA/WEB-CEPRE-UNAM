@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { db } from '@/shared/api';
+import { MOCK_SESIONES } from '../../shared/mocks/mockData';
 
 export function useSesionesGrupo(idGrupo) {
   const [sesiones, setSesiones] = useState([]);
@@ -17,17 +18,18 @@ export function useSesionesGrupo(idGrupo) {
 
     setLoading(true);
     setError(null);
-    db.select('VW_SESIONES_COMPLETA', { ID_GRUPO: idGrupo })
-      .then(data => {
-        const lista = data || [];
-        setSesiones(lista);
-        const cursos = [...new Map(lista.map(s => [s.ID_CURSO, s])).values()];
-        if (cursos.length > 0) {
-          setCursoActivo(cursos[0].ID_CURSO);
-        }
-      })
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
+
+    // TODO: quitar mock - consulta real desactivada para capturas
+    // db.select('VW_SESIONES_COMPLETA', { ID_GRUPO: idGrupo })
+    //   .then(data => { ... })
+
+    const lista = MOCK_SESIONES.filter(s => s.ID_GRUPO === idGrupo);
+    setSesiones(lista);
+    const cursos = [...new Map(lista.map(s => [s.ID_CURSO, s])).values()];
+    if (cursos.length > 0) {
+      setCursoActivo(cursos[0].ID_CURSO);
+    }
+    setLoading(false);
   }, [idGrupo]);
 
   useEffect(() => {

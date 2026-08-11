@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '@/shared/api';
+import { MOCK_PERIODOS } from '../../shared/mocks/mockData';
 
 export function usePeriodos() {
   const [periodos, setPeriodos] = useState([]);
@@ -7,17 +8,26 @@ export function usePeriodos() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // TODO: quitar mock - consulta real desactivada para capturas
+    // setLoading(true);
+    // db.select('PERIODOS', { ACTIVO: true })
+    //   .then(data => {
+    //     const lista = data || [];
+    //     setPeriodos(lista);
+    //     if (lista.length > 0) {
+    //       setPeriodoActivo(lista[0].ID_PERIODO);
+    //     }
+    //   })
+    //   .catch(() => setPeriodos([]))
+    //   .finally(() => setLoading(false));
+
     setLoading(true);
-    db.select('PERIODOS', { ACTIVO: true })
-      .then(data => {
-        const lista = data || [];
-        setPeriodos(lista);
-        if (lista.length > 0) {
-          setPeriodoActivo(lista[0].ID_PERIODO);
-        }
-      })
-      .catch(() => setPeriodos([]))
-      .finally(() => setLoading(false));
+    const lista = MOCK_PERIODOS;
+    setPeriodos(lista);
+    if (lista.length > 0) {
+      setPeriodoActivo(lista[0].ID_PERIODO);
+    }
+    setLoading(false);
   }, []);
 
   return { periodos, periodoActivo, setPeriodoActivo, loading };

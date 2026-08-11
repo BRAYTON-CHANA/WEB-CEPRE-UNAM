@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { db } from '@/shared/api';
+import { MOCK_SESIONES } from '../../shared/mocks/mockData';
 
 export function useSesionesDocente(idPeriodo, idSede, idDocente, idPlaza) {
   const [sesiones, setSesiones] = useState([]);
@@ -21,15 +22,11 @@ export function useSesionesDocente(idPeriodo, idSede, idDocente, idPlaza) {
     setError(null);
 
     try {
-      // Query directo a VW_SESIONES_COMPLETA filtrando por plaza y docente
-      const todasLasSesiones = await db.rawSelect(
-        `SELECT * FROM "VW_SESIONES_COMPLETA" 
-         WHERE "ID_PLAZA_DOCENTE" = $1 
-           AND "ID_DOCENTE_PROGRAMADO" = $2
-           AND "ID_PERIODO" = $3
-           AND "ID_SEDE" = $4
-         ORDER BY "FECHA", "HORA_INICIO"`,
-        idPlaza, idDocente, idPeriodo, idSede
+      // TODO: quitar mock - consulta real desactivada para capturas
+      // const todasLasSesiones = await db.rawSelect(...);
+      const todasLasSesiones = MOCK_SESIONES.filter(s =>
+        s.ID_PERIODO === idPeriodo &&
+        s.ID_SEDE === idSede
       ) || [];
 
       setSesiones(todasLasSesiones);

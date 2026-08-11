@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { db } from '@/shared/api';
+import { MOCK_PLAZAS, MOCK_CURSOS } from '../../shared/mocks/mockData';
 
 export function usePlazasDocente(idPeriodo, idSede, idDocente) {
   const [plazas, setPlazas] = useState([]);
@@ -16,44 +17,30 @@ export function usePlazasDocente(idPeriodo, idSede, idDocente) {
     setLoading(true);
     setError(null);
 
-    // Cargar plazas del docente con info de cursos
-    Promise.all([
-      db.select('PLAZA_DOCENTE', { 
-        ID_PERIODO: idPeriodo, 
-        ID_SEDE: idSede, 
-        ID_DOCENTE: idDocente,
-        ACTIVO: true 
-      }),
-      db.select('CURSOS', { ACTIVO: true }),
-      db.select('AREAS', { ACTIVO: true })
-    ])
-      .then(([plazasData, cursosData, areasData]) => {
-        const plazasList = plazasData || [];
-        const cursosList = cursosData || [];
-        const areasList = areasData || [];
+    // TODO: quitar mock - consultas reales desactivadas para capturas
+    // Promise.all([ ... ])
 
-        // Crear maps
-        const cursosMap = new Map();
-        cursosList.forEach(c => cursosMap.set(c.ID_CURSO, c));
+    const cursosMap = new Map();
+    MOCK_CURSOS.forEach(c => cursosMap.set(c.ID_CURSO, c));
 
-        const areasMap = new Map();
-        areasList.forEach(a => areasMap.set(a.ID_AREA, a));
+    const plazasList = MOCK_PLAZAS.filter(p =>
+      p.ID_PERIODO === idPeriodo &&
+      p.ID_SEDE === idSede &&
+      p.ID_DOCENTE === idDocente
+    );
 
-        // Enriquecer plazas con info de curso y área
-        const plazasEnriquecidas = plazasList.map(p => {
-          const curso = cursosMap.get(p.ID_CURSO);
-          return {
-            ...p,
-            NOMBRE_CURSO: curso?.NOMBRE_CURSO || 'Curso sin nombre',
-            CODIGO_CURSO: curso?.CODIGO_CURSO || '',
-            EJE_TEMATICO: curso?.EJE_TEMATICO || ''
-          };
-        });
+    const plazasEnriquecidas = plazasList.map(p => {
+      const curso = cursosMap.get(p.ID_CURSO);
+      return {
+        ...p,
+        NOMBRE_CURSO: curso?.NOMBRE_CURSO || 'Curso sin nombre',
+        CODIGO_CURSO: curso?.CODIGO_CURSO || '',
+        EJE_TEMATICO: curso?.EJE_TEMATICO || ''
+      };
+    });
 
-        setPlazas(plazasEnriquecidas);
-      })
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
+    setPlazas(plazasEnriquecidas);
+    setLoading(false);
   }, [idPeriodo, idSede, idDocente]);
 
   useEffect(() => {

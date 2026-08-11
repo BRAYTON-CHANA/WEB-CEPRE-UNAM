@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/shared/api';
+import { MOCK_SESIONES } from '../../shared/mocks/mockData';
 
 export function useSesionesPorFecha(fecha, idSede) {
   const [sesiones, setSesiones] = useState([]);
@@ -12,8 +13,10 @@ export function useSesionesPorFecha(fecha, idSede) {
     setLoading(true);
     setError(null);
     try {
-      const filters = { FECHA: fecha, ID_SEDE: idSede };
-      const data = await db.select('VW_SESIONES_COMPLETA', filters);
+      // TODO: quitar mock - consulta real desactivada para capturas
+      // const filters = { FECHA: fecha, ID_SEDE: idSede };
+      // const data = await db.select('VW_SESIONES_COMPLETA', filters);
+      const data = MOCK_SESIONES.filter(s => s.FECHA === fecha && s.ID_SEDE === idSede);
       
       // Agrupar por grupo
       const gruposMap = new Map();

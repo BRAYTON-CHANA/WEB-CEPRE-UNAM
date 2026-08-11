@@ -1,29 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/shared/api';
+import { MOCK_SESIONES } from '../../shared/mocks/mockData';
 
-async function cargarSesionesPorPeriodo(idPeriodo) {
-  const todasLasSesiones = [];
-  let offset = 0;
-  const limit = 1000;
-  let hasMore = true;
-
-  while (hasMore) {
-    const batch = await db.selectWithLimit('VW_SESIONES_COMPLETA', limit, offset, { ID_PERIODO: idPeriodo });
-
-    if (!batch || batch.length === 0) {
-      hasMore = false;
-    } else {
-      todasLasSesiones.push(...batch);
-      if (batch.length < limit) {
-        hasMore = false;
-      } else {
-        offset += limit;
-      }
-    }
-  }
-
-  return todasLasSesiones;
-}
+// TODO: quitar mock - carga real por paginación desactivada para capturas
+// async function cargarSesionesPorPeriodo(idPeriodo) { ... }
 
 export function useFechasConClases(idPeriodo) {
   const [fechas, setFechas] = useState([]);
@@ -38,7 +18,8 @@ export function useFechasConClases(idPeriodo) {
     setLoading(true);
     setError(null);
     try {
-      const data = await cargarSesionesPorPeriodo(idPeriodo);
+      // const data = await cargarSesionesPorPeriodo(idPeriodo);
+      const data = MOCK_SESIONES.filter(s => s.ID_PERIODO === idPeriodo);
       
       // Agrupar por fecha y contar clases
       const fechasMap = new Map();

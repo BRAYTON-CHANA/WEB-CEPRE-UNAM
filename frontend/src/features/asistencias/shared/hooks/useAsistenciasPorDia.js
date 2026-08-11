@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/shared/api';
+import { MOCK_ESTUDIANTES, MOCK_SESIONES, MOCK_ASISTENCIAS } from '../mocks/mockData';
 
 export function useAsistenciasPorDia(fecha, idGrupo) {
   const [estudiantes, setEstudiantes] = useState([]);
@@ -20,9 +21,14 @@ export function useAsistenciasPorDia(fecha, idGrupo) {
     setError(null);
 
     try {
+      // TODO: quitar mock - consultas reales desactivadas para capturas
+      // const estudiantesData = await db.select(...);
+      // const sesionesData = await db.select(...);
+      // const asistenciasData = await db.select(...);
+
       // 1. Cargar estudiantes del grupo
-      const estudiantesData = await db.select('VW_RESUMEN_ASISTENCIAS_POSTULANTE', { ID_GRUPO: idGrupo });
-      const estudiantesOrdenados = (estudiantesData || [])
+      const estudiantesOrdenados = MOCK_ESTUDIANTES
+        .filter(e => e.ID_GRUPO === idGrupo)
         .map(e => ({
           ID_POSTULANTE: e.ID_POSTULANTE,
           NOMBRES: e.NOMBRES,
@@ -30,16 +36,12 @@ export function useAsistenciasPorDia(fecha, idGrupo) {
         }))
         .sort((a, b) => a.APELLIDOS?.localeCompare(b.APELLIDOS || '') || 0);
 
-      // 2. Cargar sesiones del día para el grupo desde VW_SESIONES_COMPLETA
-      // Esta vista incluye nombres de cursos y permite filtrar por fecha y grupo
-      const sesionesData = await db.select('VW_SESIONES_COMPLETA', { 
-        FECHA: fecha, 
-        ID_GRUPO: idGrupo 
-      });
-      const sesionesDelGrupo = (sesionesData || [])
+      // 2. Cargar sesiones del día para el grupo
+      const sesionesDelGrupo = MOCK_SESIONES
+        .filter(s => s.FECHA === fecha && s.ID_GRUPO === idGrupo)
         .map(s => ({
           ID_SESION: s.ID_SESION,
-          ID_GRUPO_PLAN_CURSO: s.ID_GRUPO_PLAN_CURSO,
+          ID_GRUPO_PLAN_CURSO: s.ID_GRUPO_PLAN_CURSO || s.ID_SESION,
           NOMBRE_CURSO: s.NOMBRE_CURSO || 'Curso',
           CODIGO_CURSO: s.CODIGO_CURSO,
           HORA_INICIO: s.HORA_INICIO,
@@ -50,22 +52,18 @@ export function useAsistenciasPorDia(fecha, idGrupo) {
       // 3. Cargar asistencias existentes para estas sesiones
       const asistenciasMap = {};
       if (sesionesDelGrupo.length > 0) {
-        // Cargar asistencias de todas las sesiones
-        const idsSesiones = sesionesDelGrupo.map(s => s.ID_SESION);
-        
-        // Para cada sesión, cargar sus asistencias
-        for (const idSesion of idsSesiones) {
-          const asistenciasData = await db.select('ASISTENCIAS_POSTULANTE', { ID_SESION: idSesion });
-          (asistenciasData || []).forEach(a => {
-            const key = `${a.ID_POSTULANTE}_${a.ID_SESION}`;
+        Object.entries(MOCK_ASISTENCIAS).forEach(([key, a]) => {
+          const sesion = sesionesDelGrupo.find(s => s.ID_SESION === a.ID_SESION);
+          const estudiante = estudiantesOrdenados.find(e => e.ID_POSTULANTE === a.ID_POSTULANTE);
+          if (sesion && estudiante) {
             asistenciasMap[key] = {
               ID_ASISTENCIA: a.ID_ASISTENCIA,
               ESTADO_ASISTENCIA: a.ESTADO_ASISTENCIA,
               ID_POSTULANTE: a.ID_POSTULANTE,
               ID_SESION: a.ID_SESION,
             };
-          });
-        }
+          }
+        });
       }
 
       setEstudiantes(estudiantesOrdenados);

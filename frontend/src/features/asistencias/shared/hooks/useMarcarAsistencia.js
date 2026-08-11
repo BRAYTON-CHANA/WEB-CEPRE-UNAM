@@ -21,12 +21,13 @@ export function useMarcarAsistencia() {
     setError(null);
 
     try {
+      // TODO: quitar mock - escritura real desactivada para capturas
       // Determinar si asistió basado en los datos
       const tieneDocente = data.ID_DOCENTE_ASISTIO != null && data.ID_DOCENTE_ASISTIO !== '';
       const tieneSuplenteExterno = data.NOMBRE_SUPLENTE_EXTERNO && data.NOMBRE_SUPLENTE_EXTERNO.trim() !== '';
       const asistio = tieneDocente || tieneSuplenteExterno;
 
-      // Construir payload para actualizar
+      // Construir payload simulado (sin escribir a BD)
       const payload = {
         ID_DOCENTE_ASISTIO: tieneDocente ? data.ID_DOCENTE_ASISTIO : null,
         NOMBRE_SUPLENTE_EXTERNO: tieneSuplenteExterno ? data.NOMBRE_SUPLENTE_EXTERNO.trim() : null,
@@ -39,11 +40,12 @@ export function useMarcarAsistencia() {
         FECHA_MARCADO: new Date().toISOString()
       };
 
-      // Actualizar en la base de datos
-      const result = await db.update('SESIONES_AGRUPADAS', { ID_SESION: idSesion }, payload);
+      // Actualización simulada (no guarda en BD)
+      console.log('[MOCK] marcarAsistencia SESION', idSesion, payload);
+      // const result = await db.update('SESIONES_AGRUPADAS', { ID_SESION: idSesion }, payload);
 
       setLoading(false);
-      return { success: true, data: result };
+      return { success: true, data: payload };
     } catch (err) {
       setError(err.message || 'Error al marcar asistencia');
       setLoading(false);
