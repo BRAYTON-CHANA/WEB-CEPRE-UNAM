@@ -534,7 +534,9 @@ const Form = ({
 
     const hasDynamicReferenceFilters = field.referenceFilters?.some(f => typeof f.value === 'string' && f.value.includes('{'));
 
-    const conditionalFormData = (field.hidden || field.blocked || field.labelWhen?.length || field.referenceSelfTable || field.referenceSelfFilter || hasDynamicReferenceFilters) ? formData : undefined;
+    const hasFunctionParamsTemplates = field.functionParams && Object.values(field.functionParams).some(v => typeof v === 'string' && v.includes('{'));
+
+    const conditionalFormData = (field.hidden || field.blocked || field.labelWhen?.length || field.referenceSelfTable || field.referenceSelfFilter || hasDynamicReferenceFilters || hasFunctionParamsTemplates || field.triggerField || field.idDocenteField) ? formData : undefined;
 
 
 

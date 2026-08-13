@@ -60,7 +60,7 @@ export const validateFieldsAgainstSchema = (formData, schema, formFields, tableN
  * @param {Object} originalRecord - Registro original (para modo edit)
  * @returns {Object} - Payload filtrado
  */
-const formatDateToISO = (dateStr) => {
+export const formatDateToISO = (dateStr) => {
   if (!dateStr || typeof dateStr !== 'string') return dateStr;
   // Si ya está en formato ISO YYYY-MM-DD, retornar tal cual
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;

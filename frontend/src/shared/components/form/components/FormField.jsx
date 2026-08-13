@@ -251,7 +251,12 @@ const FormField = ({
           searchable: field.searchable,
           placeholder: field.placeholder,
           clearable: field.clearable,
-          showRefreshButton: field.showRefreshButton
+          showRefreshButton: field.showRefreshButton,
+          showAddButton: field.showAddButton,
+          addComponent: field.addComponent,
+          addModalTitle: field.addModalTitle,
+          addModalSize: field.addModalSize,
+          displayFields: field.displayFields
         };
 
       case 'cascade-search':
@@ -341,6 +346,18 @@ const FormField = ({
           cellType: field.cellType || 'text',
           cellOptions: field.cellOptions || [],
           allowNull: field.allowNull !== false
+        };
+
+      case 'json-files':
+        return {
+          mode: field.mode || 'create',
+          triggerField: field.triggerField,
+          loadPredefined: field.loadPredefined,
+          sourceConfig: field.sourceConfig,
+          getDownloadUrl: field.getDownloadUrl,
+          labels: field.labels,
+          accept: field.accept,
+          maxSize: field.maxSize
         };
 
       default:

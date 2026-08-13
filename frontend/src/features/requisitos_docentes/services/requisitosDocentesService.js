@@ -107,3 +107,37 @@ export async function getRequisitoUrl(path) {
   const data = await requestStorage('url', { bucket: 'postulaciones-adjuntos', path });
   return data.url;
 }
+
+/**
+ * Loader para JsonFilesInput: carga los requisitos predefinidos de un docente
+ * según su CONDICION_LABORAL, agrupados por CLASIFICACION.
+ *
+ * @param {Object} formData - Datos del formulario (debe incluir ID_DOCENTE).
+ * @returns {Promise<{ contextLabel: string, grupos: Object } | null>}
+ */
+export async function loadRequisitosForDocente(formData) {
+  const idDocente = formData?.ID_DOCENTE;
+  if (!idDocente) return null;
+
+  const docente = await db.getById('DOCENTES', idDocente, 'ID_DOCENTE');
+  const cond = docente?.CONDICION_LABORAL || docente?.condicion_laboral;
+  if (!cond) throw new Error('El docente no tiene condición laboral definida');
+
+  const requisitos = await db.select('VW_REQUISITOS_DOCENTES', { CONDICION_LABORAL: cond, ACTIVO: true });
+
+  const grupos = {};
+  for (const r of requisitos) {
+    const clas = r.CLASIFICACION;
+    if (!grupos[clas]) grupos[clas] = { requisitos: [], extras: [] };
+    grupos[clas].requisitos.push({
+      id: r.ID_REQUISITO,
+      nombre: r.NOMBRE,
+      plantilla: r.STORAGE_PATH
+        ? { rutaPlantilla: r.STORAGE_PATH, filename: r.FILENAME || r.STORAGE_PATH.split('/').pop() }
+        : null,
+      archivo: null
+    });
+  }
+
+  return { contextLabel: cond, grupos };
+}

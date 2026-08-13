@@ -3,6 +3,13 @@
  */
 export const sedesFormFields = [
   {
+    name: 'CODIGO_SEDE',
+    type: 'text',
+    label: 'Código de Sede',
+    required: true,
+    placeholder: 'Ej: MOQ, ILO'
+  },
+  {
     name: 'NOMBRE_SEDE',
     type: 'text',
     label: 'Nombre de Sede',
@@ -20,6 +27,9 @@ export const sedesMultiStep = {
 };
 
 export const sedesValidation = {
+  CODIGO_SEDE: {
+    required: { value: true, message: 'El código de la sede es obligatorio' }
+  },
   NOMBRE_SEDE: {
     required: { value: true, message: 'El nombre de la sede es obligatorio' }
   }

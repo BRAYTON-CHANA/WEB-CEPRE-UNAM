@@ -22,6 +22,7 @@ import CountryInput from '@/shared/components/ui/inputs/CountryInput';
 import ColorInput from '@/shared/components/ui/inputs/ColorInput';
 import LocationInput from '@/shared/components/ui/inputs/LocationInput';
 import MatrixInput from '@/shared/components/ui/inputs/MatrixInput';
+import JsonFilesInput from '@/shared/components/ui/inputs/JsonFilesInput';
 
 /**
  * Mapeo de tipos de campo a componentes de input
@@ -69,7 +70,10 @@ export const INPUT_COMPONENTS = {
   location: LocationInput,
 
   // Input de matriz
-  matrix: MatrixInput
+  matrix: MatrixInput,
+
+  // Input genérico de archivos agrupados por clasificación (mega-JSON)
+  'json-files': JsonFilesInput
 };
 
 /**

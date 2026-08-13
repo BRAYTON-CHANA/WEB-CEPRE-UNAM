@@ -36,8 +36,7 @@ export const aulaBaseFields = [
     required: true,
     options: [
       { value: 'presencial', label: 'Presencial' },
-      { value: 'virtual', label: 'Virtual' },
-      { value: 'hibrida', label: 'Híbrida' }
+      { value: 'virtual', label: 'Virtual' }
     ],
     defaultValue: 'presencial'
   },
@@ -45,7 +44,7 @@ export const aulaBaseFields = [
     name: 'ENLACE_VIRTUAL',
     type: 'text',
     label: 'Enlace Virtual',
-    placeholder: 'URL para aulas virtuales o híbridas',
+    placeholder: 'URL para aulas virtuales',
     blocked: {
       and: [
         { field: 'TIPO', op: '=', value: 'presencial' }

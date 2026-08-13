@@ -4,37 +4,42 @@
  */
 export const requisitosFormFields = [
   {
+    name: 'CONDICION_LABORAL',
+    type: 'select',
+    label: 'Condición laboral',
+    required: true,
+    defaultValue: 'CONTRATADO',
+    options: [
+      { value: 'CONTRATADO', label: 'Contratado' },
+      { value: 'EXTERNO', label: 'Externo' },
+      { value: 'ORDINARIO', label: 'Ordinario' }
+    ]
+  },
+  {
+    name: 'CLASIFICACION',
+    type: 'text',
+    label: 'Clasificación',
+    required: true,
+    placeholder: 'Ej: CV, DNI, Contrato, Anexo...'
+  },
+  {
     name: 'NOMBRE',
     type: 'text',
     label: 'Nombre',
     required: true,
-    placeholder: 'Ej: Plantilla de CV, Contrato Docente, etc.'
-  },
-  {
-    name: 'TIPO',
-    type: 'select',
-    label: 'Tipo',
-    required: true,
-    defaultValue: 'plantilla',
-    options: [
-      { value: 'plantilla', label: 'Plantilla' },
-      { value: 'instructivo', label: 'Instructivo' },
-      { value: 'contrato', label: 'Contrato' },
-      { value: 'anexo', label: 'Anexo' },
-      { value: 'otro', label: 'Otro' }
-    ]
+    placeholder: 'Ej: Plantilla de CV, DNI escaneado, etc.'
   },
   {
     name: 'DESCRIPCION',
     type: 'textarea',
     label: 'Descripción',
     required: false,
-    placeholder: 'Descripción del documento/plantilla'
+    placeholder: 'Descripción de la plantilla'
   },
   {
     name: 'ARCHIVO',
     type: 'file',
-    label: 'Archivo adjunto',
+    label: 'Archivo plantilla',
     required: false,
     ignoreField: true,
     singleFile: true,
@@ -54,11 +59,14 @@ export const requisitosMultiStep = {
 };
 
 export const requisitosValidation = {
+  CONDICION_LABORAL: {
+    required: { value: true, message: 'Debe seleccionar una condición laboral' }
+  },
+  CLASIFICACION: {
+    required: { value: true, message: 'La clasificación es requerida' }
+  },
   NOMBRE: {
     required: { value: true, message: 'El nombre es requerido' }
-  },
-  TIPO: {
-    required: { value: true, message: 'Debe seleccionar un tipo' }
   }
 };
 

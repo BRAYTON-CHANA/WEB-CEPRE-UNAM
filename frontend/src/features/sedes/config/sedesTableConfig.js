@@ -26,6 +26,7 @@ export const getHeaderActions = (sedesCrud) => [
 export const getSedesLevelConfig = (sedesCrud, handleAddAulaFromSede) => ({
   level: 1,
   headers: [
+    { title: 'CODIGO_SEDE', type: 'string', groupBy: false, label: 'Código' },
     { title: 'NOMBRE_SEDE', type: 'string', groupBy: true, label: 'Sede' },
     { title: 'ACTIVO', type: 'boolean', label: 'Activo', editable: true, targetTable: 'SEDES', targetField: 'ACTIVO' }
   ],

@@ -1,0 +1,1 @@
+-- Contenido trasladado a create table 6.sql

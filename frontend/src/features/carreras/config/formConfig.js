@@ -3,6 +3,13 @@
  */
 export const carreraFormFields = [
   {
+    name: 'CODIGO_CARRERA',
+    type: 'text',
+    label: 'Código de Carrera',
+    required: true,
+    placeholder: 'Ej: INGCIV, GPDS'
+  },
+  {
     name: 'ID_SEDES',
     type: 'reference-array',
     label: 'Sedes',
@@ -34,6 +41,9 @@ export const carreraFormFields = [
 ];
 
 export const carreraValidation = {
+  CODIGO_CARRERA: {
+    required: { value: true, message: 'El código de la carrera es obligatorio' }
+  },
   ID_SEDES: {
     required: { value: true, message: 'Debe seleccionar al menos una sede' }
   },

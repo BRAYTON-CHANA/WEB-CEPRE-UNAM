@@ -1,3 +1,6 @@
+import AddDocenteForm from '@/features/plazas_docentes/components/AddDocenteForm';
+import { loadRequisitosForDocente, getRequisitoUrl } from '@/features/requisitos_docentes/services/requisitosDocentesService';
+
 /**
  * Configuración de formulario para POSTULACION_PLAZA
  * Se usa desde PostulacionesPlazaPanel.
@@ -10,14 +13,32 @@ export const postulacionFormFields = [
   },
   {
     name: 'ID_DOCENTE',
-    type: 'reference-select',
+    type: 'function-select',
     label: 'Docente',
     required: true,
-    referenceTable: 'VW_DOCENTES',
-    referenceField: 'ID_DOCENTE',
-    referenceQuery: '{NOMBRE_COMPLETO} (DNI: {DNI})',
+    functionName: 'fn_docentes_disponibles_plaza',
+    functionParams: {
+      p_id_plaza_docente: '{ID_PLAZA_DOCENTE}',
+      p_id_docente_actual: '{ID_DOCENTE}'
+    },
+    optionalParams: ['p_id_docente_actual'],
+    valueField: 'id_docente',
+    labelField: '{nombre_completo} (DNI: {dni})',
+    statusField: 'estado_docente',
     searchable: true,
-    placeholder: 'Seleccione un docente'
+    showRefreshButton: true,
+    showAddButton: true,
+    addModalTitle: 'Nuevo docente',
+    addModalSize: 'lg',
+    addComponent: AddDocenteForm,
+    placeholder: 'Seleccione un docente',
+    displayFields: [
+      { field: 'dni', label: 'DNI' },
+      { field: 'ruc', label: 'RUC' },
+      { field: 'condicion_laboral', label: 'Condición' },
+      { field: 'telefono', label: 'Teléfono' },
+      { field: 'email', label: 'Email' }
+    ]
   },
   {
     name: 'ESTADO',
@@ -53,18 +74,24 @@ export const postulacionFormFields = [
     required: false
   },
   {
-    name: 'ARCHIVOS',
-    type: 'file',
-    label: 'Archivos adjuntos',
+    name: 'ADJUNTOS_DATA',
+    type: 'json-files',
+    label: 'Documentos de postulación',
     required: false,
     ignoreField: true,
-    multiple: true,
-    singleFile: false,
-    maxFiles: 10,
+    mode: 'create',
+    triggerField: 'ID_DOCENTE',
+    loadPredefined: loadRequisitosForDocente,
+    getDownloadUrl: getRequisitoUrl,
+    labels: {
+      contextBadgePrefix: 'Condición laboral: ',
+      sinTrigger: 'Seleccione un docente para cargar los requisitos de postulación.',
+      sinPredefinidos: 'No hay requisitos configurados para esta condición laboral.',
+      cargando: 'Cargando requisitos del docente...',
+      confirmarReset: 'Cambiar de docente reemplazará los documentos cargados. ¿Desea continuar?'
+    },
     accept: '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.png,.jpg,.jpeg',
-    maxSize: 10 * 1024 * 1024,
-    showPreview: false,
-    placeholder: 'Arrastra o selecciona archivos (máx. 10 MB c/u)'
+    maxSize: 10 * 1024 * 1024
   }
 ];
 

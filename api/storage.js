@@ -66,7 +66,7 @@ async function handler(req, res) {
     }
 
     if (action === 'upload') {
-      const { domain, id, filename, contentType, file, tipo } = req.body || {};
+      const { domain, id, filename, contentType, file, tipo, clasificacion, itemId } = req.body || {};
 
       if (!domain || !ALLOWED_UPLOAD_DOMAINS.includes(domain)) {
         return res.status(400).json({ success: false, message: 'domain no válido' });
@@ -85,7 +85,9 @@ async function handler(req, res) {
       if (domain === 'correos') {
         result = await uploadAttachment(fileBuffer, filename, contentType, id);
       } else if (domain === 'postulaciones') {
-        result = await uploadPostulacionFile(fileBuffer, filename, contentType, id, tipo || 'cv');
+        // Path estructurado si llegan clasificacion + itemId; legacy en caso contrario
+        const options = (clasificacion && itemId) ? { clasificacion, itemId } : {};
+        result = await uploadPostulacionFile(fileBuffer, filename, contentType, id, tipo || 'cv', options);
       } else if (domain === 'requisitos') {
         result = await uploadRequisitoFile(fileBuffer, filename, contentType, id);
       }

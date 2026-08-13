@@ -12,6 +12,7 @@ export const getTableLevelConfigs = (carrerasCrud) => [
   {
     level: 1,
     headers: [
+      { title: 'CODIGO_CARRERA', type: 'string', label: 'Código' },
       { title: 'NOMBRE_CARRERA', type: 'string', label: 'Carrera' },
       { title: 'NOMBRE_AREA', type: 'string', label: 'Área' },
       { title: 'SEDES_NOMBRES', type: 'array', label: 'Sedes' },

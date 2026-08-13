@@ -5,26 +5,41 @@ import AddUsuarioForm from '@/features/docentes/components/AddUsuarioForm';
  */
 export const docentesFormFields = [
   {
+    name: 'ID_DOCENTE',
+    type: 'text',
+    hidden: true,
+    required: false
+  },
+  {
     name: 'ID_USUARIO',
-    type: 'reference-select',
+    type: 'function-select',
     label: 'Usuario',
     required: true,
-    referenceTable: 'USUARIOS',
-    referenceField: 'ID_USUARIO',
-    referenceQuery: '{APELLIDOS} {NOMBRES} (DNI: {DNI})',
-    referenceDisplayFields: [
-      { field: 'EMAIL', label: 'Email' },
-      { field: 'TELEFONO', label: 'Teléfono' },
-      { field: 'DIRECCION', label: 'Dirección' },
-      { field: 'FECHA_NACIMIENTO', label: 'Fecha de nacimiento' },
-      { field: 'SEXO', label: 'Sexo' }
-    ],
+    functionName: 'fn_usuarios_disponibles_docente',
+    functionParams: {
+      p_id_docente_actual: '{ID_DOCENTE}'
+    },
+    optionalParams: ['p_id_docente_actual'],
+    valueField: 'id_usuario',
+    labelField: 'nombre_completo',
+    descriptionField: 'dni',
+    statusField: 'estado_usuario',
+    searchable: true,
     showRefreshButton: true,
     showAddButton: true,
     addModalTitle: 'Nuevo usuario',
     addModalSize: 'lg',
     addComponent: AddUsuarioForm,
-    placeholder: 'Seleccione un usuario'
+    placeholder: 'Seleccione un usuario',
+    displayFields: [
+      { field: 'dni', label: 'DNI' },
+      { field: 'fecha_nacimiento', label: 'F. Nacimiento' },
+      { field: 'edad', label: 'Edad' },
+      { field: 'sexo', label: 'Sexo' },
+      { field: 'telefono', label: 'Teléfono' },
+      { field: 'email', label: 'Email' },
+      { field: 'direccion', label: 'Dirección' }
+    ]
   },
   {
     name: 'RUC',

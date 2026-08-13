@@ -33,12 +33,17 @@ export const plazaFormFields = [
     placeholder: 'Seleccione un curso'
   },
   {
-    name: 'IDENTIFICADOR_DOCENTE',
-    type: 'text',
-    label: 'Identificador de Plaza',
+    name: 'MODALIDAD',
+    type: 'select',
+    label: 'Modalidad',
     required: true,
-    placeholder: 'Ej: DOC-001'
+    options: [
+      { value: 'PRESENCIAL', label: 'PRESENCIAL' },
+      { value: 'VIRTUAL', label: 'VIRTUAL' }
+    ],
+    placeholder: 'Seleccione una modalidad'
   },
+
   {
     name: 'PAGO_POR_HORA',
     type: 'number',
@@ -66,9 +71,10 @@ export const plazaValidation = {
   ID_CURSO: {
     required: { value: true, message: 'El curso es obligatorio' }
   },
-  IDENTIFICADOR_DOCENTE: {
-    required: { value: true, message: 'El identificador es obligatorio' }
+  MODALIDAD: {
+    required: { value: true, message: 'La modalidad es obligatoria' }
   },
+
   PAGO_POR_HORA: {
     required: { value: true, message: 'El pago por hora es obligatorio' }
   }

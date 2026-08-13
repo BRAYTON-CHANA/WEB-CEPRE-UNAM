@@ -34,8 +34,19 @@ export const getPlazasLevelConfig = (plazasCrud, handleViewPostulantes) => ({
     { title: 'IDENTIFICADOR_DOCENTE', type: 'string', label: 'Identificador' },
     { title: 'NOMBRE_CURSO', type: 'string', label: 'Curso' },
     { title: 'PAGO_POR_HORA', type: 'number', label: 'Pago/Hora' },
-    { title: 'DOCENTE_NOMBRE', type: 'string', label: 'Docente Asignado' },
-    { title: 'DNI', type: 'string', label: 'DNI' },
+    {
+      title: 'DOCENTE_NOMBRE',
+      type: 'stacked',
+      label: 'Docente Asignado',
+      displayValue: (row) => {
+        const nombre = row.DOCENTE_NOMBRE;
+        if (nombre === 'Sin asignar' || !nombre) return { primary: 'Sin asignar', secondary: null };
+        const ruc = row.RUC ? `RUC: ${row.RUC}` : '';
+        const dni = row.DNI ? `DNI: ${row.DNI}` : '';
+        const extras = [ruc, dni].filter(Boolean).join(' - ');
+        return { primary: nombre, secondary: extras || null };
+      }
+    },
     { title: 'FECHA_ACEPTACION', type: 'date', label: 'Fecha Aceptación' },
     { title: 'FECHA_CONTRATO', type: 'date', label: 'Fecha Contrato' },
     { title: 'PLAZA_ACTIVO', type: 'boolean', label: 'Activo', editable: true, targetTable: 'PLAZA_DOCENTE', targetField: 'ACTIVO' }

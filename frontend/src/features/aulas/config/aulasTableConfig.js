@@ -9,6 +9,7 @@
 export const getAulasLevelConfig = (aulasCrud) => ({
   level: 2,
   headers: [
+    { title: 'CODIGO_AULA', type: 'string', label: 'Codigo Aula' },
     { title: 'NOMBRE_AULA', type: 'string', label: 'Aula' },
     { title: 'UBICACION', type: 'string', label: 'Ubicación' },
     { title: 'CAPACIDAD', type: 'number', label: 'Capacidad' },

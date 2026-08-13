@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTableData } from '@/shared/components/crud';
 import { TableMultiLevelEditable } from '@/shared/components/table';
 import { CrudHeader } from '@/shared/components/crud';
@@ -18,22 +18,37 @@ import { db } from '@/shared/api';
  */
 function RequisitosDocentesConfig() {
   const { records, loading, error, refresh } = useTableData(tableConfig.tableName);
-  const [tableRecords, setTableRecords] = useState(records || []);
+  const [tableRecords, setTableRecords] = useState([]);
+
+  // Ordenar por CONDICION_LABORAL, CLASIFICACION, NOMBRE
+  const sortRecords = useCallback((data) => {
+    return [...(data || [])].sort((a, b) => {
+      const cond = String(a.CONDICION_LABORAL || '').localeCompare(String(b.CONDICION_LABORAL || ''));
+      if (cond !== 0) return cond;
+      const clas = String(a.CLASIFICACION || '').localeCompare(String(b.CLASIFICACION || ''));
+      if (clas !== 0) return clas;
+      return String(a.NOMBRE || '').localeCompare(String(b.NOMBRE || ''));
+    });
+  }, []);
 
   useEffect(() => {
-    setTableRecords(records || []);
-  }, [records]);
+    setTableRecords(sortRecords(records));
+  }, [records, sortRecords]);
 
   const handleSaveSuccess = useCallback((recordId, field, newValue) => {
-    setTableRecords(prev =>
-      prev.map(row => String(row.ID_REQUISITO) === String(recordId) ? { ...row, [field]: newValue } : row)
-    );
-  }, []);
+    setTableRecords(prev => {
+      const updated = prev.map(row =>
+        String(row.ID_REQUISITO) === String(recordId) ? { ...row, [field]: newValue } : row
+      );
+      return sortRecords(updated);
+    });
+  }, [sortRecords]);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [editInitialValues, setEditInitialValues] = useState({});
+  const [selectedCondicionLaboral, setSelectedCondicionLaboral] = useState(null);
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [rowToDelete, setRowToDelete] = useState(null);
@@ -50,6 +65,13 @@ function RequisitosDocentesConfig() {
   };
 
   const handleCreate = () => {
+    setSelectedCondicionLaboral(null);
+    setSelectedRecord(null);
+    setIsCreateOpen(true);
+  };
+
+  const handleAddRequisito = (row) => {
+    setSelectedCondicionLaboral(row.CONDICION_LABORAL);
     setSelectedRecord(null);
     setIsCreateOpen(true);
   };
@@ -113,7 +135,22 @@ function RequisitosDocentesConfig() {
     // El error ya se muestra dentro del formulario
   };
 
-  const tableLevelConfigs = getTableLevelConfigs({ handleEdit, handleDelete });
+  const tableLevelConfigs = getTableLevelConfigs({ handleEdit, handleDelete, handleAddRequisito });
+
+  // Form dinámico: si se crea desde un grupo, CONDICION_LABORAL viene pre-seleccionada y bloqueada
+  const dynamicFormFields = useMemo(() => {
+    if (!selectedCondicionLaboral) return requisitosFormFields;
+    return requisitosFormFields.map(field => {
+      if (field.name === 'CONDICION_LABORAL') {
+        return {
+          ...field,
+          defaultValue: selectedCondicionLaboral,
+          disabled: true
+        };
+      }
+      return field;
+    });
+  }, [selectedCondicionLaboral]);
 
   return (
     <ConfigLayout>
@@ -153,17 +190,20 @@ function RequisitosDocentesConfig() {
       {/* Modal Crear */}
       <Modal
         isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
+        onClose={() => {
+          setIsCreateOpen(false);
+          setSelectedCondicionLaboral(null);
+        }}
         title={requisitosModalConfig.createTitle}
         size="lg"
         closeOnOutsideClick={false}
       >
         <div className="p-6">
           <CrudForm
-            key="create-requisitos"
+            key={`create-requisitos-${selectedCondicionLaboral || 'global'}`}
             tableName="REQUISITOS_DOCENTES"
             mode="create"
-            fields={requisitosFormFields}
+            fields={dynamicFormFields}
             primaryKey="ID_REQUISITO"
             multiStep={requisitosMultiStep}
             confirmSubmit

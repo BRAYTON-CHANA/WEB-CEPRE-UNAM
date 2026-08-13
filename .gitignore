@@ -20,10 +20,10 @@ frontend/build/
 .vercel/
 
 # Backend (solo referencia local / SQLs; el API real es api/ en root)
-backend/
-*.sql
-/backend/sql/
-/backend/sql/**
+#backend/
+#*.sql
+#/backend/sql/
+#/backend/sql/**
 
 # Logs
 *.log

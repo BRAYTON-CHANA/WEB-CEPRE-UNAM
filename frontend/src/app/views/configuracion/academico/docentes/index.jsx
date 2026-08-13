@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTableData, useCrudForms, CrudMultiLevelManager, CrudHeader } from '@/shared/components/crud';
 import { TableMultiLevelEditable } from '@/shared/components/table';
 import { ConfigLayout } from '@/features/layout';
@@ -20,15 +20,6 @@ function DocentesConfig() {
     onRefresh: refresh
   });
 
-  const docentesFormFieldsWithExclusion = useMemo(() => {
-    const excludedIds = (records || []).map(r => r.ID_USUARIO).filter(Boolean);
-    return docentesFormFields.map(f =>
-      f.name === 'ID_USUARIO'
-        ? { ...f, referenceFilters: [{ field: 'ID_USUARIO', op: 'not in', value: excludedIds }] }
-        : f
-    );
-  }, [records]);
-
   const tableLevelConfigs = getTableLevelConfigs(docentesCrud);
 
   useEffect(() => {
@@ -46,7 +37,7 @@ function DocentesConfig() {
       crud: docentesCrud,
       tableName: 'DOCENTES',
       primaryKey: 'ID_DOCENTE',
-      formFields: docentesFormFieldsWithExclusion,
+      formFields: docentesFormFields,
       formLayout: null,
       validation: docentesValidation,
       confirmSubmit: true,

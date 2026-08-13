@@ -1,6 +1,6 @@
 export const headerProps = {
   headerTitle: 'Requisitos Docentes',
-  headerDescription: 'Biblioteca de documentos y plantillas para postulaciones docentes'
+  headerDescription: 'Plantillas por condición laboral para postulaciones docentes'
 };
 
 export const getHeaderActions = ({ handleCreate }) => [

@@ -5,20 +5,56 @@ import { DatabaseTableEditable } from '@/shared/components/table';
 import { postulacionFormFields, postulacionValidation } from '../config/postulacionFormConfig';
 import { usePostulacionesPlaza } from '../hooks/usePostulacionesPlaza';
 
+const formatDateTimePE = (value) => {
+  if (!value) return <span className="text-gray-300 italic">—</span>;
+  const d = new Date(value);
+  const date = d.toLocaleDateString('es-PE', { timeZone: 'America/Lima' });
+  const time = d.toLocaleTimeString('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit', hour12: false });
+  return (
+    <div className="flex flex-col">
+      <span className="text-sm">{date}</span>
+      <span className="text-xs text-gray-500">{time}</span>
+    </div>
+  );
+};
+
+const formatDatePEWithStatus = (value, isDone, doneLabel, pendingLabel) => {
+  if (!value) return <span className="text-gray-300 italic">—</span>;
+  const d = new Date(value);
+  const date = d.toLocaleDateString('es-PE', { timeZone: 'America/Lima' });
+  const time = d.toLocaleTimeString('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit', hour12: false });
+  const label = isDone ? doneLabel : pendingLabel;
+  const color = isDone ? 'text-green-600' : 'text-gray-500';
+  return (
+    <div className="flex flex-col">
+      <span className="text-sm">{date} · {time}</span>
+      <span className={`text-xs ${color}`}>{label}</span>
+    </div>
+  );
+};
+
 const tableHeaders = [
-  { title: 'DOCENTE_NOMBRE', type: 'string', label: 'Docente' },
-  { title: 'DNI', type: 'string', label: 'DNI' },
-  { title: 'ESTADO', type: 'string', label: 'Estado' },
-  { title: 'FECHA_POSTULACION', type: 'date', label: 'Postulado' },
-  { title: 'FECHA_ENTREVISTA', type: 'date', label: 'Entrevista' },
-  { title: 'ENTREVISTA_REALIZADA', type: 'boolean', label: 'Ent. hecha' },
-  { title: 'FECHA_CONTRATO', type: 'date', label: 'Contrato' },
-  { title: 'CONTRATO_FIRMADO', type: 'boolean', label: 'Firmado' },
-  { title: 'ACTIVO', type: 'boolean', label: 'Activo' }
+  {
+    field: 'DOCENTE_NOMBRE',
+    title: 'Docente',
+    type: 'string',
+    render: (value, row) => (
+      <div className="flex flex-col">
+        <span className="text-sm font-medium text-gray-900">{value}</span>
+        <span className="text-xs text-gray-500">{row.DNI}</span>
+      </div>
+    ),
+  },
+  { field: 'ESTADO', title: 'Estado', type: 'string' },
+  { field: 'ACEPTADO', title: 'Aceptado', type: 'boolean', editable: true, targetTable: 'POSTULACION_PLAZA', targetField: 'ACEPTADO' },
+  { field: 'FECHA_POSTULACION', title: 'Postulado', type: 'date', render: (value) => formatDateTimePE(value) },
+  { field: 'FECHA_ENTREVISTA', title: 'Entrevista', type: 'date', render: (value, row) => formatDatePEWithStatus(value, row.ENTREVISTA_REALIZADA, 'Realizada', 'Pendiente') },
+  { field: 'FECHA_CONTRATO', title: 'Contrato', type: 'date', render: (value, row) => formatDatePEWithStatus(value, row.CONTRATO_FIRMADO, 'Firmado', 'Sin firmar') },
+  { field: 'ACTIVO', title: 'Activo', type: 'boolean', render: (value) => value ? <span className="text-green-600 font-medium">Sí</span> : <span className="text-gray-500">No</span> }
 ];
 
 function PostulacionesPlazaPanel({ plaza, onBack }) {
-  const { postulaciones, loading, bulkLoading, refresh, create, loadAllDocentes } = usePostulacionesPlaza(plaza);
+  const { postulaciones, loading, refresh, create } = usePostulacionesPlaza(plaza);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState(null);
@@ -45,15 +81,6 @@ function PostulacionesPlazaPanel({ plaza, onBack }) {
     }
   };
 
-  const handleBulk = async () => {
-    setFormError(null);
-    try {
-      await loadAllDocentes();
-    } catch (err) {
-      setFormError(err.message);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Cabecera */}
@@ -77,13 +104,6 @@ function PostulacionesPlazaPanel({ plaza, onBack }) {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={handleBulk}
-              disabled={bulkLoading}
-              className="px-4 py-2 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {bulkLoading ? 'Cargando...' : 'Cargar todos los docentes'}
-            </button>
-            <button
               onClick={() => setIsModalOpen(true)}
               className="px-4 py-2 rounded-md text-sm font-medium bg-green-600 text-white hover:bg-green-700"
             >
@@ -106,6 +126,8 @@ function PostulacionesPlazaPanel({ plaza, onBack }) {
           headers={tableHeaders}
           primaryKey="ID_POSTULACION"
           externalLoading={loading}
+          onSaveSuccess={refresh}
+          onSaveError={(recordId, field, error) => setFormError(error?.message || 'Error al guardar')}
           tableProps={{ emptyMessage: 'No hay postulaciones para esta plaza' }}
         />
       </div>

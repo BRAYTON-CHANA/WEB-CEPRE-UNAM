@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import SelectInput from './SelectInput';
+import Modal from '@/shared/components/modal/views/Modal';
 import { useFunctionData } from '@/shared/hooks/useFunctionData';
 import { evaluateOperatorSet } from '@/shared/components/form/utils/conditionEvaluator';
 
@@ -48,6 +49,11 @@ const FunctionSelectInput = React.memo(({
   formData = {},
   freezeParams = false,
   showRefreshButton = false,
+  showAddButton = false,
+  addComponent: AddComponent = null,
+  addModalTitle = 'Nueva referencia',
+  addModalSize = 'lg',
+  displayFields = [],
   watch,
   setValue,
   ...props
@@ -65,6 +71,10 @@ const FunctionSelectInput = React.memo(({
   // Estado para errores
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Estado para modal de agregar
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [addSuccessRecord, setAddSuccessRecord] = useState(null);
 
   // Obtener valor actual
   const currentValue = useMemo(() => {
@@ -114,7 +124,7 @@ const FunctionSelectInput = React.memo(({
       // Agregar indicador visual para ACTUAL
       let label = opt.label;
       if (isActual) {
-        label = `✓ ${opt.label} (Actual)`;
+        label = `${opt.label} (Actual)`;
       }
       
       return {
@@ -156,10 +166,37 @@ const FunctionSelectInput = React.memo(({
     }
   }, [currentValue, options, loading, name, setValue, onChange]);
 
+  // Aplicar valor creado desde modal add
+  useEffect(() => {
+    if (addSuccessRecord) {
+      const newId = addSuccessRecord[valueField] ?? addSuccessRecord[valueField?.toUpperCase()];
+      if (newId != null) {
+        if (setValue && typeof setValue === 'function') {
+          setValue(name, newId);
+        } else if (onChange && typeof onChange === 'function') {
+          onChange(name, newId);
+        }
+      }
+      setAddSuccessRecord(null);
+    }
+  }, [addSuccessRecord, valueField, name, setValue, onChange]);
+
   // Manejar cierre del modal
   const handleErrorModalClose = () => {
     setShowErrorModal(false);
     setErrorMessage('');
+  };
+
+  const handleAddSuccess = (result) => {
+    const data = result?.data ?? result;
+    const record = Array.isArray(data) ? data[0] : data;
+    setAddSuccessRecord(record);
+    setIsAddOpen(false);
+    refresh();
+  };
+
+  const handleAddError = (error) => {
+    console.error('[FunctionSelectInput] Error creando referencia:', error);
   };
 
   // Placeholder dinámico cuando está bloqueado
@@ -228,8 +265,55 @@ const FunctionSelectInput = React.memo(({
             </svg>
           </button>
         )}
+        {showAddButton && AddComponent && (
+          <button
+            type="button"
+            onClick={() => setIsAddOpen(true)}
+            title={addModalTitle}
+            className="flex-shrink-0 self-end h-10 w-10 flex items-center justify-center rounded-md border border-gray-300 bg-white text-gray-400 hover:text-green-600 hover:border-green-400 hover:bg-green-50 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        )}
       </div>
-      
+
+      {showAddButton && AddComponent && (
+        <Modal
+          isOpen={isAddOpen}
+          onClose={() => setIsAddOpen(false)}
+          title={addModalTitle}
+          size={addModalSize}
+          closeOnOutsideClick={false}
+          bodyClassName="p-6"
+        >
+          <AddComponent
+            mode="create"
+            onSuccess={handleAddSuccess}
+            onError={handleAddError}
+          />
+        </Modal>
+      )}
+
+      {/* Display fields read-only debajo del select */}
+      {displayFields.length > 0 && currentValue && (
+        <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {displayFields.map(({ field, label }) => {
+            const selectedOption = options.find(opt => String(opt.value) === String(currentValue));
+            const rawValue = selectedOption?.raw?.[field] ?? selectedOption?.[field] ?? '';
+            return (
+              <div key={field} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md">
+                <p className="text-xs text-gray-500 mb-0.5">{label}</p>
+                <p className="text-sm text-gray-800 font-medium truncate">
+                  {rawValue || <span className="text-gray-400 italic">—</span>}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Modal de error */}
       {showErrorModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
