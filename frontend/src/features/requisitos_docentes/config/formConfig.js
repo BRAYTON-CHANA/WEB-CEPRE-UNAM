@@ -1,6 +1,6 @@
 /**
  * Configuración de formulario para REQUISITOS_DOCENTES
- * No incluye ACTIVO (se maneja con toggle inline en la tabla).
+ * No incluye ACTIVO ni ARCHIVO (se manejan inline en la tabla).
  */
 export const requisitosFormFields = [
   {
@@ -17,10 +17,14 @@ export const requisitosFormFields = [
   },
   {
     name: 'CLASIFICACION',
-    type: 'text',
+    type: 'unique-select',
     label: 'Clasificación',
     required: true,
-    placeholder: 'Ej: CV, DNI, Contrato, Anexo...'
+    tableName: 'REQUISITOS_DOCENTES',
+    columnName: 'CLASIFICACION',
+    allowCreate: true,
+    createTitle: 'Agregar Nueva Clasificación',
+    searchable: true
   },
   {
     name: 'NOMBRE',
@@ -35,18 +39,6 @@ export const requisitosFormFields = [
     label: 'Descripción',
     required: false,
     placeholder: 'Descripción de la plantilla'
-  },
-  {
-    name: 'ARCHIVO',
-    type: 'file',
-    label: 'Archivo plantilla',
-    required: false,
-    ignoreField: true,
-    singleFile: true,
-    accept: '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip',
-    maxSize: 10 * 1024 * 1024,
-    showPreview: false,
-    placeholder: 'Arrastra o selecciona un archivo (máx. 10 MB)'
   }
 ];
 

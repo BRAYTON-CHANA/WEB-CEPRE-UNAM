@@ -41,11 +41,14 @@ function CrudMultiLevelManager({ crudLevels = [], children }) {
           tableName,
           primaryKey,
           formFields,
+          editFormFields,
           formLayout = null,
           multiStep,
           validation,
+          editValidation,
           confirmSubmit = true,
           modalConfig = {},
+          editModalConfig = {},
           createFunction = null,
           editFunction = null
         } = level;
@@ -59,6 +62,12 @@ function CrudMultiLevelManager({ crudLevels = [], children }) {
           createFormKey = 'free',
           editFormKey = 'free'
         } = modalConfig;
+
+        const {
+          editTitle: editTitleOverride = editTitle,
+          size: editSize = size,
+          editFormKey: editFormKeyOverride = editFormKey
+        } = editModalConfig;
 
         const createKey = typeof createFormKey === 'function'
           ? createFormKey(crud)
@@ -108,23 +117,23 @@ function CrudMultiLevelManager({ crudLevels = [], children }) {
                 level.onEditClose?.();
                 crud.handleCloseEdit();
               }}
-              title={editTitle}
-              size={size}
+              title={editTitleOverride}
+              size={editSize}
               closeOnOutsideClick={false}
             >
               <div className="p-6">
                 {crud.selectedRow && (
                   <CrudForm
-                    key={`edit-${tableName}-${crud.selectedRow[primaryKey]}-${editKey}`}
+                    key={`edit-${tableName}-${crud.selectedRow[primaryKey]}-${editFormKeyOverride}`}
                     tableName={tableName}
                     mode="edit"
                     recordId={crud.selectedRow[primaryKey]}
-                    fields={formFields}
+                    fields={editFormFields || formFields}
                     primaryKey={primaryKey}
                     layout={formLayout}
                     multiStep={multiStep}
                     confirmSubmit={confirmSubmit}
-                    validation={validation}
+                    validation={editValidation || validation}
                     editFunction={editFunction}
                     onSuccess={(result) => {
                       level.onEditSuccess?.(result);

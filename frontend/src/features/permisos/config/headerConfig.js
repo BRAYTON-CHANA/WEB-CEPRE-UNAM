@@ -1,17 +1,9 @@
 /**
- * Configuración del header de página para Permisos
+ * Configuración del header de página para Permisos (read-only)
  */
 export const headerProps = {
   headerTitle: 'Gestión de Permisos',
-  headerDescription: 'Administra los permisos del sistema (recurso:acción)',
+  headerDescription: 'Catálogo de permisos del sistema (solo lectura). La asignación a roles se gestiona desde la página de Roles.',
   titleClassName: '',
   descriptionClassName: ''
 };
-
-export const getHeaderActions = (permisosCrud) => [
-  {
-    text: 'Crear Permiso',
-    onClick: permisosCrud.handleCreate,
-    font: 'bg-green-600 hover:bg-green-700 text-white'
-  }
-];

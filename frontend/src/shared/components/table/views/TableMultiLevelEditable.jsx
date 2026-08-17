@@ -71,6 +71,24 @@ const TableMultiLevelEditable = forwardRef(function TableMultiLevelEditable({
   const [isBatchSaving, setIsBatchSaving] = useState(false);
   const [batchSaveError, setBatchSaveError] = useState(null);
   const [toast, setToast] = useState(null);
+  const [optimisticOverrides, setOptimisticOverrides] = useState({});
+
+  // Limpiar overrides cuando los datos cambian (create/edit/delete/refresh traen valores frescos)
+  useEffect(() => {
+    setOptimisticOverrides({});
+  }, [records]);
+
+  // displayRecords: records + optimisticOverrides aplicados
+  // Usa el boundColumn del último nivel (donde están los registros editables con su PK real)
+  const displayRecords = useMemo(() => {
+    if (Object.keys(optimisticOverrides).length === 0) return records;
+    const pk = levelConfigs[levelConfigs.length - 1]?.boundColumn;
+    if (!pk) return records;
+    return records.map(row => {
+      const overrides = optimisticOverrides[String(row[pk])];
+      return overrides ? { ...row, ...overrides } : row;
+    });
+  }, [records, optimisticOverrides, levelConfigs]);
 
   const isBatchMode = saveMode === 'manual';
 
@@ -164,7 +182,17 @@ const TableMultiLevelEditable = forwardRef(function TableMultiLevelEditable({
       return next;
     });
 
-    if (!isExternal) refresh();
+    const isBoolean = header?.type === 'boolean';
+    if (isBoolean) {
+      // Optimistic update: guardar override, no refresh
+      setOptimisticOverrides(prev => ({
+        ...prev,
+        [String(recordId)]: { ...prev[String(recordId)], [field]: newValue }
+      }));
+    } else {
+      // Comportamiento actual para no-boolean
+      if (!isExternal) refresh();
+    }
     onSaveSuccess?.(recordId, field, newValue, primaryKey, rowData, header);
     const fieldLabel = header?.label || header?.title || field;
     const valueText = formatValue(newValue, header);
@@ -323,7 +351,7 @@ const TableMultiLevelEditable = forwardRef(function TableMultiLevelEditable({
           ) : (
             <TableMultiLevel
               key={tableKey}
-              data={records}
+              data={displayRecords}
               levelConfigs={enhancedLevelConfigs}
               editingData={editingData}
               onCellChange={handleCellChange}

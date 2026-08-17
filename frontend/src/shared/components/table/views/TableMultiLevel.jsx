@@ -2,9 +2,75 @@ import React, { useState } from 'react';
 import { useMultiLevelGrouping } from '../hooks/useMultiLevelGrouping';
 import TableActions from '../components/TableActions';
 import EditableCell from '../components/EditableCell';
+import FileEditableCell from '../components/FileEditableCell';
 import { renderCell } from '@/shared/utils/cellRenderer';
 
 /**
+ * DEFAULT_LEVEL_STYLES — estilos neutros para todas las tablas.
+ * Sin badges, sin left accent border, sin colores UNAM.
+ * Es el fallback cuando no se pasa `levelStyles`.
+ */
+const DEFAULT_LEVEL_STYLES = [
+  {
+    headerBg: 'bg-slate-50/80',
+    headerText: 'text-slate-500',
+    headerFont: 'text-xs font-semibold uppercase tracking-wider',
+    headerBorder: 'border-b border-slate-200/60',
+    rowHover: 'hover:bg-slate-50/60',
+    expandedBg: 'bg-slate-50/40',
+    expandBtn: 'border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300',
+    cellPadding: 'px-5 py-3.5',
+    cellFont: 'text-sm',
+    wrapperClass: '__WRAPPER__',
+    levelBadge: null,
+    badgeClass: ''
+  },
+  {
+    headerBg: 'bg-slate-100/60',
+    headerText: 'text-slate-500',
+    headerFont: 'text-xs font-semibold uppercase tracking-wider',
+    headerBorder: 'border-b border-slate-200/40',
+    rowHover: 'hover:bg-slate-50/60',
+    expandedBg: 'bg-slate-50/40',
+    expandBtn: 'border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300',
+    cellPadding: 'px-5 py-3.5',
+    cellFont: 'text-sm',
+    wrapperClass: '__WRAPPER__',
+    levelBadge: null,
+    badgeClass: ''
+  },
+  {
+    headerBg: 'bg-slate-100/60',
+    headerText: 'text-slate-500',
+    headerFont: 'text-xs font-semibold uppercase tracking-wider',
+    headerBorder: 'border-b border-slate-200/40',
+    rowHover: 'hover:bg-slate-50/60',
+    expandedBg: 'bg-slate-50/40',
+    expandBtn: 'border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300',
+    cellPadding: 'px-5 py-3.5',
+    cellFont: 'text-sm',
+    wrapperClass: '__WRAPPER__',
+    levelBadge: null,
+    badgeClass: ''
+  },
+  {
+    headerBg: 'bg-slate-100/60',
+    headerText: 'text-slate-500',
+    headerFont: 'text-xs font-semibold uppercase tracking-wider',
+    headerBorder: 'border-b border-slate-200/40',
+    rowHover: 'hover:bg-slate-50/60',
+    expandedBg: 'bg-slate-50/40',
+    expandBtn: 'border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300',
+    cellPadding: 'px-5 py-3.5',
+    cellFont: 'text-sm',
+    wrapperClass: '__WRAPPER__',
+    levelBadge: null,
+    badgeClass: ''
+  }
+];
+
+/**
+ * TableMultiLevel - Tabla multinivel con nested tables independientes.
  * TableMultiLevel - Tabla multinivel con nested tables independientes.
  * Cada nivel tiene su propio <table> con sus propias columnas.
  * Al expandir una fila se inserta una tabla hija dentro de un <td colSpan>.
@@ -26,6 +92,7 @@ const TableMultiLevel = ({
   onExpand,
   childrenData,
   childrenLoading,
+  levelStyles,
   _depth = 0,
   _levelIndex = 0,
   editingData = {},
@@ -35,7 +102,6 @@ const TableMultiLevel = ({
   onSaveError,
   editFunctions = {}
 }) => {
-  const isAsyncMode = !!onExpand;
   const groupedData = useMultiLevelGrouping(data, levelConfigs);
   const [expandedKeys, setExpandedKeys] = useState(new Set());
 
@@ -48,9 +114,12 @@ const TableMultiLevel = ({
   const config      = levelConfigs[0];
   const subConfigs  = levelConfigs.slice(1);
   const isLastLevel = subConfigs.length === 0;
+  const isAsyncMode = !!onExpand && !config?.syncGrouping;
   const headers     = config?.headers?.filter(h => h?.title) || [];
   const actions     = config?.actions;
   const boundColumn = config?.boundColumn;
+  const styles = levelStyles || DEFAULT_LEVEL_STYLES;
+  const levelStyle = styles[_depth] || styles[styles.length - 1];
 
   const hasActions = actions
     ? Object.values(actions).some(v => {
@@ -102,10 +171,27 @@ const TableMultiLevel = ({
   };
 
   return (
-    <div className={_depth > 0 ? 'border border-slate-200 rounded-lg overflow-hidden' : 'w-full'}>
+    <div className={levelStyle.wrapperClass === '__WRAPPER__'
+      ? (_depth > 0 ? 'border border-slate-200 rounded-lg overflow-hidden' : 'w-full')
+      : levelStyle.wrapperClass
+    }>
       <table className="min-w-full divide-y divide-gray-100">
         {/* ── Header de este nivel ── */}
-        <thead className={_depth === 0 ? 'bg-slate-50/80 border-b border-slate-200/60' : 'bg-slate-100/60 border-b border-slate-200/40'}>
+        <thead className={`${levelStyle.headerBg} ${levelStyle.headerBorder}`}>
+          {/* Badge del nivel — pill con icono + label, alineado izquierda */}
+          {levelStyle.levelBadge && (
+            <tr>
+              <th
+                colSpan={headers.length + (hasActions ? 1 : 0) + (!isLastLevel ? 1 : 0)}
+                className="px-4 py-2 text-left"
+              >
+                <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-md ${levelStyle.badgeClass}`}>
+                  <span className="text-sm">{levelStyle.levelBadge.icon}</span>
+                  {levelStyle.levelBadge.label}
+                </span>
+              </th>
+            </tr>
+          )}
           <tr>
             {/* Columna expand (solo si hay subniveles) */}
             {!isLastLevel && (
@@ -114,13 +200,13 @@ const TableMultiLevel = ({
             {headers.map(header => (
               <th
                 key={header.title}
-                className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                className={`${levelStyle.cellPadding} text-left ${levelStyle.headerFont} ${levelStyle.headerText}`}
               >
                 {header.label || header.title}
               </th>
             ))}
             {hasActions && (
-              <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <th className={`${levelStyle.cellPadding} text-left ${levelStyle.headerFont} ${levelStyle.headerText}`}>
                 Acciones
               </th>
             )}
@@ -150,10 +236,10 @@ const TableMultiLevel = ({
                 {/* Fila principal */}
                 <tr className={`transition-colors duration-150 border-b border-gray-100 ${
                   isLastLevel
-                    ? 'hover:bg-blue-50/40'
+                    ? levelStyle.rowHover
                     : isOpen
-                      ? 'bg-slate-50 hover:bg-slate-100/60'
-                      : 'bg-white hover:bg-slate-50/60'
+                      ? `${levelStyle.expandedBg} ${levelStyle.rowHover}`
+                      : `bg-white ${levelStyle.rowHover}`
                 }`}>
                   {/* Botón expand */}
                   {!isLastLevel && (
@@ -161,7 +247,7 @@ const TableMultiLevel = ({
                       {canExpand && (
                         <button
                           onClick={() => handleExpand(displayRow)}
-                          className="inline-flex items-center justify-center w-6 h-6 rounded bg-white border border-slate-200 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all duration-150 text-slate-500"
+                          className={`inline-flex items-center justify-center w-6 h-6 rounded bg-white border shadow-sm transition-all duration-150 ${levelStyle.expandBtn}`}
                           title={isOpen ? 'Contraer' : 'Expandir'}
                         >
                           <svg
@@ -181,6 +267,21 @@ const TableMultiLevel = ({
                     const field = header.field || header.title;
                     const cellValue = getCellValue(displayRow, field);
                     const originalValue = displayRow[field];
+
+                    if (header.type === 'file-editable' && !isGroupByCol) {
+                      return (
+                        <FileEditableCell
+                          key={header.title}
+                          column={header}
+                          value={cellValue}
+                          rowData={displayRow}
+                          rowId={boundValue}
+                          primaryKey={boundColumn}
+                          onSaveSuccess={(rowId, field, newValue) => onSaveSuccess?.(rowId, field, newValue, boundColumn, displayRow, header)}
+                          onSaveError={(rowId, field, error) => onSaveError?.(rowId, field, error, boundColumn, displayRow, header)}
+                        />
+                      );
+                    }
 
                     if (header.editable && onCellChange && !isGroupByCol) {
                       return (
@@ -202,7 +303,7 @@ const TableMultiLevel = ({
                     }
 
                     return (
-                      <td key={header.title} className="px-5 py-3.5 whitespace-nowrap text-sm text-gray-700">
+                      <td key={header.title} className={`${levelStyle.cellPadding} whitespace-nowrap ${levelStyle.cellFont} text-gray-700`}>
                         {isGroupByCol && !isLastLevel ? (
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-slate-700">{item.value}</span>
@@ -240,7 +341,7 @@ const TableMultiLevel = ({
 
                   {/* Acciones */}
                   {hasActions && (
-                    <td className="px-5 py-3.5 whitespace-nowrap text-sm text-gray-700">
+                    <td className={`${levelStyle.cellPadding} whitespace-nowrap ${levelStyle.cellFont} text-gray-700`}>
                       <TableActions
                         actions={actions}
                         row={displayRow}
@@ -253,7 +354,7 @@ const TableMultiLevel = ({
 
                 {/* Fila de expansión — tabla hija */}
                 {!isLastLevel && isOpen && canExpand && (
-                  <tr className="bg-slate-50/40">
+                  <tr className={levelStyle.expandedBg}>
                     <td
                       colSpan={colSpanAll}
                       className="px-0 py-0"
@@ -282,6 +383,7 @@ const TableMultiLevel = ({
                                 onExpand={onExpand}
                                 childrenData={childrenData}
                                 childrenLoading={childrenLoading}
+                                levelStyles={styles}
                                 _depth={_depth + 1}
                                 _levelIndex={_levelIndex + 1}
                                 editingData={editingData}
@@ -300,11 +402,17 @@ const TableMultiLevel = ({
                         })()
                       ) : (
                         // Modo síncrono: tabla recursiva con datos agrupados
+                        // No incrementar _levelIndex: los niveles groupBy son virtuales
+                        // (no tienen entrada en FETCH_CONFIGS), sus hijos usan el mismo índice
                         <TableMultiLevel
                           data={item.rows}
                           levelConfigs={subConfigs}
+                          onExpand={onExpand}
+                          childrenData={childrenData}
+                          childrenLoading={childrenLoading}
+                          levelStyles={styles}
                           _depth={_depth + 1}
-                          _levelIndex={_levelIndex + 1}
+                          _levelIndex={_levelIndex}
                           editingData={editingData}
                           onCellChange={onCellChange}
                           saveMode={saveMode}

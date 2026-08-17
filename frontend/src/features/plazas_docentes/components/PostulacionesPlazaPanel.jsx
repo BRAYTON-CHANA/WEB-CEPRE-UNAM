@@ -4,6 +4,7 @@ import { Modal } from '@/shared/components/modal';
 import { DatabaseTableEditable } from '@/shared/components/table';
 import { postulacionFormFields, postulacionValidation } from '../config/postulacionFormConfig';
 import { usePostulacionesPlaza } from '../hooks/usePostulacionesPlaza';
+import { loadAdjuntosPostulacion, updateAdjuntosPostulacion } from '../services/postulacionesService';
 
 const formatDateTimePE = (value) => {
   if (!value) return <span className="text-gray-300 italic">—</span>;
@@ -53,20 +54,22 @@ const tableHeaders = [
   { field: 'ACTIVO', title: 'Activo', type: 'boolean', render: (value) => value ? <span className="text-green-600 font-medium">Sí</span> : <span className="text-gray-500">No</span> }
 ];
 
-function PostulacionesPlazaPanel({ plaza, onBack }) {
-  const { postulaciones, loading, refresh, create } = usePostulacionesPlaza(plaza);
+function PostulacionesPlazaPanel({ plaza, convocatoriaCurso, onBack }) {
+  // Acepta convocatoriaCurso directo, o deriva desde plaza (retrocompat)
+  const convocatoria = convocatoriaCurso || (plaza ? { ...plaza, ID_CONVOCATORIA_CURSO: plaza.ID_CONVOCATORIA_CURSO } : null);
+  const { postulaciones, loading, refresh, create } = usePostulacionesPlaza(convocatoria);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState(null);
 
   const initialValues = useMemo(() => ({
-    ID_PLAZA_DOCENTE: plaza?.ID_PLAZA_DOCENTE,
+    ID_CONVOCATORIA_CURSO: convocatoria?.ID_CONVOCATORIA_CURSO,
     ESTADO: 'postulado',
     ACEPTADO: false,
     CONTRATO_FIRMADO: false,
     ENTREVISTA_REALIZADA: false,
     ACTIVO: true,
-  }), [plaza]);
+  }), [convocatoria?.ID_CONVOCATORIA_CURSO]);
 
   const handleSubmit = async (submitData, rawFormData) => {
     setCreating(true);
@@ -95,10 +98,10 @@ function PostulacionesPlazaPanel({ plaza, onBack }) {
             </button>
             <div>
               <h2 className="text-lg font-semibold text-gray-900">
-                Postulantes de {plaza?.IDENTIFICADOR_DOCENTE}
+                Postulantes de {convocatoria?.NOMBRE_CURSO || plaza?.IDENTIFICADOR_DOCENTE}
               </h2>
               <p className="text-sm text-gray-500">
-                {plaza?.NOMBRE_CURSO} · {plaza?.NOMBRE_SEDE} · {plaza?.CODIGO_PERIODO}
+                {convocatoria?.NOMBRE_SEDE || plaza?.NOMBRE_SEDE} · {convocatoria?.NOMBRE_PERIODO || plaza?.CODIGO_PERIODO}
               </p>
             </div>
           </div>
@@ -128,7 +131,7 @@ function PostulacionesPlazaPanel({ plaza, onBack }) {
           externalLoading={loading}
           onSaveSuccess={refresh}
           onSaveError={(recordId, field, error) => setFormError(error?.message || 'Error al guardar')}
-          tableProps={{ emptyMessage: 'No hay postulaciones para esta plaza' }}
+          tableProps={{ emptyMessage: 'No hay postulaciones para esta convocatoria' }}
         />
       </div>
 

@@ -57,6 +57,23 @@ async function subirArchivoRequisito(idRequisito, file) {
 }
 
 /**
+ * Wrapper para FileEditableCell: sube el archivo y actualiza metadatos en BD.
+ * @param {number} idRequisito
+ * @param {File} file
+ * @returns {Promise<{path, filename, contentType, size}>}
+ */
+export async function subirArchivoRequisitoInline(idRequisito, file) {
+  const { path, filename, contentType, size } = await subirArchivoRequisito(idRequisito, file);
+  await db.update('REQUISITOS_DOCENTES', idRequisito, {
+    STORAGE_PATH: path,
+    FILENAME: filename,
+    CONTENT_TYPE: contentType,
+    TAMAÑO_BYTES: size,
+  }, 'ID_REQUISITO');
+  return { path, filename, contentType, size };
+}
+
+/**
  * Crea un requisito docente, sube el archivo si existe y actualiza metadatos.
  */
 export async function createRequisito(data, _id, formData) {
@@ -109,7 +126,7 @@ export async function getRequisitoUrl(path) {
 }
 
 /**
- * Loader para JsonFilesInput: carga los requisitos predefinidos de un docente
+ * Loader para PredefinedFilesInput: carga los requisitos predefinidos de un docente
  * según su CONDICION_LABORAL, agrupados por CLASIFICACION.
  *
  * @param {Object} formData - Datos del formulario (debe incluir ID_DOCENTE).
@@ -128,10 +145,11 @@ export async function loadRequisitosForDocente(formData) {
   const grupos = {};
   for (const r of requisitos) {
     const clas = r.CLASIFICACION;
-    if (!grupos[clas]) grupos[clas] = { requisitos: [], extras: [] };
+    if (!grupos[clas]) grupos[clas] = { requisitos: [] };
     grupos[clas].requisitos.push({
       id: r.ID_REQUISITO,
       nombre: r.NOMBRE,
+      obligatorio: !!r.OBLIGATORIO,
       plantilla: r.STORAGE_PATH
         ? { rutaPlantilla: r.STORAGE_PATH, filename: r.FILENAME || r.STORAGE_PATH.split('/').pop() }
         : null,

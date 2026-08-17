@@ -276,7 +276,7 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
   }), [handleBatchSave, pendingChangesCount, isBatchSaving]);
 
   // Enhanced Table component with editable cells
-  const EnhancedTable = ({ data, headers, ...props }) => {
+  const EnhancedTable = ({ data, headers, actions, ...props }) => {
     return (
       <table className="min-w-full divide-y divide-gray-100">
         <thead className="bg-slate-50/80">
@@ -290,7 +290,7 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
               </th>
             ))}
             {actions && (
-              <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 Acciones
               </th>
             )}
@@ -339,7 +339,7 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
                 })}
                 
                 {actions && (
-                  <td className="px-4 py-2.5 text-sm whitespace-nowrap text-right">
+                  <td className="px-4 py-2.5 text-sm whitespace-nowrap text-left">
                     <TableActions
                       actions={actions}
                       row={mergedRow}
@@ -405,7 +405,7 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
       )}
 
       {headers.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-visible">
           {loading ? (
             <div className="flex items-center justify-center py-16">
               <div className="inline-block w-6 h-6 border-2 border-gray-200 border-t-blue-600 rounded-full animate-spin mr-3" />

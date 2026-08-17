@@ -37,7 +37,11 @@ const BaseInput = ({
   autoFocus = false,
   formNoValidate = false,
   rightElement = null,
-  inputRef = null
+  inputRef = null,
+  // Handlers adicionales que se pasan al input nativo
+  onKeyDown = null,
+  onClick = null,
+  onFocus = null
 }) => {
   // Estado interno para modo uncontrolled
   const [internalValue, setInternalValue] = useState(defaultValue || '');
@@ -131,6 +135,9 @@ const BaseInput = ({
           className={inputClasses}
           onChange={handleChange}
           onBlur={handleBlur}
+          onKeyDown={onKeyDown}
+          onClick={onClick}
+          onFocus={onFocus}
           aria-invalid={error && touched ? 'true' : 'false'}
           aria-describedby={error && touched ? `${name}-error` : undefined}
         />

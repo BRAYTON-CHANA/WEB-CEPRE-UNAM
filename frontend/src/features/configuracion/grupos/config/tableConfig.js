@@ -7,6 +7,37 @@ export const tableConfig = {
 };
 
 /**
+ * Columnas para la tabla de asignación de plazas (modal).
+ */
+export const PLAZAS_COLUMNS = [
+  { field: 'NOMBRE_CURSO',          title: 'Curso',         editable: false },
+  { field: 'NOMBRE_AREA',          title: 'Nombre Area',  editable: false },
+  { field: 'DESCRIPCION_PLAN',      title: 'Plan',          editable: false },
+  { field: 'HORAS_ACADEMICAS_CICLO',title: 'Hrs Ciclo',     editable: false },
+  {
+    field: 'ID_PLAZA_DOCENTE',
+    title: 'Plaza / Docente',
+    editable: true,
+    type: 'function-select',
+    functionName: 'fn_plazas_disponibles_por_curso_periodo_sede',
+    functionParams: {
+      p_id_periodo:      '{ID_PERIODO}',
+      p_id_sede:         '{ID_SEDE}',
+      p_id_curso:        '{ID_CURSO}',
+      p_id_plaza_actual: '{ID_PLAZA_DOCENTE}'
+    },
+    optionalParams: ['p_id_plaza_actual'],
+    valueField: 'id_plaza_docente',
+    labelField: '{identificador_docente} - {nombre_curso}',
+    descriptionField: '{docente_nombre_completo}',
+    placeholder: 'Seleccione una plaza...',
+    searchable: true,
+    freezeParams: true,
+    showRefreshButton: true
+  }
+];
+
+/**
  * Genera los levelConfigs para TableMultiLevelRender.
  * Nivel 1: Sede (botón "+" para añadir grupo)
  * Nivel 2: Grupo (CRUD completo: editar, eliminar)

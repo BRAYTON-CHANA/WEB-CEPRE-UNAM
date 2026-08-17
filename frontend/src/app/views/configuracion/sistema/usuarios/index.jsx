@@ -1,101 +1,24 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useTableData, useCrudForms, CrudMultiLevelManager, CrudHeader } from '@/shared/components/crud';
+import React from 'react';
+import { CrudMultiLevelManager, CrudHeader } from '@/shared/components/crud';
 import { TableMultiLevelEditable } from '@/shared/components/table';
-import { useAuthContext } from '@/shared/context/AuthContext';
-import { authService } from '@/features/login/services/authService';
-import cacheService from '@/shared/services/cacheService';
 import Toast from '@/shared/components/ui/Toast';
 import Modal from '@/shared/components/modal/views/Modal';
 import PerfilView from '@/features/usuarios/components/PerfilView';
 import { ConfigLayout } from '@/features/layout';
-import { tableConfig, getTableLevelConfigs } from '@/features/usuarios/config/tableConfig';
-import { usuariosFormFields, usuariosValidation, usuariosModalConfig } from '@/features/usuarios/config/formConfig';
 import { headerProps, getHeaderActions } from '@/features/usuarios/config/headerConfig';
+import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
 
 /**
  * Configuración de USUARIOS
- * CRUD completo para la tabla USUARIOS usando CrudMultiLevelManager con un solo nivel.
+ * CRUD + reset password + ver perfil.
  */
 function UsuariosConfig() {
-  const { records, loading, error, refresh } = useTableData(tableConfig.tableName);
-  const { token } = useAuthContext();
-  const [tableRecords, setTableRecords] = useState(records || []);
-  const [notification, setNotification] = useState(null);
-  const [perfilModalOpen, setPerfilModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-
-  useEffect(() => {
-    setTableRecords(records || []);
-  }, [records]);
-
-  const usuariosCrud = useCrudForms({
-    tableName: 'USUARIOS',
-    primaryKey: 'ID_USUARIO',
-    onRefresh: refresh
-  });
-
-  const handleSaveSuccess = useCallback((recordId, field, newValue) => {
-    setTableRecords(prev =>
-      prev.map(row => String(row.ID_USUARIO) === String(recordId) ? { ...row, [field]: newValue } : row)
-    );
-  }, []);
-
-  const handleResetPassword = useCallback(async (row) => {
-    if (!window.confirm(`¿Reiniciar la contraseña de ${row.NOMBRES} ${row.APELLIDOS}? Su DNI será la nueva contraseña.`)) return;
-    try {
-      await authService.resetPasswordAdmin(row.DNI, token);
-      setTableRecords(prev =>
-        prev.map(r => String(r.ID_USUARIO) === String(row.ID_USUARIO) ? { ...r, REQUIERE_CAMBIO_PASSWORD: true } : r)
-      );
-      setNotification({ title: 'Contraseña reiniciada', description: `Se reinició la contraseña de ${row.NOMBRES} ${row.APELLIDOS}`, type: 'success' });
-    } catch (err) {
-      setNotification({ title: 'Error', description: err.message || 'Error al reiniciar la contraseña', type: 'error' });
-    }
-  }, [token]);
-
-  const handleVerPerfil = useCallback((row) => {
-    setSelectedUser(row);
-    setPerfilModalOpen(true);
-  }, []);
-
-  const createUsuario = useCallback(async (formData) => {
-    const id_roles = Array.isArray(formData.ID_ROLES)
-      ? formData.ID_ROLES.map(r => (typeof r === 'object' ? Number(r.ID_ROL) : Number(r))).filter(Boolean)
-      : [];
-
-    const payload = {
-      dni: formData.DNI,
-      apellidos: formData.APELLIDOS,
-      nombres: formData.NOMBRES,
-      password: formData.DNI,
-      email: formData.EMAIL || null,
-      telefono: formData.TELEFONO || null,
-      direccion: formData.DIRECCION || null,
-      fecha_nacimiento: formData.FECHA_NACIMIENTO || null,
-      sexo: formData.SEXO || null,
-      id_roles
-    };
-
-    const result = await authService.register(payload);
-    cacheService.invalidateAll();
-    return result;
-  }, []);
-
-  const tableLevelConfigs = getTableLevelConfigs({ usuariosCrud, onResetPassword: handleResetPassword, onVerPerfil: handleVerPerfil });
-
-  const crudLevels = [
-    {
-      crud: usuariosCrud,
-      tableName: 'USUARIOS',
-      primaryKey: 'ID_USUARIO',
-      formFields: usuariosFormFields,
-      formLayout: null,
-      validation: usuariosValidation,
-      confirmSubmit: true,
-      modalConfig: usuariosModalConfig,
-      createFunction: createUsuario
-    }
-  ];
+  const {
+    records, loading, error,
+    usuariosCrud, tableLevelConfigs, crudLevels,
+    notification, setNotification,
+    perfilModalOpen, setPerfilModalOpen, selectedUser
+  } = useUsuarios();
 
   return (
     <ConfigLayout>
@@ -148,10 +71,9 @@ function UsuariosConfig() {
               {!loading && !error && (
                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
                   <TableMultiLevelEditable
-                    data={tableRecords}
+                    data={records}
                     levelConfigs={enrichedLevelConfigs}
                     saveMode="auto"
-                    onSaveSuccess={handleSaveSuccess}
                     formatToastMessage={(recordId, field, newValue, primaryKey, rowData, header) => {
                       const name = [rowData?.NOMBRES, rowData?.APELLIDOS].filter(Boolean).join(' ') || 'Usuario';
                       return `${name}: ${header?.label || field} → ${newValue ? 'Activo' : 'No activo'}`;

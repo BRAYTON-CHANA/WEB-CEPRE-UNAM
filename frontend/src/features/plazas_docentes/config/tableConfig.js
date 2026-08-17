@@ -27,8 +27,9 @@ export const getSedesLevelConfig = (plazasCrud, handleAddPlaza) => ({
 
 /**
  * Config del nivel 2 (plazas) para TableMultiLevelEditable.
+ * Solo CRUD de slots. Las postulaciones se gestionan desde ConvocatoriasPanel.
  */
-export const getPlazasLevelConfig = (plazasCrud, handleViewPostulantes) => ({
+export const getPlazasLevelConfig = (plazasCrud) => ({
   level: 2,
   headers: [
     { title: 'IDENTIFICADOR_DOCENTE', type: 'string', label: 'Identificador' },
@@ -53,13 +54,6 @@ export const getPlazasLevelConfig = (plazasCrud, handleViewPostulantes) => ({
   ],
   boundColumn: 'ID_PLAZA_DOCENTE',
   actions: {
-    viewPostulantes: {
-      enabled: true,
-      icon: 'user',
-      label: 'Ver postulantes',
-      className: 'text-purple-600 hover:bg-purple-100',
-      onClick: (row) => handleViewPostulantes(row)
-    },
     edit: {
       enabled: true,
       icon: 'edit',

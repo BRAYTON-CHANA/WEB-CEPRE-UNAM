@@ -24,7 +24,7 @@ export const getTableLevelConfigs = (rolesCrud, handleEditPermisos) => [
         },
         displayValue: (row) => row.ES_SISTEMA ? 'Sistema' : 'Custom'
       },
-      { title: 'ACTIVO', type: 'boolean', label: 'Activo' }
+      { title: 'ACTIVO', type: 'boolean', label: 'Activo', editable: true, targetTable: 'ROLES', targetField: 'ACTIVO', blocked: { field: 'ES_SISTEMA', op: '==', value: true } }
     ],
     boundColumn: 'ID_ROL',
     actions: {

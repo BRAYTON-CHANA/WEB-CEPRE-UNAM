@@ -102,6 +102,23 @@ export const renderCell = (value, rowIndex, header, columnType, colorMap) => {
     );
   }
 
+  // ── Info-card: { title, tags: [{label, value, colorClass}] } ───────────────
+  if (columnType === 'info-card') {
+    if (!value || typeof value !== 'object') return <span className="text-gray-400">-</span>;
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-semibold text-gray-900 text-sm">{value.title}</span>
+        {Array.isArray(value.tags) && value.tags.map((tag, idx) => (
+          <span key={idx} className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${tag.colorClass || 'bg-gray-100 text-gray-700'}`}>
+            {tag.label}{tag.value !== '' && tag.value !== undefined && tag.value !== null ? (
+              <span className="ml-1 font-bold">{tag.value}</span>
+            ) : null}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
   // ── Manejo de valores nulos o indefinidos ─────────────────────────────────
   if (value === null || value === undefined) {
     return <span className="text-gray-400">-</span>;

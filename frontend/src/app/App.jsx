@@ -20,29 +20,30 @@ import TestMultiLevelTable from '@/app/views/modules/test-multilevelTable';
 
 
 import InfraestructuraConfig from '@/app/views/configuracion/infraestructura';
-import PeriodosConfig from '@/app/views/configuracion/periodo_academico/periodos';
+import PeriodosConfig from '@/app/views/configuracion/gestion_periodo/periodos';
 import CursosConfig from '@/app/views/configuracion/academico/cursos';
 import AreasConfig from '@/app/views/configuracion/academico/areas';
 import DocentesConfig from '@/app/views/configuracion/academico/docentes';
-import HorariosConfig from '@/app/views/configuracion/horarios';
+import HorariosConfig from '@/app/views/configuracion/academico/horarios';
 import PlanesAcademicosConfig from '@/app/views/configuracion/academico/planes_academicos';
-import PlazasDocentesConfig from '@/app/views/configuracion/periodo_academico/plazas_docentes';
-import GruposConfig from '@/app/views/configuracion/periodo_academico/grupos';
-import PostulantesConfig from '@/app/views/configuracion/periodo_academico/postulantes';
+// import PlazasDocentesConfig from '@/app/views/configuracion/gestion_periodo/plazas_docentes'; // TEMP: Se maneja desde convocatorias
+import ConvocatoriasConfig from '@/app/views/configuracion/gestion_periodo/convocatorias';
+import GruposConfig from '@/app/views/configuracion/gestion_periodo/grupos';
+import PostulantesConfig from '@/app/views/configuracion/gestion_periodo/postulantes';
 import CarrerasConfig from '@/app/views/configuracion/academico/carreras';
-import CorreosConfig from '@/app/views/configuracion/correos/correos';
-import PasswordResetConfig from '@/app/views/configuracion/correos/password-reset';
-import CuentasSmtpConfig from '@/app/views/configuracion/correos/cuentas-smtp';
-import ProgramacionGrupoConfig from '@/app/views/configuracion/periodo_academico/programacion_grupo';
-// import ProgramacionPlazasDocentes from '@/app/views/configuracion/programacion_plazas_docentes'; // TEMP: En mantenimiento
-import ReportesIndex from '@/app/views/configuracion/reportes';
-import ReportesGrupos from '@/app/views/configuracion/reportes/grupos';
-import ReportesPlazas from '@/app/views/configuracion/reportes/plazas';
-import ReportesDocentes from '@/app/views/configuracion/reportes/docentes';
+import CorreosConfig from '@/app/views/configuracion/sistema/correos/correos';
+import PasswordResetConfig from '@/app/views/configuracion/sistema/correos/password-reset';
+import CuentasSmtpConfig from '@/app/views/configuracion/sistema/correos/cuentas-smtp';
+import ProgramacionGrupoConfig from '@/app/views/configuracion/gestion_periodo/programacion_grupo';
+// import ProgramacionPlazasDocentes from '@/app/views/configuracion/gestion_periodo/programacion_plazas_docentes'; // TEMP: En mantenimiento
+import ReportesIndex from '@/app/views/configuracion/gestion_periodo/reportes';
+import ReportesGrupos from '@/app/views/configuracion/gestion_periodo/reportes/grupos';
+import ReportesPlazas from '@/app/views/configuracion/gestion_periodo/reportes/plazas';
+import ReportesDocentes from '@/app/views/configuracion/gestion_periodo/reportes/docentes';
 import UsuariosConfig from '@/app/views/configuracion/sistema/usuarios';
 import PermisosConfig from '@/app/views/configuracion/sistema/permisos';
 import RolesConfig from '@/app/views/configuracion/sistema/roles';
-import RequisitosDocentesConfig from '@/app/views/configuracion/sistema/requisitos-docentes';
+import RequisitosDocentesConfig from '@/app/views/configuracion/academico/requisitos-docentes';
 
 
 import Asistencias from '@/app/views/asistencias';
@@ -114,29 +115,29 @@ function App() {
       <Route path="/configuracion/academico/carreras" element={<CarrerasConfig />} />
       <Route path="/configuracion/academico/docentes" element={<DocentesConfig />} />
       <Route path="/configuracion/academico/planes_academicos" element={<PlanesAcademicosConfig />} />
+      <Route path="/configuracion/academico/horarios" element={<HorariosConfig />} />
+      <Route path="/configuracion/academico/requisitos-docentes" element={<RequisitosDocentesConfig />} />
 
-      <Route path="/configuracion/horarios" element={<HorariosConfig />} />
-
-      <Route path="/configuracion/periodo_academico/periodos" element={<PeriodosConfig />} />
-      <Route path="/configuracion/periodo_academico/plazas_docentes" element={<PlazasDocentesConfig />} />
-      <Route path="/configuracion/periodo_academico/grupos" element={<GruposConfig />} />
-      <Route path="/configuracion/periodo_academico/postulantes" element={<PostulantesConfig />} />
-      <Route path="/configuracion/periodo_academico/programacion_grupo" element={<ProgramacionGrupoConfig />} />
-      {/* <Route path="/configuracion/periodo_academico/programacion_plazas_docentes" element={<ProgramacionPlazasDocentes />} /> TEMP: En mantenimiento */}
+      <Route path="/configuracion/gestion_periodo/periodos" element={<PeriodosConfig />} />
+      {/* <Route path="/configuracion/gestion_periodo/plazas_docentes" element={<PlazasDocentesConfig />} /> TEMP: Se maneja desde convocatorias */}
+      <Route path="/configuracion/gestion_periodo/convocatorias" element={<ConvocatoriasConfig />} />
+      <Route path="/configuracion/gestion_periodo/grupos" element={<GruposConfig />} />
+      <Route path="/configuracion/gestion_periodo/postulantes" element={<PostulantesConfig />} />
+      <Route path="/configuracion/gestion_periodo/programacion_grupo" element={<ProgramacionGrupoConfig />} />
+      {/* <Route path="/configuracion/gestion_periodo/programacion_plazas_docentes" element={<ProgramacionPlazasDocentes />} /> TEMP: En mantenimiento */}
 
       <Route path="/configuracion/sistema/usuarios" element={<UsuariosConfig />} />
       <Route path="/configuracion/sistema/permisos" element={<PermisosConfig />} />
       <Route path="/configuracion/sistema/roles" element={<RolesConfig />} />
-      <Route path="/configuracion/sistema/requisitos-docentes" element={<RequisitosDocentesConfig />} />
 
-      <Route path="/configuracion/correos/correos" element={<CorreosConfig />} />
-      <Route path="/configuracion/correos/password-reset" element={<PasswordResetConfig />} />
-      <Route path="/configuracion/correos/cuentas-smtp" element={<CuentasSmtpConfig />} />
+      <Route path="/configuracion/sistema/correos/correos" element={<CorreosConfig />} />
+      <Route path="/configuracion/sistema/correos/password-reset" element={<PasswordResetConfig />} />
+      <Route path="/configuracion/sistema/correos/cuentas-smtp" element={<CuentasSmtpConfig />} />
 
-      <Route path="/configuracion/reportes" element={<ReportesIndex />} />
-      <Route path="/configuracion/reportes/grupos" element={<ReportesGrupos />} />
-      <Route path="/configuracion/reportes/plazas" element={<ReportesPlazas />} />
-      <Route path="/configuracion/reportes/docentes" element={<ReportesDocentes />} />
+      <Route path="/configuracion/gestion_periodo/reportes" element={<ReportesIndex />} />
+      <Route path="/configuracion/gestion_periodo/reportes/grupos" element={<ReportesGrupos />} />
+      <Route path="/configuracion/gestion_periodo/reportes/plazas" element={<ReportesPlazas />} />
+      <Route path="/configuracion/gestion_periodo/reportes/docentes" element={<ReportesDocentes />} />
     </Routes>
   );
 }

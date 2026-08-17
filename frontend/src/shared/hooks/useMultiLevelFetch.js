@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { db as backend } from '@/shared/api';
 
 /**
@@ -17,6 +17,7 @@ export function useMultiLevelFetch(levelConfigs) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [childrenCache, setChildrenCache] = useState({});
+  const fetchedEntriesRef = useRef(new Map()); // cacheKey -> { levelIndex, parentValue }
 
   const fetchLevel1 = useCallback(async () => {
     if (!levelConfigs?.length) return;
@@ -48,6 +49,8 @@ export function useMultiLevelFetch(levelConfigs) {
     const config = levelConfigs[levelIndex];
     const parentConfig = levelConfigs[levelIndex - 1];
     const cacheKey = `${levelIndex}-${parentValue}`;
+
+    fetchedEntriesRef.current.set(cacheKey, { levelIndex, parentValue });
 
     setChildrenCache(prev => ({
       ...prev,
@@ -105,6 +108,13 @@ export function useMultiLevelFetch(levelConfigs) {
     }
   }, [levelConfigs]);
 
+  const refreshKeepingExpansion = useCallback(() => {
+    fetchLevel1();
+    fetchedEntriesRef.current.forEach(({ levelIndex, parentValue }) => {
+      fetchChildren(levelIndex, parentValue);
+    });
+  }, [fetchLevel1, fetchChildren]);
+
   return {
     records,
     childrenCache,
@@ -113,6 +123,7 @@ export function useMultiLevelFetch(levelConfigs) {
     fetchChildren,
     refresh,
     refreshChildren,
+    refreshKeepingExpansion,
     updateRecord
   };
 }

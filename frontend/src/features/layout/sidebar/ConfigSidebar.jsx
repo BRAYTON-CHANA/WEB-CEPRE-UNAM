@@ -204,41 +204,34 @@ const ConfigSidebar = () => {
           active: location.pathname === '/configuracion/sistema/permisos'
         },
         {
-          id: 'requisitos-docentes',
-          name: 'Requisitos Docentes',
-          icon: <GridIcon />,
-          href: '/configuracion/sistema/requisitos-docentes',
-          active: location.pathname === '/configuracion/sistema/requisitos-docentes'
-        }
-      ]
-    },
-    {
-      id: 'correos',
-      name: 'Correos',
-      icon: <MailIcon />,
-      expanded: expandedMenus.correos,
-      children: [
-        {
-          id: 'cuentas_smtp',
-          name: 'Cuentas SMTP',
-          icon: <ServerIcon />,
-          href: '/configuracion/correos/cuentas-smtp',
-          active: location.pathname === '/configuracion/correos/cuentas-smtp'
-        },
-        {
-          id: 'correos',
+          id: 'sistema_correos',
           name: 'Correos',
-          icon: <InboxIcon />,
-          href: '/configuracion/correos/correos',
-          active: location.pathname === '/configuracion/correos/correos'
-        },
-        {
-          id: 'password_reset',
-          name: 'Código Reset',
-          icon: <KeyIcon />,
-          href: '/configuracion/correos/password-reset',
-          active: location.pathname === '/configuracion/correos/password-reset'
-        },
+          icon: <MailIcon />,
+          expanded: expandedMenus.sistema_correos,
+          children: [
+            {
+              id: 'cuentas_smtp',
+              name: 'Cuentas SMTP',
+              icon: <ServerIcon />,
+              href: '/configuracion/sistema/correos/cuentas-smtp',
+              active: location.pathname === '/configuracion/sistema/correos/cuentas-smtp'
+            },
+            {
+              id: 'correos',
+              name: 'Correos',
+              icon: <InboxIcon />,
+              href: '/configuracion/sistema/correos/correos',
+              active: location.pathname === '/configuracion/sistema/correos/correos'
+            },
+            {
+              id: 'password_reset',
+              name: 'Código Reset',
+              icon: <KeyIcon />,
+              href: '/configuracion/sistema/correos/password-reset',
+              active: location.pathname === '/configuracion/sistema/correos/password-reset'
+            }
+          ]
+        }
       ]
     },
     {
@@ -276,6 +269,13 @@ const ConfigSidebar = () => {
           active: location.pathname === '/configuracion/academico/carreras'
         },
         {
+          id: 'planes_academicos',
+          name: 'Planes Académicos',
+          icon: <BookIcon />,
+          href: '/configuracion/academico/planes_academicos',
+          active: location.pathname === '/configuracion/academico/planes_academicos'
+        },
+        {
           id: 'docentes',
           name: 'Docentes',
           icon: <UserIcon />,
@@ -283,109 +283,108 @@ const ConfigSidebar = () => {
           active: location.pathname === '/configuracion/academico/docentes'
         },
         {
-          id: 'planes_academicos',
-          name: 'Planes Académicos',
-          icon: <BookIcon />,
-          href: '/configuracion/academico/planes_academicos',
-          active: location.pathname === '/configuracion/academico/planes_academicos'
-        }
-      ]
-    },
-    
-    {
-      id: 'horarios',
-      name: 'Horarios',
-      icon: <ClockIcon />,
-      expanded: expandedMenus.horarios,
-      children: [
+          id: 'requisitos-docentes',
+          name: 'Requisitos Docentes',
+          icon: <GridIcon />,
+          href: '/configuracion/academico/requisitos-docentes',
+          active: location.pathname === '/configuracion/academico/requisitos-docentes'
+        },
         {
-          id: 'horarios_bloques',
-          name: 'Plantillas de Horario',
+          id: 'horarios',
+          name: 'Horarios',
           icon: <TimetableIcon />,
-          href: '/configuracion/horarios',
-          active: location.pathname === '/configuracion/horarios'
+          href: '/configuracion/academico/horarios',
+          active: location.pathname === '/configuracion/academico/horarios'
         }
       ]
     },
     {
-      id: 'periodos_academicos',
-      name: 'Periodos Academicos',
+      id: 'gestion_periodo',
+      name: 'Gestión por Periodo',
       icon: <CalendarIcon />,
-      expanded: expandedMenus.programacion,
+      expanded: expandedMenus.gestion_periodo,
       children: [
         {
           id: 'periodos',
           name: 'Periodos',
           icon: <CalendarIcon />,
-          href: '/configuracion/periodo_academico/periodos',
-          active: location.pathname === '/configuracion/periodo_academico/periodos'
+          href: '/configuracion/gestion_periodo/periodos',
+          active: location.pathname === '/configuracion/gestion_periodo/periodos'
         },
         {
-          id: 'plazas_docentes',
-          name: 'Plazas Docentes',
+          id: 'convocatorias',
+          name: 'Convocatorias',
           icon: <UserIcon />,
-          href: '/configuracion/periodo_academico/plazas_docentes',
-          active: location.pathname === '/configuracion/periodo_academico/plazas_docentes'
+          href: '/configuracion/gestion_periodo/convocatorias',
+          active: location.pathname === '/configuracion/gestion_periodo/convocatorias'
         },
         {
           id: 'grupos',
           name: 'Grupos',
           icon: <UsersIcon />,
-          href: '/configuracion/periodo_academico/grupos',
-          active: location.pathname === '/configuracion/periodo_academico/grupos'
+          href: '/configuracion/gestion_periodo/grupos',
+          active: location.pathname === '/configuracion/gestion_periodo/grupos'
         },
         {
           id: 'postulantes',
           name: 'Postulantes',
           icon: <UserIcon />,
-          href: '/configuracion/periodo_academico/postulantes',
-          active: location.pathname === '/configuracion/periodo_academico/postulantes'
+          href: '/configuracion/gestion_periodo/postulantes',
+          active: location.pathname === '/configuracion/gestion_periodo/postulantes'
         },
         {
-          id: 'programacion_grupo',
-          name: 'Programación de Grupo',
+          id: 'gestion_periodo_programacion',
+          name: 'Programación',
           icon: <TimetableIcon />,
-          href: '/configuracion/periodo_academico/programacion_grupo',
-          active: location.pathname === '/configuracion/periodo_academico/programacion_grupo'
+          expanded: expandedMenus.gestion_periodo_programacion,
+          children: [
+            {
+              id: 'programacion_grupo',
+              name: 'Programación de Grupo',
+              icon: <TimetableIcon />,
+              href: '/configuracion/gestion_periodo/programacion_grupo',
+              active: location.pathname === '/configuracion/gestion_periodo/programacion_grupo'
+            },
+            {
+              id: 'programacion_plazas_docentes',
+              name: 'Programación por Plaza (En mantenimiento)',
+              icon: <TimetableIcon />,
+              disabled: true,
+              active: false
+            }
+          ]
         },
         {
-          id: 'programacion_plazas_docentes',
-          name: 'Programación por Plaza (En mantenimiento)',
-          icon: <TimetableIcon />,
-          disabled: true,
-          active: false
+          id: 'gestion_periodo_reportes',
+          name: 'Reportes',
+          icon: <FileTextIcon />,
+          expanded: expandedMenus.gestion_periodo_reportes,
+          children: [
+            {
+              id: 'reportes_grupos',
+              name: 'Grupos',
+              icon: <UsersIcon />,
+              href: '/configuracion/gestion_periodo/reportes/grupos',
+              active: location.pathname === '/configuracion/gestion_periodo/reportes/grupos'
+            },
+            {
+              id: 'reportes_plazas',
+              name: 'Plazas Docentes',
+              icon: <UserIcon />,
+              href: '/configuracion/gestion_periodo/reportes/plazas',
+              active: location.pathname === '/configuracion/gestion_periodo/reportes/plazas'
+            },
+            {
+              id: 'reportes_docentes',
+              name: 'Docentes',
+              icon: <UserIcon />,
+              href: '/configuracion/gestion_periodo/reportes/docentes',
+              active: location.pathname === '/configuracion/gestion_periodo/reportes/docentes'
+            }
+          ]
         }
       ]
-    },
-    {
-      id: 'reportes',
-      name: 'Reportes',
-      icon: <FileTextIcon />,
-      expanded: expandedMenus.reportes,
-      children: [
-        {
-          id: 'reportes_grupos',
-          name: 'Grupos',
-          icon: <UsersIcon />,
-          href: '/configuracion/reportes/grupos',
-          active: location.pathname === '/configuracion/reportes/grupos'
-        },
-        {
-          id: 'reportes_plazas',
-          name: 'Plazas Docentes',
-          icon: <UserIcon />,
-          href: '/configuracion/reportes/plazas',
-          active: location.pathname === '/configuracion/reportes/plazas'
-        },
-        {
-          id: 'reportes_docentes',
-          name: 'Docentes',
-          icon: <UserIcon />,
-          href: '/configuracion/reportes/docentes',
-          active: location.pathname === '/configuracion/reportes/docentes'
-        }
-      ]
-    },
+    }
   ];
 
   return (

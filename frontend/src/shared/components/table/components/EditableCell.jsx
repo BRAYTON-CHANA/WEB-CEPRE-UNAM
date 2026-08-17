@@ -38,6 +38,7 @@ const EditableCell = ({
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const [inputValue, setInputValue] = useState(value); // estado local del input (commit en blur/Enter)
 
   const isBlocked = column.blocked
     ? evaluateOperatorSet(column.blocked, rowData)
@@ -170,12 +171,42 @@ const EditableCell = ({
   const handleActivate = (e) => {
     if (canEdit && !isEditing) {
       e.stopPropagation();
+      setInputValue(value);
       setIsEditing(true);
     }
   };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') setIsEditing(false);
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitInput();
+    }
+  };
+
+  // Commit del valor local al guardar (blur o Enter)
+  // Valida positivos para tipos numéricos/currency
+  // Acepta overrideValue para casos donde setInputValue es async (boolean)
+  const commitInput = (overrideValue) => {
+    const isNumericType = ['number', 'integer', 'float', 'currency'].includes(column.type);
+    let finalValue = overrideValue !== undefined ? overrideValue : inputValue;
+
+    if (isNumericType) {
+      const num = Number(finalValue);
+      if (finalValue === '' || finalValue === null || isNaN(num) || num < 0) {
+        // Inválido: revertir sin guardar
+        setInputValue(value);
+        setIsEditing(false);
+        return;
+      }
+      finalValue = num;
+    }
+
+    if (finalValue !== value) {
+      handleChange(column.field, finalValue);
+    } else {
+      setIsEditing(false);
+    }
   };
 
   // ── Tipos SELECT: siempre visible, sin toggle ────────────────
@@ -228,8 +259,8 @@ const EditableCell = ({
   // ── Tipo no editable ──────────────────────────────────────────
   if (!canEdit) {
     return (
-      <td className="px-4 py-2.5 text-sm whitespace-nowrap text-gray-500">
-        {renderReadValue(column, value)}
+      <td className="px-4 py-2.5 text-sm whitespace-nowrap text-gray-300 bg-gray-50/60">
+        {renderReadValue(column, value, false, undefined, true)}
       </td>
     );
   }
@@ -265,15 +296,31 @@ const EditableCell = ({
     return (
       <td
         onClick={handleActivate}
-        className={`px-4 py-2.5 text-sm whitespace-nowrap cursor-pointer ${isSaving ? 'opacity-60' : ''} ${isPending ? 'bg-amber-50' : ''}`}
-        title={saveError || (isPending ? 'Cambio pendiente de guardar' : '')}
+        className={`group px-4 py-2.5 text-sm whitespace-nowrap cursor-pointer transition-colors duration-150 ${isSaving ? 'opacity-60' : ''} ${isPending ? 'bg-amber-50' : 'hover:bg-blue-50/60'}`}
+        title={saveError || (isPending ? 'Cambio pendiente de guardar' : 'Click para editar')}
       >
-        {renderReadValue(column, value)}
-        {isPending && (
-          <span className="ml-1.5 inline-block h-2 w-2 rounded-full bg-amber-400 align-middle" title="Cambio pendiente de guardar" />
-        )}
-        {isSaving && (
-          <span className="ml-2 inline-block h-3 w-3 animate-spin rounded-full border-b border-blue-600"></span>
+        <div className="flex items-center gap-1.5">
+          <span className="transition-opacity">
+            {renderReadValue(column, value)}
+          </span>
+          {/* Indicador editable: icono lápiz siempre visible, sutil */}
+          {!isSaving && (
+            <svg
+              className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 transition-colors duration-150 shrink-0"
+              fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          )}
+          {isPending && (
+            <span className="ml-0.5 inline-block h-2 w-2 rounded-full bg-amber-400 align-middle" title="Cambio pendiente de guardar" />
+          )}
+          {isSaving && (
+            <span className="ml-1 inline-block h-3 w-3 animate-spin rounded-full border-b border-blue-600"></span>
+          )}
+        </div>
+        {saveError && (
+          <div className="text-xs text-red-500 mt-0.5">{saveError}</div>
         )}
       </td>
     );
@@ -281,7 +328,7 @@ const EditableCell = ({
 
   return (
     <td className={`px-2 py-1 whitespace-nowrap align-top relative ${isPending ? 'bg-amber-50' : ''}`} onKeyDown={handleKeyDown}>
-      {renderSimpleInput(column, value, handleChange, isSaving)}
+      {renderSimpleInput(column, inputValue, setInputValue, commitInput, isSaving)}
       {isPending && (
         <span
           title="Cambio pendiente de guardar"
@@ -302,14 +349,14 @@ const EditableCell = ({
 
 // ── Helpers ───────────────────────────────────────────────────
 
-function renderReadValue(column, value, isSaving, onToggle) {
+function renderReadValue(column, value, isSaving, onToggle, disabled = false) {
   if (column.type === 'boolean') {
     return (
       <ToggleSwitch
         checked={Boolean(value)}
         onChange={onToggle}
         size="sm"
-        disabled={isSaving}
+        disabled={isSaving || disabled}
       />
     );
   }
@@ -323,15 +370,19 @@ function renderReadValue(column, value, isSaving, onToggle) {
   return renderCell(cellValue, 0, column.field, cellType);
 }
 
-function renderSimpleInput(column, value, handleChange, isSaving) {
+function renderSimpleInput(column, inputValue, setInputValue, commitInput, isSaving) {
   const { type = 'text', field } = column;
 
   switch (type) {
     case 'boolean':
       return (
         <ToggleSwitch
-          checked={Boolean(value)}
-          onChange={checked => handleChange(field, checked)}
+          checked={Boolean(inputValue)}
+          onChange={checked => {
+            setInputValue(checked);
+            // Boolean commit inmediato con valor explícito (no necesita blur)
+            commitInput(checked);
+          }}
           size="sm"
           disabled={isSaving}
         />
@@ -340,13 +391,30 @@ function renderSimpleInput(column, value, handleChange, isSaving) {
     case 'number':
     case 'integer':
     case 'float':
+    case 'currency':
       return (
         <input
           type="number"
-          value={value ?? ''}
+          min="0"
+          step={type === 'currency' ? '0.01' : '1'}
+          value={inputValue ?? ''}
           disabled={isSaving}
-          onChange={e => handleChange(field, e.target.value === '' ? null : Number(e.target.value))}
+          onChange={e => setInputValue(e.target.value === '' ? '' : e.target.value)}
+          onBlur={commitInput}
           className="w-full min-w-[100px] px-2 py-1 text-sm border border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
+          autoFocus
+        />
+      );
+
+    case 'date':
+      return (
+        <input
+          type="date"
+          value={inputValue ? new Date(inputValue).toISOString().split('T')[0] : ''}
+          disabled={isSaving}
+          onChange={e => setInputValue(e.target.value)}
+          onBlur={commitInput}
+          className="w-full min-w-[140px] px-2 py-1 text-sm border border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
           autoFocus
         />
       );
@@ -355,9 +423,10 @@ function renderSimpleInput(column, value, handleChange, isSaving) {
       return (
         <input
           type="text"
-          value={value ?? ''}
+          value={inputValue ?? ''}
           disabled={isSaving}
-          onChange={e => handleChange(field, e.target.value)}
+          onChange={e => setInputValue(e.target.value)}
+          onBlur={commitInput}
           className="w-full min-w-[140px] px-2 py-1 text-sm border border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
           autoFocus
         />

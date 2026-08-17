@@ -25,13 +25,6 @@ export const rolesFormFields = [
     required: false,
     defaultValue: 1,
     placeholder: '1'
-  },
-  {
-    name: 'ACTIVO',
-    type: 'boolean',
-    label: 'Activo',
-    required: false,
-    defaultValue: true
   }
 ];
 

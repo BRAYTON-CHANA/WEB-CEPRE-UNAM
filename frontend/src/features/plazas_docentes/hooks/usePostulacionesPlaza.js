@@ -3,18 +3,25 @@ import { db } from '@/shared/api';
 import cacheService from '@/shared/services/cacheService';
 import { createPostulacion, cargarTodosLosDocentes } from '../services/postulacionesService';
 
-export function usePostulacionesPlaza(plaza) {
+/**
+ * Hook para cargar postulaciones por convocatoria_curso.
+ * Acepta un objeto `convocatoriaCurso` con ID_CONVOCATORIA_CURSO,
+ * o retrocompat con `plaza` (deriva ID_CONVOCATORIA_CURSO desde la plaza).
+ */
+export function usePostulacionesPlaza(convocatoriaCurso) {
+  const idConvocatoriaCurso = convocatoriaCurso?.ID_CONVOCATORIA_CURSO;
+
   const [postulaciones, setPostulaciones] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [bulkLoading, setBulkLoading] = useState(false);
 
   const load = useCallback(async () => {
-    if (!plaza?.ID_PLAZA_DOCENTE) return;
+    if (!idConvocatoriaCurso) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await db.select('VW_POSTULACIONES_PLAZA', { ID_PLAZA_DOCENTE: plaza.ID_PLAZA_DOCENTE });
+      const data = await db.select('VW_POSTULACIONES_PLAZA', { ID_CONVOCATORIA_CURSO: idConvocatoriaCurso });
       setPostulaciones(data || []);
     } catch (err) {
       setError(err);
@@ -22,7 +29,7 @@ export function usePostulacionesPlaza(plaza) {
     } finally {
       setLoading(false);
     }
-  }, [plaza?.ID_PLAZA_DOCENTE]);
+  }, [idConvocatoriaCurso]);
 
   useEffect(() => {
     load();
@@ -40,16 +47,16 @@ export function usePostulacionesPlaza(plaza) {
   }, [refresh]);
 
   const loadAllDocentes = useCallback(async () => {
-    if (!plaza?.ID_PLAZA_DOCENTE) return;
+    if (!idConvocatoriaCurso) return;
     setBulkLoading(true);
     try {
-      const result = await cargarTodosLosDocentes(plaza.ID_PLAZA_DOCENTE);
+      const result = await cargarTodosLosDocentes(idConvocatoriaCurso);
       refresh();
       return result;
     } finally {
       setBulkLoading(false);
     }
-  }, [plaza?.ID_PLAZA_DOCENTE, refresh]);
+  }, [idConvocatoriaCurso, refresh]);
 
   return {
     postulaciones,

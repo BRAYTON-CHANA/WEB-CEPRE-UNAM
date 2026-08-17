@@ -28,7 +28,7 @@ export const useMultiLevelGrouping = (data, levelConfigs) => {
       const field = isLastLevel ? null : getGroupField(config);
       
       if (!field && !isLastLevel) {
-        console.warn(`TableMultiLevel: Nivel ${level + 1} no tiene groupBy ni field definidos`);
+        // Niveles async (filas planas) no tienen groupBy por diseño — no es error
         return items;
       }
       

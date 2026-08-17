@@ -7,7 +7,7 @@ import { loadRequisitosForDocente, getRequisitoUrl } from '@/features/requisitos
  */
 export const postulacionFormFields = [
   {
-    name: 'ID_PLAZA_DOCENTE',
+    name: 'ID_CONVOCATORIA_CURSO',
     type: 'hidden',
     hidden: true
   },
@@ -16,9 +16,9 @@ export const postulacionFormFields = [
     type: 'function-select',
     label: 'Docente',
     required: true,
-    functionName: 'fn_docentes_disponibles_plaza',
+    functionName: 'fn_docentes_disponibles_convocatoria_curso',
     functionParams: {
-      p_id_plaza_docente: '{ID_PLAZA_DOCENTE}',
+      p_id_convocatoria_curso: '{ID_CONVOCATORIA_CURSO}',
       p_id_docente_actual: '{ID_DOCENTE}'
     },
     optionalParams: ['p_id_docente_actual'],
@@ -41,41 +41,8 @@ export const postulacionFormFields = [
     ]
   },
   {
-    name: 'ESTADO',
-    type: 'select',
-    label: 'Estado',
-    required: true,
-    defaultValue: 'postulado',
-    options: [
-      { value: 'postulado', label: 'Postulado' },
-      { value: 'en_revision', label: 'En revisión' },
-      { value: 'entrevista', label: 'Entrevista' },
-      { value: 'documentos', label: 'Documentos' },
-      { value: 'contratado', label: 'Contratado' },
-      { value: 'descartado', label: 'Descartado' }
-    ]
-  },
-  {
-    name: 'FECHA_ENTREVISTA',
-    type: 'date',
-    label: 'Fecha de entrevista',
-    required: false
-  },
-  {
-    name: 'NOTA_ENTREVISTA',
-    type: 'textarea',
-    label: 'Nota de entrevista',
-    required: false
-  },
-  {
-    name: 'OBSERVACIONES',
-    type: 'textarea',
-    label: 'Observaciones',
-    required: false
-  },
-  {
     name: 'ADJUNTOS_DATA',
-    type: 'json-files',
+    type: 'predefined-files',
     label: 'Documentos de postulación',
     required: false,
     ignoreField: true,
@@ -96,13 +63,10 @@ export const postulacionFormFields = [
 ];
 
 export const postulacionValidation = {
-  ID_PLAZA_DOCENTE: {
-    required: { value: true, message: 'Falta la plaza asociada' }
+  ID_CONVOCATORIA_CURSO: {
+    required: { value: true, message: 'Falta la convocatoria_curso asociada' }
   },
   ID_DOCENTE: {
     required: { value: true, message: 'Debe seleccionar un docente' }
-  },
-  ESTADO: {
-    required: { value: true, message: 'El estado es obligatorio' }
   }
 };

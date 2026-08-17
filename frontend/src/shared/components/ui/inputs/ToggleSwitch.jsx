@@ -34,9 +34,9 @@ const ToggleSwitch = ({
     lg: checked ? 'translate-x-6' : 'translate-x-0.5'
   };
 
-  const bgClasses = checked 
-    ? 'bg-green-500 border-green-500' 
-    : 'bg-gray-300 border-gray-300';
+  const bgClasses = disabled
+    ? (checked ? 'bg-gray-400 border-gray-400' : 'bg-gray-200 border-gray-200')
+    : (checked ? 'bg-green-500 border-green-500' : 'bg-gray-300 border-gray-300');
 
   const thumbBgClasses = checked 
     ? 'bg-white' 

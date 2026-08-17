@@ -348,7 +348,7 @@ const FormField = ({
           allowNull: field.allowNull !== false
         };
 
-      case 'json-files':
+      case 'predefined-files':
         return {
           mode: field.mode || 'create',
           triggerField: field.triggerField,

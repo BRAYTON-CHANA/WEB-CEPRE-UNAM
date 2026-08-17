@@ -1,66 +1,22 @@
-import React, { useState, useCallback } from 'react';
-import { useTableData, useCrudForms, CrudMultiLevelManager, CrudHeader } from '@/shared/components/crud';
-import { TableMultiLevel } from '@/shared/components/table';
+import React from 'react';
+import { useCrudForms, CrudMultiLevelManager, CrudHeader } from '@/shared/components/crud';
+import { TableMultiLevelEditable } from '@/shared/components/table';
 import { ArrayEditorModal } from '@/shared/components';
-import { db } from '@/shared/api';
 import { ConfigLayout } from '@/features/layout';
-import { tableConfig, getTableLevelConfigs } from '@/features/roles/config/tableConfig';
-import { rolesFormFields, rolesValidation, rolesModalConfig } from '@/features/roles/config/formConfig';
 import { headerProps, getHeaderActions } from '@/features/roles/config/headerConfig';
+import { useRoles } from '@/features/roles/hooks/useRoles';
 
 /**
  * Configuración de ROLES
- * CRUD completo para la tabla ROLES usando CrudMultiLevelManager con un solo nivel.
- * Incluye modal de edición de permisos con ArrayEditorModal.
+ * CRUD + ACTIVO editable inline + modal de permisos.
  */
 function RolesConfig() {
-  const { records, loading, error, refresh } = useTableData(tableConfig.tableName);
-
-  const rolesCrud = useCrudForms({
-    tableName: 'ROLES',
-    primaryKey: 'ID_ROL',
-    onRefresh: refresh
-  });
-
-  // Estado para modal de permisos
-  const [permisosModalOpen, setPermisosModalOpen] = useState(false);
-  const [permisosEditingRow, setPermisosEditingRow] = useState(null);
-  const [permisosSaving, setPermisosSaving] = useState(false);
-
-  const handleEditPermisos = useCallback((row) => {
-    setPermisosEditingRow(row);
-    setPermisosModalOpen(true);
-  }, []);
-
-  const handleSavePermisos = useCallback(async (newIds) => {
-    if (!permisosEditingRow) return;
-    setPermisosSaving(true);
-    try {
-      await db.update('ROLES', permisosEditingRow.ID_ROL, { ID_PERMISOS: newIds }, 'ID_ROL');
-      setPermisosModalOpen(false);
-      setPermisosEditingRow(null);
-      refresh();
-    } catch (err) {
-      console.error('Error guardando permisos:', err);
-    } finally {
-      setPermisosSaving(false);
-    }
-  }, [permisosEditingRow, refresh]);
-
-  const tableLevelConfigs = getTableLevelConfigs(rolesCrud, handleEditPermisos);
-
-  const crudLevels = [
-    {
-      crud: rolesCrud,
-      tableName: 'ROLES',
-      primaryKey: 'ID_ROL',
-      formFields: rolesFormFields,
-      formLayout: null,
-      validation: rolesValidation,
-      confirmSubmit: true,
-      modalConfig: rolesModalConfig
-    }
-  ];
+  const {
+    records, loading, error,
+    rolesCrud, tableLevelConfigs, crudLevels,
+    permisosModalOpen, permisosEditingRow, permisosSaving,
+    handleSavePermisos, handleClosePermisos
+  } = useRoles();
 
   return (
     <ConfigLayout>
@@ -100,20 +56,22 @@ function RolesConfig() {
 
               {!loading && !error && (
                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
-                  <TableMultiLevel
+                  <TableMultiLevelEditable
                     key={h.refreshTrigger}
                     data={records}
                     levelConfigs={enrichedLevelConfigs}
+                    saveMode="auto"
+                    formatToastMessage={(recordId, field, newValue, primaryKey, rowData, header) =>
+                      `${rowData?.NOMBRE_ROL || 'Rol'}: ${header?.label || field} → ${newValue ? 'Activo' : 'No activo'}`
+                    }
+                    toastProps={{ fontFamily: 'inherit', backgroundColor: '#2E3A68' }}
                   />
                 </div>
               )}
 
               <ArrayEditorModal
                 isOpen={permisosModalOpen}
-                onClose={() => {
-                  setPermisosModalOpen(false);
-                  setPermisosEditingRow(null);
-                }}
+                onClose={handleClosePermisos}
                 title={`Permisos del rol: ${permisosEditingRow?.NOMBRE_ROL || ''}`}
                 tableName="PERMISOS"
                 valueField="ID_PERMISO"
