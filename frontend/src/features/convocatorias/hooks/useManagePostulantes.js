@@ -9,11 +9,13 @@ import {
 } from '@/features/convocatorias/services/convocatoriasService';
 
 /**
- * useManagePostulantes — lógica del panel de postulantes de un convocatoria_curso.
- * Maneja: carga de postulaciones, crear/editar, asignar/liberar plaza, toggle ACEPTADO.
+ * useManagePostulantes — lógica del panel de postulantes.
+ * Solo recarga la tabla cuando cambia idConvocatoria (obligatorio).
+ * Sede, curso y búsqueda se filtran client-side sobre los datos ya cargados.
+ * @param {Array} convocatoriaCursos - lista de VW_CONVOCATORIAS_CURSO disponibles para postular
+ * @param {string} searchTerm - texto de búsqueda (DNI, nombre, RUC)
  */
-export function useManagePostulantes({ convocatoriaCurso }) {
-  const idConvocatoriaCurso = convocatoriaCurso?.ID_CONVOCATORIA_CURSO;
+export function useManagePostulantes({ idConvocatoriaCurso, idConvocatoria, idSede, convocatoriaCursos = [], convocatoriaLabel = '', searchTerm = '' }) {
 
   const [postulaciones, setPostulaciones] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -32,11 +34,17 @@ export function useManagePostulantes({ convocatoriaCurso }) {
   const [adjuntosModal, setAdjuntosModal] = useState({ open: false, postulacion: null, adjuntos: null, loading: false, saving: false });
 
   const load = useCallback(async () => {
-    if (!idConvocatoriaCurso) return;
+    // Solo filtrar por convocatoria a nivel BD — sede/curso/search se filtran client-side
+    if (!idConvocatoria) {
+      setPostulaciones([]);
+      return;
+    }
+    const filters = { ID_CONVOCATORIA: idConvocatoria };
+
     setLoading(true);
     setError(null);
     try {
-      const data = await db.select('VW_POSTULACIONES_PLAZA', { ID_CONVOCATORIA_CURSO: idConvocatoriaCurso });
+      const data = await db.select('VW_POSTULACIONES_PLAZA', filters);
       setPostulaciones(data || []);
     } catch (err) {
       setError(err);
@@ -44,7 +52,7 @@ export function useManagePostulantes({ convocatoriaCurso }) {
     } finally {
       setLoading(false);
     }
-  }, [idConvocatoriaCurso]);
+  }, [idConvocatoria]);
 
   useEffect(() => {
     load();
@@ -55,14 +63,37 @@ export function useManagePostulantes({ convocatoriaCurso }) {
     load();
   }, [load]);
 
+  // Filtrado client-side: sede, curso y búsqueda (DNI/nombre/RUC)
+  const filteredPostulaciones = useMemo(() => {
+    let result = postulaciones;
+
+    if (idSede) {
+      result = result.filter(p => String(p.ID_SEDE) === String(idSede));
+    }
+    if (idConvocatoriaCurso) {
+      result = result.filter(p => String(p.ID_CONVOCATORIA_CURSO) === String(idConvocatoriaCurso));
+    }
+    if (searchTerm && searchTerm.trim()) {
+      const term = searchTerm.trim().toLowerCase();
+      result = result.filter(p => {
+        const dni = String(p.DNI || '').toLowerCase();
+        const nombre = String(p.DOCENTE_NOMBRE || '').toLowerCase();
+        const ruc = String(p.RUC || '').toLowerCase();
+        return dni.includes(term) || nombre.includes(term) || ruc.includes(term);
+      });
+    }
+    return result;
+  }, [postulaciones, idSede, idConvocatoriaCurso, searchTerm]);
+
   const initialValues = useMemo(() => ({
-    ID_CONVOCATORIA_CURSO: idConvocatoriaCurso,
+    ID_CONVOCATORIA: convocatoriaLabel,
+    ID_CONVOCATORIA_CURSO: idConvocatoriaCurso || '',
     ESTADO: 'postulado',
     ACEPTADO: false,
     CONTRATO_FIRMADO: false,
     ENTREVISTA_REALIZADA: false,
     ACTIVO: true,
-  }), [idConvocatoriaCurso]);
+  }), [idConvocatoriaCurso, convocatoriaLabel]);
 
   const handleSubmit = async (submitData, rawFormData) => {
     setCreating(true);
@@ -231,7 +262,7 @@ export function useManagePostulantes({ convocatoriaCurso }) {
 
   return {
     // Data
-    postulaciones, loading, error,
+    postulaciones: filteredPostulaciones, loading, error,
     // Modal crear/editar
     isModalOpen, creating, formError,
     editingPostulacion, editingAdjuntos, loadingAdjuntos,

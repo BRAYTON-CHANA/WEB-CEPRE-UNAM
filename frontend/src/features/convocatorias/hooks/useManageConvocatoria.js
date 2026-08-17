@@ -10,7 +10,7 @@ import { getManageCrudLevels } from '@/features/convocatorias/config/crudLevels'
 import {
   convocatoriaCursoFormFields
 } from '@/features/convocatorias/config/formConfig';
-import { addConvocatoriaCursoPlazas } from '@/features/convocatorias/services/convocatoriaService';
+import { addConvocatoriaCursoPlazas, addPlazaDocenteSimple } from '@/features/convocatorias/services/convocatoriaService';
 
 /**
  * useManageConvocatoria — lógica de la página 2 (manejo de convocatoria).
@@ -19,13 +19,13 @@ import { addConvocatoriaCursoPlazas } from '@/features/convocatorias/services/co
  * @param {Object} convocatoria — row de VW_CONVOCATORIAS
  * @param {Function} onBack — callback al click "Volver"
  */
-export function useManageConvocatoria({ convocatoria, onBack }) {
+export function useManageConvocatoria({ convocatoria, onViewPostulantes }) {
   const [selectedConvocatoriaForNewCurso, setSelectedConvocatoriaForNewCurso] = useState(null);
   const [selectedSedeForNewCurso, setSelectedSedeForNewCurso] = useState(null);
   const [editingConvocatoriaId, setEditingConvocatoriaId] = useState(null);
   const [deletingConvocatoriaId, setDeletingConvocatoriaId] = useState(null);
   const [deletingConvocatoriaCursoId, setDeletingConvocatoriaCursoId] = useState(null);
-  const [selectedConvocatoriaCurso, setSelectedConvocatoriaCurso] = useState(null);
+  const [addingPlazaId, setAddingPlazaId] = useState(null);
 
   const convocatoriaId = convocatoria.ID_CONVOCATORIA;
 
@@ -33,7 +33,8 @@ export function useManageConvocatoria({ convocatoria, onBack }) {
     {
       tableName: 'VW_CONVOCATORIAS_CURSO',
       primaryKey: 'ID_CONVOCATORIA_CURSO',
-      filters: { ID_CONVOCATORIA: convocatoriaId }
+      filters: { ID_CONVOCATORIA: convocatoriaId },
+      orderBy: 'NOMBRE_CURSO'
     },
     {
       tableName: 'VW_PLAZA_DOCENTE_ASIGNADA',
@@ -51,6 +52,7 @@ export function useManageConvocatoria({ convocatoria, onBack }) {
     fetchChildren,
     refresh,
     refreshKeepingExpansion,
+    refreshChildren,
     updateRecord
   } = useMultiLevelFetch(FETCH_CONFIGS);
 
@@ -72,7 +74,11 @@ export function useManageConvocatoria({ convocatoria, onBack }) {
     tableName: 'PLAZA_DOCENTE',
     primaryKey: 'ID_PLAZA_DOCENTE',
     onRefresh: () => {
-      refreshKeepingExpansion();
+      // Solo refrescar las plazas hijas del convocatoria_curso afectado,
+      // sin recargar nivel 1 ni colapsar la expansión.
+      if (deletingConvocatoriaCursoId) {
+        refreshChildren(1, deletingConvocatoriaCursoId);
+      }
       setDeletingConvocatoriaCursoId(null);
     }
   });
@@ -111,16 +117,22 @@ export function useManageConvocatoria({ convocatoria, onBack }) {
   };
 
   const handleAddPlaza = (convocatoriaCursoRow) => {
-    addConvocatoriaCursoPlazas({
-      ID_CONVOCATORIA: convocatoriaCursoRow.ID_CONVOCATORIA,
-      ID_SEDE: convocatoriaCursoRow.ID_SEDE,
-      ID_CURSO: convocatoriaCursoRow.ID_CURSO,
-      NUMERO_PLAZAS: 1
-    }).then(() => {
-      refresh();
-    }).catch((err) => {
-      convocatoriaCursoCrud.showNotification?.('error', 'Error', err.message);
-    });
+    if (addingPlazaId) return;
+    const id = convocatoriaCursoRow.ID_CONVOCATORIA_CURSO;
+    setAddingPlazaId(id);
+    // Actualización optimista: incrementar PLAZAS_CREADAS en el row padre (nivel 1)
+    const nuevasCreadas = Number(convocatoriaCursoRow.PLAZAS_CREADAS ?? 0) + 1;
+    updateRecord(id, 'ID_CONVOCATORIA_CURSO', 'PLAZAS_CREADAS', nuevasCreadas);
+    addPlazaDocenteSimple(id)
+      .then(() => {
+        refreshChildren(1, id);
+      }).catch((err) => {
+        // Revertir en caso de error
+        updateRecord(id, 'ID_CONVOCATORIA_CURSO', 'PLAZAS_CREADAS', convocatoriaCursoRow.PLAZAS_CREADAS ?? 0);
+        convocatoriaCursoCrud.showNotification?.('error', 'Error', err.message);
+      }).finally(() => {
+        setAddingPlazaId(null);
+      });
   };
 
   const handleEditConvocatoriaCurso = (row) => {
@@ -134,16 +146,19 @@ export function useManageConvocatoria({ convocatoria, onBack }) {
   };
 
   const handleDeletePlaza = (row) => {
-    setDeletingConvocatoriaCursoId(row.ID_CONVOCATORIA_CURSO);
+    const idConvocatoriaCurso = row.ID_CONVOCATORIA_CURSO;
+    setDeletingConvocatoriaCursoId(idConvocatoriaCurso);
+    // Actualización optimista: decrementar PLAZAS_CREADAS del padre (nivel 1)
+    const padre = records.find(r => String(r.ID_CONVOCATORIA_CURSO) === String(idConvocatoriaCurso));
+    const creadasAntes = padre ? Number(padre.PLAZAS_CREADAS ?? 0) : null;
+    if (padre && creadasAntes !== null) {
+      updateRecord(idConvocatoriaCurso, 'ID_CONVOCATORIA_CURSO', 'PLAZAS_CREADAS', Math.max(0, creadasAntes - 1));
+    }
     plazaDocenteCrud.handleDelete(row);
   };
 
   const handleViewPostulantes = (convocatoriaCursoRow) => {
-    setSelectedConvocatoriaCurso(convocatoriaCursoRow);
-  };
-
-  const handleBackToManage = () => {
-    setSelectedConvocatoriaCurso(null);
+    onViewPostulantes?.(convocatoriaCursoRow);
   };
 
   const handleExpand = (levelIndex, parentValue) => {
@@ -155,10 +170,11 @@ export function useManageConvocatoria({ convocatoria, onBack }) {
     getConvocatoriasCursoLevelConfig(
       { ...convocatoriaCursoCrud, handleEdit: handleEditConvocatoriaCurso, handleDelete: handleDeleteConvocatoriaCurso },
       handleViewPostulantes,
-      handleAddPlaza
+      handleAddPlaza,
+      addingPlazaId
     ),
     getPlazasDocentesLevelConfig({ ...plazaDocenteCrud, handleDelete: handleDeletePlaza })
-  ], [convocatoriaCursoCrud, plazaDocenteCrud, convocatoriaId]);
+  ], [convocatoriaCursoCrud, plazaDocenteCrud, convocatoriaId, addingPlazaId]);
 
   const crudLevels = useMemo(() => [
     ...getManageCrudLevels({
@@ -200,9 +216,6 @@ export function useManageConvocatoria({ convocatoria, onBack }) {
     childrenData,
     childrenLoading,
     handleExpand,
-    // Sub-panel postulaciones
-    selectedConvocatoriaCurso,
-    handleBackToManage,
     // Header
     manageHeaderActions
   };

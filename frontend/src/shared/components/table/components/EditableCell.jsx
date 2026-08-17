@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
 import FunctionSelectInput from '@/shared/components/ui/inputs/FunctionSelectInput';
 import ToggleSwitch from '@/shared/components/ui/inputs/ToggleSwitch';
@@ -22,18 +22,19 @@ const SELECT_TYPES = new Set(['reference-select', 'function-select']);
  * Para tipos simples (text, number, boolean):
  * - Se monta al activar y se cierra con onBlur
  */
-const EditableCell = ({ 
-  column, 
-  value, 
+const EditableCell = ({
+  column,
+  value,
   originalValue,
-  rowData, 
-  rowId, 
+  rowData,
+  rowId,
   primaryKey = 'id',
-  onCellChange, 
-  editFunction, 
+  onCellChange,
+  editFunction,
   saveMode = 'auto',
   onSaveSuccess,
-  onSaveError
+  onSaveError,
+  allRows = []
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -48,6 +49,25 @@ const EditableCell = ({
   const isSelectType = SELECT_TYPES.has(column.type);
   const isPending = saveMode !== 'auto' && value !== originalValue;
 
+  // Calcular valores a excluir (plazas ya asignadas en otras filas del mismo grupo)
+  const excludedValues = useMemo(() => {
+    if (!column.excludeValues || !allRows || allRows.length === 0) return [];
+    const groupField = column.excludeGroupField;
+    const currentGroup = groupField ? rowData[groupField] : null;
+    const exclusions = new Set();
+    allRows.forEach(r => {
+      // No excluir el valor de la fila actual
+      if (String(r[primaryKey]) === String(rowId)) return;
+      // Si hay groupField, solo excluir filas del mismo grupo
+      if (groupField && String(r[groupField]) !== String(currentGroup)) return;
+      const val = r[column.field];
+      if (val !== null && val !== undefined && val !== '') {
+        exclusions.add(String(val));
+      }
+    });
+    return Array.from(exclusions);
+  }, [column.excludeValues, column.excludeGroupField, column.field, allRows, rowData, rowId, primaryKey]);
+
   // Configuración de guardado declarativa (tipo campo de formulario)
   const {
     saveFunction,
@@ -60,19 +80,7 @@ const EditableCell = ({
 
   const hasAutoSave = Boolean(saveFunction || (targetTable && targetField));
 
-  console.log(`[EditableCell:${column.field}] Render cell`, {
-    rowId,
-    value,
-    type: column.type,
-    canEdit,
-    isEditing,
-    isSaving,
-    saveError,
-    saveConfig: { saveFunction, targetTable, targetField }
-  });
-
   const executeSave = useCallback(async (newValue) => {
-    console.log(`[EditableCell:${column.field}] 🚀 executeSave iniciado`, { rowId, newValue, saveFunction, targetTable, targetField });
     setIsSaving(true);
     setSaveError(null);
 
@@ -98,8 +106,9 @@ const EditableCell = ({
         }
       } else if (targetTable && targetField) {
         const pk = targetPrimaryKey || primaryKey;
-        console.log(`[EditableCell:${column.field}] 📡 Llamando db.update`, { targetTable, rowId, [targetField]: newValue, pk });
-        await db.update(targetTable, rowId, { [targetField]: newValue }, pk);
+        const saveValue = newValue === '' ? null : newValue;
+        console.log(`[EditableCell:${column.field}] 📡 Llamando db.update`, { targetTable, rowId, [targetField]: saveValue, pk });
+        await db.update(targetTable, rowId, { [targetField]: saveValue }, pk);
         console.log(`[EditableCell:${column.field}] ✅ db.update completado`);
       }
 
@@ -249,6 +258,8 @@ const EditableCell = ({
               formData={rowData}
               placeholder={column.placeholder || 'Seleccione...'}
               searchable={column.searchable || false}
+              excludeValues={excludedValues}
+              showRefreshButton={column.showRefreshButton ?? true}
             />
           )}
         </div>
@@ -434,4 +445,4 @@ function renderSimpleInput(column, inputValue, setInputValue, commitInput, isSav
   }
 }
 
-export default EditableCell;
+export default React.memo(EditableCell);

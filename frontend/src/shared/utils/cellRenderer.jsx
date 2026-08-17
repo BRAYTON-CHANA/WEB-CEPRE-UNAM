@@ -144,7 +144,13 @@ export const renderCell = (value, rowIndex, header, columnType, colorMap) => {
         const year  = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day   = String(date.getDate()).padStart(2, '0');
-        return <span>{`${year}/${month}/${day}`}</span>;
+        const dateStr = `${year}/${month}/${day}`;
+        if (columnType === 'datetime') {
+          const hours   = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          return <span>{`${dateStr} ${hours}:${minutes}`}</span>;
+        }
+        return <span>{dateStr}</span>;
       }
     } catch (e) {
       // Si falla el parsing, retornar el valor original

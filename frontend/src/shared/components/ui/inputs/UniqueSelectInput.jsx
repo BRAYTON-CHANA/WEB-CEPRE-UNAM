@@ -7,6 +7,7 @@ import { useUniqueValues } from '@/shared/hooks/useUniqueValues';
  * SelectInput para valores únicos de columna con opción de agregar nuevos
  * @param {string} tableName - Tabla para extraer valores únicos
  * @param {string} columnName - Columna para extraer valores
+ * @param {Object} filters - Filtros a aplicar (ej: { ID_CONVOCATORIA: 5 })
  * @param {boolean} allowCreate - Permitir agregar nuevos valores (botón ...)
  * @param {string} createTitle - Título del modal de creación
  */
@@ -15,13 +16,14 @@ const UniqueSelectInput = ({
   label,
   tableName,
   columnName,
+  filters = {},
   allowCreate = false,
   createTitle = 'Agregar Nuevo',
   searchable = false,
   showRefreshButton = true,
   ...props
 }) => {
-  const { options: dbOptions, loading, refresh } = useUniqueValues(tableName, columnName);
+  const { options: dbOptions, loading, refresh } = useUniqueValues(tableName, columnName, filters);
   const [tempOptions, setTempOptions] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newValue, setNewValue] = useState('');

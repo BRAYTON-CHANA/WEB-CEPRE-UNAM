@@ -285,21 +285,8 @@ const TableMultiLevelEditable = forwardRef(function TableMultiLevelEditable({
     isBatchSaving
   }), [handleBatchSave, pendingChangesCount, isBatchSaving]);
 
-  const mergedHeaderProps = useMemo(() => {
-    if (!isBatchMode || !showBatchSaveButton) return headerProps;
-    const batchAction = {
-      text: isBatchSaving ? 'Guardando...' : `${batchSaveButtonText} (${pendingChangesCount})`,
-      icon: isBatchSaving ? '⏳' : '💾',
-      font: pendingChangesCount > 0 && !isBatchSaving
-        ? 'bg-blue-600 hover:bg-blue-700 text-white'
-        : 'bg-gray-300 text-gray-500 cursor-not-allowed',
-      onClick: pendingChangesCount > 0 && !isBatchSaving ? handleBatchSave : () => {}
-    };
-    return {
-      ...headerProps,
-      actions: [batchAction, ...(headerProps.actions || [])]
-    };
-  }, [isBatchMode, showBatchSaveButton, headerProps, batchSaveButtonText, pendingChangesCount, isBatchSaving, handleBatchSave]);
+  // Determinar si hay que mostrar el botón de guardado batch
+  const showBatchButton = isBatchMode && showBatchSaveButton && (pendingChangesCount > 0 || isBatchSaving);
 
   return (
     <div className="space-y-4">
@@ -316,8 +303,8 @@ const TableMultiLevelEditable = forwardRef(function TableMultiLevelEditable({
           {...toastProps}
         />
       )}
-      {(mergedHeaderProps.headerTitle || mergedHeaderProps.headerDescription || mergedHeaderProps.actions?.length > 0) && (
-        <CrudHeader {...mergedHeaderProps} />
+      {(headerProps.headerTitle || headerProps.headerDescription || headerProps.actions?.length > 0) && (
+        <CrudHeader {...headerProps} />
       )}
 
       {error && (
@@ -361,6 +348,27 @@ const TableMultiLevelEditable = forwardRef(function TableMultiLevelEditable({
               editFunctions={editFunctions}
               {...tableProps}
             />
+          )}
+
+          {/* Botón de guardado batch — dentro del contenedor de la tabla */}
+          {showBatchButton && (
+            <div className="flex items-center justify-end gap-3 px-4 py-3 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
+              <span className="text-sm text-gray-500">
+                {pendingChangesCount} cambio{pendingChangesCount !== 1 ? 's' : ''} pendiente{pendingChangesCount !== 1 ? 's' : ''}
+              </span>
+              <button
+                onClick={pendingChangesCount > 0 && !isBatchSaving ? handleBatchSave : () => {}}
+                disabled={pendingChangesCount === 0 || isBatchSaving}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm hover:shadow ${
+                  pendingChangesCount > 0 && !isBatchSaving
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                <span>{isBatchSaving ? '⏳' : '💾'}</span>
+                <span>{isBatchSaving ? 'Guardando...' : batchSaveButtonText}</span>
+              </button>
+            </div>
           )}
         </div>
       )}

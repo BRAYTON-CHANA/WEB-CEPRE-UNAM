@@ -44,6 +44,32 @@ export const convocatoriaValidation = {
   }
 };
 
+// Versión sin ID_PERIODO (el periodo se renderiza con select custom fuera del Form)
+export const convocatoriaFormFieldsSinPeriodo = convocatoriaFormFields.filter(
+  f => f.name !== 'ID_PERIODO'
+);
+
+// Validación como función: valida required + que FECHA_APERTURA < FECHA_CIERRE
+export const convocatoriaValidationSinPeriodo = (formData) => {
+  const errors = {};
+
+  if (!formData.FECHA_APERTURA) {
+    errors.FECHA_APERTURA = 'La fecha de apertura es obligatoria';
+  }
+
+  if (formData.FECHA_APERTURA && formData.FECHA_CIERRE) {
+    const apertura = new Date(formData.FECHA_APERTURA);
+    const cierre = new Date(formData.FECHA_CIERRE);
+    if (!isNaN(apertura.getTime()) && !isNaN(cierre.getTime())) {
+      if (apertura >= cierre) {
+        errors.FECHA_APERTURA = 'La fecha de apertura debe ser menor que la fecha de cierre';
+      }
+    }
+  }
+
+  return errors;
+};
+
 export const convocatoriaModalConfig = {
   createTitle: 'Crear Nueva Convocatoria',
   editTitle: 'Editar Convocatoria',

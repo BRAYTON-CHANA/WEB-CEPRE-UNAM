@@ -354,7 +354,7 @@ export const useReferenceData = (config) => {
     };
 
     loadOriginalRecord();
-  }, [tableName, valueField, referenceOriginalValue, loading, neededFields]);
+  }, [tableName, valueField, referenceOriginalValue, loading, neededFields, originalRecord]);
 
   // Transformar a opciones
   const options = useMemo(() => {

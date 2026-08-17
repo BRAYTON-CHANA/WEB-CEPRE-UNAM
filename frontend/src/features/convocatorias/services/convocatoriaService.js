@@ -2,6 +2,24 @@ import { db } from '@/shared/api';
 import cacheService from '@/shared/services/cacheService';
 
 /**
+ * Formatea un Date (o string de fecha) a 'YYYY-MM-DD HH:MM:SS' en hora local.
+ * Evita la conversión a UTC que hace JSON.stringify con Date objects,
+ * que desplaza la hora según el offset de zona horaria del navegador.
+ */
+const toLocalTimestamp = (value) => {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(value);
+  if (isNaN(d.getTime())) return null;
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+};
+
+/**
  * Crea una convocatoria + N convocatoria_curso en una sola transacción
  * atómica via la función SQL `fn_crear_convocatoria_con_plazas`.
  *
@@ -23,11 +41,28 @@ export async function createConvocatoriaConPlazas(data) {
   const result = await db.executeFunction('fn_crear_convocatoria_con_plazas', {
     id_periodo: data.ID_PERIODO,
     descripcion: data.DESCRIPCION || null,
-    fecha_apertura: data.FECHA_APERTURA || null,
-    fecha_cierre: data.FECHA_CIERRE || null,
+    fecha_apertura: toLocalTimestamp(data.FECHA_APERTURA),
+    fecha_cierre: toLocalTimestamp(data.FECHA_CIERRE),
     plazas: plazasSanitizadas
   });
 
+  cacheService.invalidateAll();
+  return result;
+}
+
+/**
+ * Actualiza una convocatoria existente.
+ * Convierte las fechas a timestamp local (sin timezone) para evitar
+ * el desplazamiento de horas por conversión UTC.
+ * @param {Object} data - Datos del formulario de edición.
+ * @param {number} id - ID_CONVOCATORIA a actualizar.
+ * @returns {Promise<Object>} - Resultado del update.
+ */
+export async function editConvocatoria(data, id) {
+  const payload = { ...data };
+  if (payload.FECHA_APERTURA) payload.FECHA_APERTURA = toLocalTimestamp(payload.FECHA_APERTURA);
+  if (payload.FECHA_CIERRE) payload.FECHA_CIERRE = toLocalTimestamp(payload.FECHA_CIERRE);
+  const result = await db.update('CONVOCATORIA', id, payload, 'ID_CONVOCATORIA');
   cacheService.invalidateAll();
   return result;
 }
@@ -54,4 +89,22 @@ export async function addConvocatoriaCursoPlazas(data) {
   return result;
 }
 
-export default { createConvocatoriaConPlazas, addConvocatoriaCursoPlazas };
+/**
+ * Añade UNA sola plaza docente a un convocatoria_curso existente.
+ * NO modifica el NUMERO_PLAZAS (máximo). Solo crea la plaza en PLAZA_DOCENTE.
+ * El trigger valida que no se exceda el máximo.
+ * Usado por el botón simple "Añadir plaza docente" en la tabla nivel 2.
+ *
+ * @param {number} idConvocatoriaCurso - ID_CONVOCATORIA_CURSO
+ * @returns {Promise<number>} - ID_PLAZA_DOCENTE creado.
+ */
+export async function addPlazaDocenteSimple(idConvocatoriaCurso) {
+  const result = await db.executeFunction('fn_add_plaza_docente_simple', {
+    p_id_convocatoria_curso: idConvocatoriaCurso
+  });
+
+  cacheService.invalidateAll();
+  return result;
+}
+
+export default { createConvocatoriaConPlazas, addConvocatoriaCursoPlazas, addPlazaDocenteSimple };

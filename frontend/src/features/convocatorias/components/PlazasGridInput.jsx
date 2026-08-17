@@ -249,8 +249,8 @@ const PlazasGridInput = ({
         </div>
       )}
 
-      {/* Grid de sedes */}
-      <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-1 -mr-1">
+      {/* Grid de sedes — sin scroll interno, se expande completo */}
+      <div className="space-y-4">
         {sedesFiltradas.map((sede) => {
           const idSede = sede.ID_SEDE;
           const added = plazasBySede(idSede);

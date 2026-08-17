@@ -7,7 +7,7 @@ import {
   convocatoriaCursoValidation,
   convocatoriaCursoModalConfig
 } from '@/features/convocatorias/config/formConfig';
-import { addConvocatoriaCursoPlazas } from '@/features/convocatorias/services/convocatoriaService';
+import { addConvocatoriaCursoPlazas, editConvocatoria } from '@/features/convocatorias/services/convocatoriaService';
 
 /**
  * crudLevels para la página 1 (lista de convocatorias).
@@ -23,6 +23,7 @@ export const getListCrudLevels = (convocatoriaCrud, refresh) => [
     multiStep: convocatoriaMultiStep,
     validation: convocatoriaValidation,
     confirmSubmit: true,
+    editFunction: editConvocatoria,
     modalConfig: {
       ...convocatoriaModalConfig,
       createFormKey: 'free'

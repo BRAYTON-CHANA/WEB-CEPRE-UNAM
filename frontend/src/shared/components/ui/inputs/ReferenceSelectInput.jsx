@@ -60,6 +60,7 @@ const ReferenceSelectInput = React.memo(({
   addModalSize = 'lg',
   referenceDisplayFields = [],
   required = false,
+  excludeValues = [],
   ...props
 }) => {
   // Estado para manejar errores
@@ -190,6 +191,13 @@ const ReferenceSelectInput = React.memo(({
 
   const { options, loading, refresh } = useReferenceData(shouldLoadData ? config : null);
 
+  // Filtrar opciones excluyendo valores ya asignados en otras filas (client-side)
+  const filteredOptions = useMemo(() => {
+    if (!excludeValues || excludeValues.length === 0) return options;
+    const excludeSet = new Set(excludeValues.map(v => String(v)));
+    return options.filter(opt => !excludeSet.has(String(opt.value)));
+  }, [options, excludeValues]);
+
   // Aplicar valor creado desde modal add
   useEffect(() => {
     if (addSuccessRecord && addSuccessRecord[referenceField] != null) {
@@ -252,14 +260,25 @@ const ReferenceSelectInput = React.memo(({
     }
   }, [currentValue, loading, onReferenceSelectLoadComplete]);
 
+  // Track si los datos ya cargaron al menos una vez (evita error falso al remontar)
+  const hasLoadedOnceRef = useRef(false);
+  useEffect(() => {
+    if (loading) {
+      hasLoadedOnceRef.current = false;
+    } else if (options.length > 0) {
+      hasLoadedOnceRef.current = true;
+    }
+  }, [loading, options.length]);
+
   // Manejar caso donde no se encuentra el registro
   useEffect(() => {
     // ← CAMBIO: No aplicar cuando referenceSelf está activo (el registro self se carga por separado)
-    if (!referenceSelf && currentValue && !loading && options.length === 0) {
+    // Solo validar si los datos ya cargaron al menos una vez (evita error falso al remontar)
+    if (!referenceSelf && currentValue && !loading && options.length === 0 && hasLoadedOnceRef.current) {
       // ← NUEVO: Delay de 500ms para dar tiempo a que los datos carguen en primer render
       const timeoutId = setTimeout(() => {
         // Re-verificar condiciones después del delay (por si los datos ya cargaron)
-        if (!referenceSelf && currentValue && !loading && options.length === 0) {
+        if (!referenceSelf && currentValue && !loading && options.length === 0 && hasLoadedOnceRef.current) {
           // No se encontró el registro - mostrar error y limpiar
           setErrorMessage(`El valor seleccionado (${currentValue}) no existe en la tabla ${referenceTable}. El campo será limpiado para evitar errores.`);
           setShowErrorModal(true);
@@ -392,7 +411,7 @@ const ReferenceSelectInput = React.memo(({
             name={name}
             label={label}
             hideLabel={true}
-            options={options}
+            options={filteredOptions}
             loading={loading}
             searchable={searchable}
             optionValue="value"

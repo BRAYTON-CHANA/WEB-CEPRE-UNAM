@@ -47,7 +47,8 @@ const TableActions = ({
         }));
       } else if (typeof value === 'object' && value !== null && value.enabled === true) {
         if (typeof value.showIf === 'function' && !value.showIf(row)) return;
-        direct.push({ ...value, key });
+        const isDisabled = typeof value.disabled === 'function' ? value.disabled(row) : value.disabled === true;
+        direct.push({ ...value, key, isDisabled });
       }
     });
 
@@ -145,9 +146,12 @@ const TableActions = ({
       {directActions.map((action, idx) => (
         <button
           key={action.key || idx}
-          onClick={() => action.onClick(row, rowIndex)}
+          onClick={() => !action.isDisabled && action.onClick(row, rowIndex)}
+          disabled={action.isDisabled}
           className={`px-2.5 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5 ${
-            action.className || 'text-gray-600 hover:bg-gray-100'
+            action.isDisabled
+              ? 'text-gray-300 cursor-not-allowed'
+              : action.className || 'text-gray-600 hover:bg-gray-100'
           }`}
           title={action.label || action.key}
         >
@@ -157,7 +161,7 @@ const TableActions = ({
               : <span className="w-3.5 h-3.5 flex items-center justify-center">{action.icon}</span>
           )}
           {action.showLabel !== false && (
-            <span>{action.label || action.key}</span>
+            <span>{action.isDisabled ? 'Añadiendo...' : action.label || action.key}</span>
           )}
         </button>
       ))}

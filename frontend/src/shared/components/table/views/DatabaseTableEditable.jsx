@@ -92,8 +92,11 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
   }, [refreshTrigger, refresh, isExternal]);
 
   const handleCellChange = useCallback((recordId, field, newValue) => {
+    // Ignorar emisiones espurias de undefined (ej: ReferenceSelectInput al remontar)
+    if (newValue === undefined) return;
+
     console.log('[DatabaseTableEditable] 📝 handleCellChange: actualizando editingData', { recordId, field, newValue, isExternal });
-    
+
     // Update local editing state immediately for visual feedback
     setEditingData(prev => {
       const next = {
@@ -181,11 +184,11 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
 
   // Enhanced headers with editable support
   // Una columna es editable si el header la declara editable=true o si está en editableColumns
-  const enhancedHeaders = headers.map(header => ({
+  // Memoizado para evitar re-creación de objetos que cascada a re-renders de EditableCell
+  const enhancedHeaders = useMemo(() => headers.map(header => ({
     ...header,
     editable: header.editable === true || editableColumns.includes(header.field)
-  }));
-  console.log('[DatabaseTableEditable] 🔧 enhancedHeaders: columnas editables detectadas', enhancedHeaders.map(h => ({ field: h.field, editable: h.editable, type: h.type, saveFunction: h.saveFunction, targetTable: h.targetTable, targetField: h.targetField })));
+  })), [headers, editableColumns]);
 
   // ── Modo batch: guardar todos los cambios acumulados ─────────────
   const handleBatchSave = useCallback(async () => {
@@ -234,8 +237,9 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
             }
           } else if (targetTable && targetField) {
             const pk = targetPrimaryKey || primaryKey;
-            console.log(`[DatabaseTableEditable] 📡 Batch: ejecutando db.update`, { targetTable, rowId: rowIdNum, [targetField]: newValue, pk });
-            await db.update(targetTable, rowIdNum, { [targetField]: newValue }, pk);
+            const saveValue = newValue === '' ? null : newValue;
+            console.log(`[DatabaseTableEditable] 📡 Batch: ejecutando db.update`, { targetTable, rowId: rowIdNum, [targetField]: saveValue, pk });
+            await db.update(targetTable, rowIdNum, { [targetField]: saveValue }, pk);
           } else {
             console.log('[DatabaseTableEditable] ⚠️ Batch: columna sin config de guardado, omitiendo', { rowId: rowIdNum, field });
             continue;
@@ -258,6 +262,7 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
       console.log('[DatabaseTableEditable] ✅ Batch: todos los cambios guardados, refrescando');
       cacheService.invalidateAll();
       if (!isExternal) refresh();
+      setTableKey(prev => prev + 1);
       succeeded.forEach(({ rowId, field, newValue }) => onSaveSuccess?.(rowId, field, newValue));
       setBatchSaveError(null);
     } else {
@@ -275,87 +280,6 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
     isBatchSaving
   }), [handleBatchSave, pendingChangesCount, isBatchSaving]);
 
-  // Enhanced Table component with editable cells
-  const EnhancedTable = ({ data, headers, actions, ...props }) => {
-    return (
-      <table className="min-w-full divide-y divide-gray-100">
-        <thead className="bg-slate-50/80">
-          <tr>
-            {headers.map((header, idx) => (
-              <th
-                key={idx}
-                className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap"
-              >
-                <span>{header.title}</span>
-              </th>
-            ))}
-            {actions && (
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                Acciones
-              </th>
-            )}
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-50">
-          {data.map((row, rowIndex) => {
-            const rowId = row[primaryKey];
-            const mergedRow = { ...row, ...(editingData[rowId] || {}) };
-
-            return (
-              <tr
-                key={rowId}
-                className="hover:bg-slate-50/60 transition-colors duration-100"
-              >
-                {headers.map((header, colIndex) => {
-                  const isEditable = header.editable;
-                  
-                  if (isEditable) {
-                    return (
-                      <EditableCell
-                        key={colIndex}
-                        column={header}
-                        value={mergedRow[header.field]}
-                        originalValue={row[header.field]}
-                        rowData={mergedRow}
-                        rowId={rowId}
-                        primaryKey={primaryKey}
-                        onCellChange={handleCellChange}
-                        editFunction={editFunctions[header.field]}
-                        saveMode={saveMode}
-                        onSaveSuccess={handleSaveSuccess}
-                        onSaveError={handleSaveError}
-                      />
-                    );
-                  }
-
-                  return (
-                    <td key={colIndex} className="px-4 py-2.5 text-sm whitespace-nowrap">
-                      {header.render 
-                        ? header.render(mergedRow[header.field], mergedRow)
-                        : mergedRow[header.field] || <span className="text-gray-300 italic">—</span>
-                      }
-                    </td>
-                  );
-                })}
-                
-                {actions && (
-                  <td className="px-4 py-2.5 text-sm whitespace-nowrap text-left">
-                    <TableActions
-                      actions={actions}
-                      row={mergedRow}
-                      rowIndex={rowIndex}
-                      cellClassName="px-2 py-1"
-                    />
-                  </td>
-                )}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    );
-  };
-
   const tableActions = Array.isArray(actions) && actions.length > 0
     ? {
         direct: actions.map(action => ({
@@ -369,27 +293,16 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
       ? actions
       : {};
 
-  // Combinar headerProps con acción de guardado batch
-  const mergedHeaderProps = useMemo(() => {
-    if (!isBatchMode || !showBatchSaveButton) return headerProps;
-    const batchAction = {
-      text: isBatchSaving ? 'Guardando...' : `${batchSaveButtonText} (${pendingChangesCount})`,
-      icon: isBatchSaving ? '⏳' : '💾',
-      font: pendingChangesCount > 0 && !isBatchSaving
-        ? 'bg-blue-600 hover:bg-blue-700 text-white'
-        : 'bg-gray-300 text-gray-500 cursor-not-allowed',
-      onClick: pendingChangesCount > 0 && !isBatchSaving ? handleBatchSave : () => {}
-    };
-    return {
-      ...headerProps,
-      actions: [batchAction, ...(headerProps.actions || [])]
-    };
-  }, [isBatchMode, showBatchSaveButton, headerProps, batchSaveButtonText, pendingChangesCount, isBatchSaving, handleBatchSave]);
+  // Pre-calcular merged rows para que EditableCell pueda excluir valores de otras filas
+  const allMergedRows = records.map(row => ({ ...row, ...(editingData[row[primaryKey]] || {}) }));
+
+  // Determinar si hay que mostrar el botón de guardado batch
+  const showBatchButton = isBatchMode && showBatchSaveButton && (pendingChangesCount > 0 || isBatchSaving);
 
   return (
     <div className="space-y-4">
-      {(mergedHeaderProps.headerTitle || mergedHeaderProps.headerDescription || mergedHeaderProps.actions?.length > 0) && (
-        <CrudHeader {...mergedHeaderProps} />
+      {(headerProps.headerTitle || headerProps.headerDescription || headerProps.actions?.length > 0) && (
+        <CrudHeader {...headerProps} />
       )}
 
       {error && (
@@ -405,7 +318,7 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
       )}
 
       {headers.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-visible">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
           {loading ? (
             <div className="flex items-center justify-center py-16">
               <div className="inline-block w-6 h-6 border-2 border-gray-200 border-t-blue-600 rounded-full animate-spin mr-3" />
@@ -421,13 +334,103 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
               <p className="text-gray-400 text-sm">No hay datos para mostrar</p>
             </div>
           ) : (
-            <EnhancedTable
-              key={tableKey}
-              headers={enhancedHeaders}
-              data={records}
-              actions={tableActions}
-              {...tableProps}
-            />
+            <table key={tableKey} className="min-w-full divide-y divide-gray-100">
+              <thead className="bg-slate-50/80">
+                <tr>
+                  {enhancedHeaders.map((header, idx) => (
+                    <th
+                      key={idx}
+                      className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap"
+                    >
+                      <span>{header.title}</span>
+                    </th>
+                  ))}
+                  {tableActions && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Acciones
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-50">
+                {records.map((row, rowIndex) => {
+                  const rowId = row[primaryKey];
+                  const mergedRow = { ...row, ...(editingData[rowId] || {}) };
+
+                  return (
+                    <tr
+                      key={rowId}
+                      className="hover:bg-slate-50/60 transition-colors duration-100"
+                    >
+                      {enhancedHeaders.map((header, colIndex) => {
+                        const isEditable = header.editable;
+
+                        if (isEditable) {
+                          return (
+                            <EditableCell
+                              key={colIndex}
+                              column={header}
+                              value={mergedRow[header.field]}
+                              originalValue={row[header.field]}
+                              rowData={mergedRow}
+                              rowId={rowId}
+                              primaryKey={primaryKey}
+                              onCellChange={handleCellChange}
+                              editFunction={editFunctions[header.field]}
+                              saveMode={saveMode}
+                              onSaveSuccess={handleSaveSuccess}
+                              onSaveError={handleSaveError}
+                              allRows={allMergedRows}
+                            />
+                          );
+                        }
+
+                        return (
+                          <td key={colIndex} className="px-4 py-2.5 text-sm whitespace-nowrap">
+                            {header.render
+                              ? header.render(mergedRow[header.field], mergedRow)
+                              : mergedRow[header.field] || <span className="text-gray-300 italic">—</span>
+                            }
+                          </td>
+                        );
+                      })}
+
+                      {tableActions && (
+                        <td className="px-4 py-2.5 text-sm whitespace-nowrap text-left">
+                          <TableActions
+                            actions={tableActions}
+                            row={mergedRow}
+                            rowIndex={rowIndex}
+                            cellClassName="px-2 py-1"
+                          />
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+
+          {/* Botón de guardado batch — dentro del contenedor de la tabla */}
+          {showBatchButton && (
+            <div className="flex items-center justify-end gap-3 px-4 py-3 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
+              <span className="text-sm text-gray-500">
+                {pendingChangesCount} cambio{pendingChangesCount !== 1 ? 's' : ''} pendiente{pendingChangesCount !== 1 ? 's' : ''}
+              </span>
+              <button
+                onClick={pendingChangesCount > 0 && !isBatchSaving ? handleBatchSave : () => {}}
+                disabled={pendingChangesCount === 0 || isBatchSaving}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm hover:shadow ${
+                  pendingChangesCount > 0 && !isBatchSaving
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                <span>{isBatchSaving ? '⏳' : '💾'}</span>
+                <span>{isBatchSaving ? 'Guardando...' : batchSaveButtonText}</span>
+              </button>
+            </div>
           )}
         </div>
       )}

@@ -1,22 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Form } from '@/shared/components/form';
 import { Modal } from '@/shared/components/modal';
 import {
-  convocatoriaFormFields,
-  convocatoriaValidation
+  convocatoriaFormFieldsSinPeriodo,
+  convocatoriaValidationSinPeriodo
 } from '@/features/convocatorias/config/formConfig';
 import PlazasGridInput from '@/features/convocatorias/components/PlazasGridInput';
+import { usePeriodosSinConvocatoria } from '@/features/convocatorias/hooks/usePeriodosSinConvocatoria';
 
 /**
  * ConvocatoriaCreateModal — modal custom de creación en 2 pasos.
- * Paso 1: datos de la convocatoria (Form base).
+ * Paso 1: datos de la convocatoria (select custom de periodo + Form base).
  * Paso 2: grid de plazas por (sede x curso) — PlazasGridInput.
  *
  * Props:
  *   isOpen, onClose
  *   createStep: 1 | 2
  *   plazas, submitting, submitError
- *   onStep1Submit: (formData) => void
+ *   onStep1Submit: (formData) => void  — formData incluye ID_PERIODO
  *   onPlazasChange: (plazas) => void
  *   onFinalSubmit: () => void
  *   onBackToStep1: () => void
@@ -33,6 +34,24 @@ function ConvocatoriaCreateModal({
   onFinalSubmit,
   onBackToStep1
 }) {
+  const { periodos, loading, refresh } = usePeriodosSinConvocatoria();
+  const [selectedIdPeriodo, setSelectedIdPeriodo] = useState('');
+  const [periodoError, setPeriodoError] = useState('');
+
+  const handleStep1Wrapper = (formData) => {
+    if (!selectedIdPeriodo) {
+      setPeriodoError('El periodo es obligatorio');
+      return;
+    }
+    setPeriodoError('');
+    onStep1Submit({ ...formData, ID_PERIODO: Number(selectedIdPeriodo) });
+  };
+
+  const handlePeriodoChange = (e) => {
+    setSelectedIdPeriodo(e.target.value);
+    if (e.target.value) setPeriodoError('');
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -60,14 +79,69 @@ function ConvocatoriaCreateModal({
       )}
 
       {createStep === 1 && (
-        <Form
-          key="custom-create-step1"
-          fields={convocatoriaFormFields}
-          validation={convocatoriaValidation}
-          onSubmit={onStep1Submit}
-          submitText="Siguiente"
-          submitWrapperClassName="sticky bottom-0 bg-white pt-4 pb-2 mt-6 -mx-6 px-6 border-t border-gray-200 z-10"
-        />
+        <div className="space-y-4">
+          {/* Select custom de periodo con refresh */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+              Periodo
+              <span className="text-red-500">*</span>
+            </label>
+            <div className="relative flex items-center w-full">
+              <select
+                value={selectedIdPeriodo}
+                onChange={handlePeriodoChange}
+                disabled={loading}
+                className={`w-full pl-3 pr-20 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:border-gray-400 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed ${
+                  selectedIdPeriodo ? 'border-blue-400' : 'border-gray-300'
+                }`}
+              >
+                <option value="">Seleccionar periodo...</option>
+                {periodos.map(p => (
+                  <option key={p.id_periodo} value={p.id_periodo}>
+                    {p.nombre_periodo} ({p.codigo_periodo})
+                  </option>
+                ))}
+              </select>
+
+              {/* Botón refresh */}
+              <button
+                type="button"
+                onClick={refresh}
+                disabled={loading}
+                title="Actualizar periodos"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            {periodoError && (
+              <span className="text-xs text-red-600">{periodoError}</span>
+            )}
+            {periodos.length === 0 && !loading && (
+              <span className="text-xs text-amber-600">
+                No hay periodos disponibles sin convocatoria. Cree un periodo nuevo o actualice la lista.
+              </span>
+            )}
+          </div>
+
+          {/* Form con los demás campos */}
+          <Form
+            key="custom-create-step1"
+            fields={convocatoriaFormFieldsSinPeriodo}
+            validation={convocatoriaValidationSinPeriodo}
+            onSubmit={handleStep1Wrapper}
+            submitText="Siguiente"
+            submitWrapperClassName="sticky bottom-0 bg-white pt-4 pb-2 mt-6 -mx-6 px-6 border-t border-gray-200 z-10"
+          />
+        </div>
       )}
 
       {createStep === 2 && (

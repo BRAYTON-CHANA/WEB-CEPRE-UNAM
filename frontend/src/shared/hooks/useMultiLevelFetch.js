@@ -31,7 +31,13 @@ export function useMultiLevelFetch(levelConfigs) {
     setError(null);
     try {
       const data = await backend.select(config.tableName, config.filters || {});
-      setRecords(Array.isArray(data) ? data : []);
+      let result = Array.isArray(data) ? data : [];
+      if (config.orderBy) {
+        result = [...result].sort((a, b) =>
+          String(a[config.orderBy] || '').localeCompare(String(b[config.orderBy] || ''), 'es', { sensitivity: 'base' })
+        );
+      }
+      setRecords(result);
     } catch (err) {
       setError(err.message || 'Error de conexión');
     } finally {

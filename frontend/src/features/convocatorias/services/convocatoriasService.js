@@ -56,3 +56,11 @@ export const getDocentesDisponibles = (idConvocatoriaCurso, idDocenteActual = nu
     p_id_convocatoria_curso: idConvocatoriaCurso,
     p_id_docente_actual: idDocenteActual
   });
+
+/**
+ * Periodos activos que NO tienen convocatoria asignada.
+ * Usado en el formulario de creación de convocatoria (paso 1).
+ * @returns {Promise<Array<{id_periodo, codigo_periodo, nombre_periodo, fecha_inicio, fecha_fin, activo}>>}
+ */
+export const getPeriodosSinConvocatoria = () =>
+  db.executeFunction('fn_periodos_sin_convocatoria', {});

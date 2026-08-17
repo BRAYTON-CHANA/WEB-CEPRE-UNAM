@@ -191,6 +191,7 @@ const FormField = ({
         return {
           tableName: field.tableName,
           columnName: field.columnName,
+          filters: field.filters,
           searchable: field.searchable,
           allowCreate: field.allowCreate,
           createTitle: field.createTitle,

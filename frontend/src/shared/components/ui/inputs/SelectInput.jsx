@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import BaseInput from './BaseInput';
 
 /**
@@ -37,8 +38,10 @@ const SelectInput = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [selectedOptions, setSelectedOptions] = useState([]);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
   const isUserChange = useRef(false);
   const dropdownRef = useRef(null);
+  const triggerRef = useRef(null);
 
   // Sincronizar valor inicial/default desde props (solo cuando no es cambio del usuario)
   React.useEffect(() => {
@@ -94,7 +97,7 @@ const SelectInput = ({
       const values = selectedOptions.map(opt => opt[optionValue]);
       baseInputProps.onChange(baseInputProps.name, values);
     } else {
-      const value = selectedOptions[0] ? selectedOptions[0][optionValue] : '';
+      const value = selectedOptions[0] ? selectedOptions[0][optionValue] : null;
       baseInputProps.onChange(baseInputProps.name, value);
     }
   }, [selectedOptions, optionValue, baseInputProps.name]);
@@ -277,6 +280,8 @@ const SelectInput = ({
   // Click outside to close
   useEffect(() => {
     const handleClickOutside = (event) => {
+      // Si el click es dentro del trigger, no cerrar (lo maneja el onClick del trigger)
+      if (triggerRef.current && triggerRef.current.contains(event.target)) return;
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
       }
@@ -291,8 +296,36 @@ const SelectInput = ({
     };
   }, [isOpen]);
 
+  // Calcular posición del dropdown al abrir y al hacer scroll/resize
+  useEffect(() => {
+    if (!isOpen || !triggerRef.current) return;
+
+    const updatePosition = () => {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width
+      });
+    };
+
+    updatePosition();
+
+    const handleScroll = () => {
+      setIsOpen(false);
+    };
+
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', updatePosition);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isOpen]);
+
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative" ref={triggerRef}>
       {/* Input oculto para el valor */}
       <BaseInput
         {...baseInputProps}
@@ -305,7 +338,7 @@ const SelectInput = ({
       {/* Contenedor del select + botón de acción */}
       <div className="flex gap-2">
         {/* Contenedor del select */}
-        <div 
+        <div
           className={`
             relative flex-1 border border-gray-300 rounded-md shadow-sm
             ${isOpen ? 'ring-2 ring-blue-500 border-blue-500' : 'hover:border-gray-400'}
@@ -341,21 +374,9 @@ const SelectInput = ({
           
         </div>
 
-        {/* Flecha del dropdown */}
-        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-          <svg 
-            className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-
         {/* Indicador de loading */}
         {loading && (
-          <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
             <svg className="w-4 h-4 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
@@ -368,7 +389,7 @@ const SelectInput = ({
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-10 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
             aria-label="Limpiar selección"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -394,9 +415,17 @@ const SelectInput = ({
     {/* Tags de selección múltiple */}
     {!hideTags && renderSelectedTags()}
 
-      {/* Dropdown de opciones */}
-      {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-[100]">
+      {/* Dropdown de opciones — renderizado con portal para evitar overflow clipping */}
+      {isOpen && createPortal(
+        <div
+          ref={dropdownRef}
+          className="fixed bg-white border border-gray-300 rounded-md shadow-lg z-[9999]"
+          style={{
+            top: `${dropdownPos.top}px`,
+            left: `${dropdownPos.left}px`,
+            width: `${dropdownPos.width}px`
+          }}
+        >
           {/* Campo de búsqueda */}
           {searchable && (
             <div className="p-3 border-b border-gray-200">
@@ -412,7 +441,7 @@ const SelectInput = ({
           )}
 
           {/* Lista de opciones */}
-          <div 
+          <div
             className="overflow-y-auto"
             style={{ maxHeight: `${maxVisible * optionHeight}px` }}
             role="listbox"
@@ -425,7 +454,8 @@ const SelectInput = ({
               filteredOptions.map(renderOption)
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

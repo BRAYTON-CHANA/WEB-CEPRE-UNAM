@@ -24,8 +24,8 @@ export const getConvocatoriasListLevelConfig = (crud, onManage) => ({
         ]
       })
     },
-    { title: 'FECHA_APERTURA', type: 'date', label: 'Apertura' },
-    { title: 'FECHA_CIERRE', type: 'date', label: 'Cierre' },
+    { title: 'FECHA_APERTURA', type: 'datetime', label: 'Apertura' },
+    { title: 'FECHA_CIERRE', type: 'datetime', label: 'Cierre' },
     { title: 'ACTIVO', type: 'boolean', label: 'Activo', editable: true, targetTable: 'CONVOCATORIA', targetField: 'ACTIVO' }
   ],
   boundColumn: 'ID_CONVOCATORIA',
@@ -83,7 +83,7 @@ export const getConvocatoriasSedeLevelConfig = (handleAddCursoFromSede) => ({
  * Rows individuales dentro de cada grupo de sede.
  * Render como info-card: título del curso + chips de conteos.
  */
-export const getConvocatoriasCursoLevelConfig = (crud, handleViewPostulantes, handleAddPlaza) => ({
+export const getConvocatoriasCursoLevelConfig = (crud, handleViewPostulantes, handleAddPlaza, addingPlazaId = null) => ({
   level: 2,
   headers: [
     {
@@ -91,7 +91,7 @@ export const getConvocatoriasCursoLevelConfig = (crud, handleViewPostulantes, ha
       type: 'info-card',
       label: 'Curso',
       displayValue: (row) => ({
-        title: row.NOMBRE_CURSO,
+        title: `${row.NOMBRE_CURSO} (${row.CODIGO_CURSO})`,
         tags: [
           { label: 'Creadas', value: row.PLAZAS_CREADAS, colorClass: 'bg-blue-100 text-blue-700' },
           { label: 'Asignadas', value: row.PLAZAS_ASIGNADAS, colorClass: 'bg-green-100 text-green-700' },
@@ -107,6 +107,7 @@ export const getConvocatoriasCursoLevelConfig = (crud, handleViewPostulantes, ha
     addPlaza: {
       enabled: true,
       showIf: (row) => Number(row.PLAZAS_CREADAS) < Number(row.NUMERO_PLAZAS),
+      disabled: (row) => addingPlazaId !== null && String(addingPlazaId) === String(row.ID_CONVOCATORIA_CURSO),
       icon: 'plus',
       label: 'Añadir Plaza Docente',
       className: 'text-green-600 hover:bg-green-100',

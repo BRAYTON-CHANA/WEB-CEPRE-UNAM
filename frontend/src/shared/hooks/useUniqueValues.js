@@ -9,13 +9,15 @@ const cache = new Map();
  * Hook para cargar valores únicos de una columna de tabla
  * @param {string} tableName - Nombre de la tabla
  * @param {string} columnName - Nombre de la columna
+ * @param {Object} filters - Filtros a aplicar (ej: { ID_CONVOCATORIA: 5 })
  * @returns {Object} - { options, loading, refresh }
  */
-export const useUniqueValues = (tableName, columnName) => {
+export const useUniqueValues = (tableName, columnName, filters = {}) => {
   const [values, setValues] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const cacheKey = `${tableName}:${columnName}`;
+  const filtersKey = JSON.stringify(filters);
+  const cacheKey = `${tableName}:${columnName}:${filtersKey}`;
 
   const load = useCallback(async () => {
     // No cargar si faltan parámetros
@@ -31,7 +33,7 @@ export const useUniqueValues = (tableName, columnName) => {
 
     setLoading(true);
     try {
-      const data = await db.select(tableName, {}, [columnName]);
+      const data = await db.select(tableName, filters, [columnName]);
       const uniqueValues = [...new Set(data.map(row => row[columnName]))];
       cache.set(cacheKey, uniqueValues);
       setValues(uniqueValues);
@@ -40,7 +42,7 @@ export const useUniqueValues = (tableName, columnName) => {
     } finally {
       setLoading(false);
     }
-  }, [tableName, columnName, cacheKey]);
+  }, [tableName, columnName, cacheKey, filtersKey]);
 
   useEffect(() => {
     load();
