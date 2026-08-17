@@ -1,1 +1,0 @@
--- Contenido trasladado a views 6.sql

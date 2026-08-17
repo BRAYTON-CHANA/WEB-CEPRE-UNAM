@@ -1,1 +1,0 @@
--- Contenido trasladado a create table 5.sql
