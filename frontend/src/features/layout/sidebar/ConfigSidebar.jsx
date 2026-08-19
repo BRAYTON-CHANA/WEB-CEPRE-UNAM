@@ -1,17 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import SidebarMenu from '@/shared/components/layout/SidebarMenu';
 
+const EXPANDED_MENUS_KEY = 'configSidebar_expandedMenus';
+
+const loadExpandedMenus = () => {
+  try {
+    const saved = localStorage.getItem(EXPANDED_MENUS_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
+};
+
 const ConfigSidebar = () => {
   const location = useLocation();
-  const [expandedMenus, setExpandedMenus] = useState({});
+  const [expandedMenus, setExpandedMenus] = useState(loadExpandedMenus);
 
-  const toggleMenu = (menuId) => {
-    setExpandedMenus(prev => ({
-      ...prev,
-      [menuId]: !prev[menuId]
-    }));
-  };
+  const toggleMenu = useCallback((menuId) => {
+    setExpandedMenus(prev => {
+      const next = { ...prev, [menuId]: !prev[menuId] };
+      try { localStorage.setItem(EXPANDED_MENUS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, []);
 
   // Iconos SVG simples
   const BuildingIcon = () => (
@@ -235,13 +247,6 @@ const ConfigSidebar = () => {
       ]
     },
     {
-      id: 'infraestructura',
-      name: 'Infraestructura',
-      icon: <BuildingIcon />,
-      href: '/configuracion/infraestructura',
-      active: location.pathname === '/configuracion/infraestructura'
-    },
-    {
       id: 'academico',
       name: 'Académico',
       icon: <BookIcon />,
@@ -283,18 +288,18 @@ const ConfigSidebar = () => {
           active: location.pathname === '/configuracion/academico/docentes'
         },
         {
-          id: 'requisitos-docentes',
-          name: 'Requisitos Docentes',
-          icon: <GridIcon />,
-          href: '/configuracion/academico/requisitos-docentes',
-          active: location.pathname === '/configuracion/academico/requisitos-docentes'
-        },
-        {
           id: 'horarios',
           name: 'Horarios',
           icon: <TimetableIcon />,
           href: '/configuracion/academico/horarios',
           active: location.pathname === '/configuracion/academico/horarios'
+        },
+        {
+          id: 'infraestructura',
+          name: 'Infraestructura',
+          icon: <BuildingIcon />,
+          href: '/configuracion/infraestructura',
+          active: location.pathname === '/configuracion/infraestructura'
         }
       ]
     },
@@ -313,10 +318,25 @@ const ConfigSidebar = () => {
         },
         {
           id: 'convocatorias',
-          name: 'Convocatorias',
+          name: 'Contratación Docente',
           icon: <UserIcon />,
-          href: '/configuracion/gestion_periodo/convocatorias',
-          active: location.pathname === '/configuracion/gestion_periodo/convocatorias'
+          expanded: expandedMenus.convocatorias,
+          children: [
+            {
+              id: 'convocatorias_list',
+              name: 'Convocatorias',
+              icon: <UserIcon />,
+              href: '/configuracion/gestion_periodo/contratacion_docente/convocatorias',
+              active: location.pathname === '/configuracion/gestion_periodo/contratacion_docente/convocatorias'
+            },
+            {
+              id: 'requisitos-docentes',
+              name: 'Requisitos Docentes',
+              icon: <GridIcon />,
+              href: '/configuracion/gestion_periodo/contratacion_docente/requisitos-docentes',
+              active: location.pathname === '/configuracion/gestion_periodo/contratacion_docente/requisitos-docentes'
+            }
+          ]
         },
         {
           id: 'grupos',
@@ -388,12 +408,26 @@ const ConfigSidebar = () => {
   ];
 
   return (
-    <SidebarMenu 
-      items={menuItems} 
-      className="w-[250px]" 
+    <SidebarMenu
+      items={menuItems}
+      className="w-[280px]"
       expandable={true}
       expandedMenus={expandedMenus}
       onToggleMenu={toggleMenu}
+      header={
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-[#43B3C1] flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-bold text-[#2B3866] leading-tight">Configuración</span>
+            <span className="text-[10px] text-[#43B3C1] uppercase tracking-wider leading-tight font-semibold">Panel de administración</span>
+          </div>
+        </div>
+      }
     />
   );
 };

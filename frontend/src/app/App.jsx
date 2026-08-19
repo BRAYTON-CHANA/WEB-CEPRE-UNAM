@@ -27,7 +27,7 @@ import DocentesConfig from '@/app/views/configuracion/academico/docentes';
 import HorariosConfig from '@/app/views/configuracion/academico/horarios';
 import PlanesAcademicosConfig from '@/app/views/configuracion/academico/planes_academicos';
 // import PlazasDocentesConfig from '@/app/views/configuracion/gestion_periodo/plazas_docentes'; // TEMP: Se maneja desde convocatorias
-import ConvocatoriasConfig from '@/app/views/configuracion/gestion_periodo/convocatorias';
+import ConvocatoriasConfig from '@/app/views/configuracion/gestion_periodo/contratacion_docente/convocatorias';
 import GruposConfig from '@/app/views/configuracion/gestion_periodo/grupos';
 import PostulantesConfig from '@/app/views/configuracion/gestion_periodo/postulantes';
 import CarrerasConfig from '@/app/views/configuracion/academico/carreras';
@@ -43,7 +43,7 @@ import ReportesDocentes from '@/app/views/configuracion/gestion_periodo/reportes
 import UsuariosConfig from '@/app/views/configuracion/sistema/usuarios';
 import PermisosConfig from '@/app/views/configuracion/sistema/permisos';
 import RolesConfig from '@/app/views/configuracion/sistema/roles';
-import RequisitosDocentesConfig from '@/app/views/configuracion/academico/requisitos-docentes';
+import RequisitosDocentesConfig from '@/app/views/configuracion/gestion_periodo/contratacion_docente/requisitos-docentes';
 
 
 import Asistencias from '@/app/views/asistencias';
@@ -116,11 +116,11 @@ function App() {
       <Route path="/configuracion/academico/docentes" element={<DocentesConfig />} />
       <Route path="/configuracion/academico/planes_academicos" element={<PlanesAcademicosConfig />} />
       <Route path="/configuracion/academico/horarios" element={<HorariosConfig />} />
-      <Route path="/configuracion/academico/requisitos-docentes" element={<RequisitosDocentesConfig />} />
+      <Route path="/configuracion/gestion_periodo/contratacion_docente/requisitos-docentes" element={<RequisitosDocentesConfig />} />
 
       <Route path="/configuracion/gestion_periodo/periodos" element={<PeriodosConfig />} />
       {/* <Route path="/configuracion/gestion_periodo/plazas_docentes" element={<PlazasDocentesConfig />} /> TEMP: Se maneja desde convocatorias */}
-      <Route path="/configuracion/gestion_periodo/convocatorias" element={<ConvocatoriasConfig />} />
+      <Route path="/configuracion/gestion_periodo/contratacion_docente/convocatorias" element={<ConvocatoriasConfig />} />
       <Route path="/configuracion/gestion_periodo/grupos" element={<GruposConfig />} />
       <Route path="/configuracion/gestion_periodo/postulantes" element={<PostulantesConfig />} />
       <Route path="/configuracion/gestion_periodo/programacion_grupo" element={<ProgramacionGrupoConfig />} />

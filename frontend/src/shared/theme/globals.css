@@ -14,19 +14,30 @@
 
 /* Variables CSS globales personalizadas del tema */
 :root {
+  /* ===== Paleta institucional UNAM ===== */
+  --unam-dark: #25346A;        /* Azul oscuro institucional */
+  --unam-medium: #2B3866;      /* Azul medio */
+  --unam-teal: #43B3C1;        /* Turquesa */
+  --unam-slate: #5A6B9A;       /* Azul-grisáceo */
+
   /* Colores del tema personalizados */
-  --color-primary: #2D366F;       /* Color primario para acciones principales */
-  --color-secondary: #57C7C2;     /* Color secundario para acentos */
+  --color-primary: #25346A;       /* Azul oscuro UNAM */
+  --color-secondary: #43B3C1;     /* Turquesa UNAM */
   --color-success: #10b981;       /* Color para estados exitosos */
   --color-warning: #f59e0b;       /* Color para advertencias */
   --color-error: #ef4444;         /* Color para errores */
-  
-  /* Colores específicos de componentes */
+
+  /* Header / Navbar */
+  --color-header-bg: #25346A;       /* Fondo del header (azul oscuro UNAM) */
+  --color-header-text: #ffffff;     /* Texto del header (blanco) */
+  --color-header-border: rgba(255, 255, 255, 0.12);
+
+  /* Sidebar */
   --color-sidebar-bg: #ffffff;      /* Fondo de sidebar (blanco) */
   --color-sidebar-text: #1e293b;    /* Texto de sidebar (slate-800) */
   --color-sidebar-muted: #64748b;   /* Texto muted (slate-500) */
-  --color-sidebar-accent: #3b82f6;  /* Acento (blue-500) */
-  
+  --color-sidebar-accent: #25346A;  /* Acento (azul oscuro UNAM) */
+
   /* Colores para inputs de fecha/hora */
   --color-input-bg: #ffffff;
   --color-input-border: #d1d5db;
@@ -35,7 +46,7 @@
   --color-input-hover: #f3f4f6;
   --color-input-disabled: #f3f4f6;
   --color-input-disabled-text: #6b7280;
-  
+
   /* Sombras personalizadas */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);

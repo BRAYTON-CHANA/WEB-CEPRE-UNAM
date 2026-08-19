@@ -1,7 +1,10 @@
 /**
  * UNAM_LEVEL_STYLES — Depth Strata v2 con paleta UNAM.
- * Colores institucionales: #25346A (azul oscuro), #2B3866 (azul medio),
- * #43B3C1 (turquesa), #5A6B9A (azul-grisáceo).
+ * Colores institucionales centralizados en globals.css como CSS variables:
+ *   --unam-dark:   #25346A (azul oscuro institucional)
+ *   --unam-medium: #2B3866 (azul medio)
+ *   --unam-teal:   #43B3C1 (turquesa)
+ *   --unam-slate:  #5A6B9A (azul-grisáceo)
  * Específico de convocatorias — se pasa via `levelStyles` a TableMultiLevel.
  */
 

@@ -1,16 +1,52 @@
 /* SidebarMenu - Estilos base personalizables */
 /* Todos los estilos pueden ser sobrescritos mediante las props className */
 
+/* ===== Keyframes ===== */
+@keyframes sidebarItemSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes submenuExpand {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+@keyframes chevronSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(180deg);
+  }
+}
+
+/* ===== Container ===== */
 .sidebar-menu {
   display: flex;
   flex-direction: column;
-  width: 250px;
+  width: 280px;
   height: 100%;
   background-color: var(--color-sidebar-bg);
+  background-image: linear-gradient(180deg, rgba(67, 179, 193, 0.04) 0%, rgba(37, 52, 106, 0.02) 100%);
   color: var(--color-sidebar-text);
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(100, 116, 139, 0.2) transparent;
+  scrollbar-color: rgba(67, 179, 193, 0.4) transparent;
+  border-right: 2px solid rgba(67, 179, 193, 0.25);
+  box-shadow: 1px 0 8px -2px rgba(67, 179, 193, 0.12);
 }
 
 .sidebar-menu::-webkit-scrollbar {
@@ -22,14 +58,19 @@
 }
 
 .sidebar-menu::-webkit-scrollbar-thumb {
-  background-color: rgba(100, 116, 139, 0.2);
+  background-color: rgba(67, 179, 193, 0.3);
   border-radius: 4px;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(67, 179, 193, 0.5);
 }
 
 /* Header */
 .sidebar-menu__header {
-  padding: 1.5rem;
-  border-bottom: 1px solid rgba(100, 116, 139, 0.12);
+  padding: 1.25rem 1.5rem;
+  border-bottom: 2px solid rgba(67, 179, 193, 0.25);
+  background: linear-gradient(135deg, rgba(67, 179, 193, 0.1) 0%, rgba(37, 52, 106, 0.05) 100%);
 }
 
 /* Navegación */
@@ -44,7 +85,7 @@
   padding: 0;
 }
 
-/* Items del menú */
+/* ===== Items del menú ===== */
 .sidebar-menu__item {
   margin: 0.125rem 0;
 }
@@ -63,8 +104,9 @@
   text-decoration: none;
   background: none;
   border: none;
+  border-left: 3px solid transparent;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 0.875rem;
   text-align: left;
   border-radius: 0;
@@ -72,8 +114,10 @@
 
 .sidebar-menu__link:hover,
 .sidebar-menu__button:hover {
-  color: var(--color-sidebar-text);
-  background-color: rgba(100, 116, 139, 0.1);
+  color: #2B3866;
+  background-color: rgba(67, 179, 193, 0.15);
+  transform: translateX(3px);
+  box-shadow: inset 3px 0 0 0 rgba(67, 179, 193, 0.4);
 }
 
 /* Icono */
@@ -86,6 +130,13 @@
   margin-right: 0.625rem;
   font-size: 1rem;
   opacity: 1;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-menu__link:hover .sidebar-menu__icon,
+.sidebar-menu__button:hover .sidebar-menu__icon {
+  transform: scale(1.15);
+  color: #43B3C1;
 }
 
 /* Texto */
@@ -99,7 +150,7 @@
 /* Chevron */
 .sidebar-menu__chevron {
   margin-left: auto;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   opacity: 0.6;
 }
 
@@ -107,20 +158,24 @@
   transform: rotate(180deg);
 }
 
-/* Sub-menú */
+/* ===== Sub-menú ===== */
 .sidebar-menu__submenu {
   list-style: none;
   margin: 0;
   padding: 0;
   padding-left: 1.25rem;
+  overflow: hidden;
 }
 
-/* Estado activo */
+/* ===== Estado activo ===== */
 .sidebar-menu__item--active .sidebar-menu__link,
 .sidebar-menu__item--active .sidebar-menu__button {
-  color: var(--color-sidebar-text);
-  background-color: rgba(59, 130, 246, 0.08);
-  border-left: 3px solid var(--color-sidebar-accent);
+  color: #2B3866;
+  background-color: rgba(67, 179, 193, 0.18);
+  border-left: 3px solid #43B3C1;
+  font-weight: 600;
+  box-shadow: inset 0 0 20px rgba(67, 179, 193, 0.08);
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Estado deshabilitado */
@@ -130,16 +185,28 @@
   cursor: not-allowed;
 }
 
+.sidebar-menu__item--disabled .sidebar-menu__link:hover,
+.sidebar-menu__item--disabled .sidebar-menu__button:hover {
+  transform: none;
+  background: none;
+}
+
 /* Footer */
 .sidebar-menu__footer {
   padding: 1rem 1.25rem;
-  border-top: 1px solid rgba(100, 116, 139, 0.12);
+  border-top: 2px solid rgba(67, 179, 193, 0.25);
+  background: linear-gradient(180deg, transparent 0%, rgba(67, 179, 193, 0.04) 100%);
 }
 
-/* Responsive */
+/* ===== Responsive ===== */
 @media (max-width: 768px) {
   .sidebar-menu {
     width: 280px;
     height: 100%;
   }
 }
+
+/* ===== Sidebar container — modelo push (desktop) ===== */
+/* El sidebar desktop es position: relative dentro del flex y empuja el contenido.
+   El width anima entre peekWidth (contraído) y 280px (abierto) vía inline style.
+   El overflow: hidden del <aside> clipa el contenido interno (fijo a 280px). */
