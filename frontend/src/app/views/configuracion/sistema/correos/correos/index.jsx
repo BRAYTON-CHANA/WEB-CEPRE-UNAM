@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTableData, useCrudForms, CrudMultiLevelManager, CrudHeader } from '@/shared/components/crud';
 import ViewCorreoModal from '@/features/correos/components/ViewCorreoModal';
 import CorreoComposer from '@/features/correos/components/CorreoComposer';
@@ -8,6 +8,29 @@ import { ConfigLayout } from '@/features/layout';
 import { tableConfig, getTableLevelConfigs } from '@/features/correos/config/correos/tableConfig';
 import { correosFormFields, correosMultiStep, correosValidation, correosModalConfig } from '@/features/correos/config/correos/formConfig';
 import { headerProps, getHeaderActions } from '@/features/correos/config/correos/headerConfig';
+import { useCronCountdown } from '@/features/correos/hooks/useCronCountdown';
+
+/**
+ * Calcula los ms hasta el próximo ciclo de cron (cada 15 min: :00, :15, :30, :45) + 10s de margen.
+ */
+function msUntilNextCronRefresh() {
+  const now = new Date();
+  const minutes = now.getMinutes();
+  const nextMark = Math.ceil((minutes + 1) / 15) * 15;
+
+  const next = new Date(now);
+  if (nextMark >= 60) {
+    next.setHours(now.getHours() + 1);
+    next.setMinutes(0);
+  } else {
+    next.setMinutes(nextMark);
+  }
+  next.setSeconds(0);
+  next.setMilliseconds(0);
+
+  // +10 segundos de margen para que el cron termine de procesar
+  return (next.getTime() - now.getTime()) + 10000;
+}
 
 /**
  * Configuración de CORREOS
@@ -15,6 +38,25 @@ import { headerProps, getHeaderActions } from '@/features/correos/config/correos
  */
 function CorreosConfig() {
   const { records, loading, error, refresh } = useTableData(tableConfig.tableName);
+  const { timeLabel, countdown } = useCronCountdown();
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
+
+  // Auto-refresh: después de cada ciclo de 15 min del cron, recargar la tabla.
+  useEffect(() => {
+    let timeoutId;
+
+    const scheduleNext = () => {
+      const ms = msUntilNextCronRefresh();
+      timeoutId = setTimeout(() => {
+        refreshRef.current?.();
+        scheduleNext();
+      }, ms);
+    };
+
+    scheduleNext();
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   const correosCrud = useCrudForms({
     tableName: 'CORREOS',
@@ -89,6 +131,15 @@ function CorreosConfig() {
                 descriptionClassName={headerProps.descriptionClassName}
                 actions={getHeaderActions(correosCrud, () => setComposerOpen(true))}
               />
+
+              <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700">
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>
+                  Envío automático cada 15 min. Próximo: <strong>{timeLabel}</strong> (en {countdown})
+                </span>
+              </div>
 
               {loading && (
                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 text-center">

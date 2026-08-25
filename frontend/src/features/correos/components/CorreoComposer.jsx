@@ -75,9 +75,7 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess, editMode = false, editData
     setPrioridad(editData.PRIORIDAD || DEFAULT_PRIORITY);
     if (editData.FECHA_PROGRAMADA) {
       try {
-        const d = new Date(editData.FECHA_PROGRAMADA);
-        const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-        setFechaProgramada(local.toISOString().slice(0, 16));
+        setFechaProgramada(new Date(editData.FECHA_PROGRAMADA));
       } catch {
         setFechaProgramada('');
       }
@@ -146,10 +144,8 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess, editMode = false, editData
     if (!para.length) return 'Ingrese al menos un destinatario.';
     if (!cuerpo.trim()) return 'El cuerpo del correo es obligatorio.';
     if (!cuenta) return 'Seleccione una cuenta SMTP de envío.';
-    if (fechaProgramada) {
-      const now = new Date();
-      const scheduled = new Date(fechaProgramada);
-      if (scheduled <= now) return 'La fecha programada debe ser mayor a la fecha y hora actual.';
+    if (fechaProgramada && fechaProgramada instanceof Date) {
+      if (fechaProgramada <= new Date()) return 'La fecha programada debe ser mayor a la fecha y hora actual.';
     }
     if (isUploading()) return 'Espere a que terminen de cargar los adjuntos.';
     return null;
@@ -182,7 +178,9 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess, editMode = false, editData
           cuerpoHtml: cuerpo,
           adjuntos: adjuntosListos,
           prioridad,
-          fechaProgramada: fechaProgramada ? new Date(fechaProgramada).toISOString() : null,
+          fechaProgramada: fechaProgramada instanceof Date
+        ? `${fechaProgramada.getFullYear()}-${String(fechaProgramada.getMonth() + 1).padStart(2, '0')}-${String(fechaProgramada.getDate()).padStart(2, '0')}T${String(fechaProgramada.getHours()).padStart(2, '0')}:${String(fechaProgramada.getMinutes()).padStart(2, '0')}:00`
+        : null,
           idCuenta,
           remitente,
         });
@@ -205,7 +203,9 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess, editMode = false, editData
           cuerpoHtml: cuerpo,
           adjuntos: adjuntosListos,
           prioridad,
-          fechaProgramada: fechaProgramada ? new Date(fechaProgramada).toISOString() : null,
+          fechaProgramada: fechaProgramada instanceof Date
+        ? `${fechaProgramada.getFullYear()}-${String(fechaProgramada.getMonth() + 1).padStart(2, '0')}-${String(fechaProgramada.getDate()).padStart(2, '0')}T${String(fechaProgramada.getHours()).padStart(2, '0')}:${String(fechaProgramada.getMinutes()).padStart(2, '0')}:00`
+        : null,
           idCuenta,
           creadoPor,
           idCreador: userId,
@@ -222,7 +222,9 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess, editMode = false, editData
           cuerpoHtml: cuerpo,
           adjuntos: adjuntosListos,
           prioridad,
-          fechaProgramada: fechaProgramada ? new Date(fechaProgramada).toISOString() : null,
+          fechaProgramada: fechaProgramada instanceof Date
+        ? `${fechaProgramada.getFullYear()}-${String(fechaProgramada.getMonth() + 1).padStart(2, '0')}-${String(fechaProgramada.getDate()).padStart(2, '0')}T${String(fechaProgramada.getHours()).padStart(2, '0')}:${String(fechaProgramada.getMinutes()).padStart(2, '0')}:00`
+        : null,
           idCuenta,
           creadoPor,
           idCreador: userId,
@@ -273,7 +275,9 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess, editMode = false, editData
           cuerpoHtml: cuerpo,
           adjuntos: adjuntosListos,
           prioridad,
-          fechaProgramada: fechaProgramada ? new Date(fechaProgramada).toISOString() : null,
+          fechaProgramada: fechaProgramada instanceof Date
+        ? `${fechaProgramada.getFullYear()}-${String(fechaProgramada.getMonth() + 1).padStart(2, '0')}-${String(fechaProgramada.getDate()).padStart(2, '0')}T${String(fechaProgramada.getHours()).padStart(2, '0')}:${String(fechaProgramada.getMinutes()).padStart(2, '0')}:00`
+        : null,
           idCuenta,
           remitente,
         });
@@ -289,7 +293,9 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess, editMode = false, editData
           cuerpoHtml: cuerpo,
           adjuntos: adjuntosListos,
           prioridad,
-          fechaProgramada: fechaProgramada ? new Date(fechaProgramada).toISOString() : null,
+          fechaProgramada: fechaProgramada instanceof Date
+        ? `${fechaProgramada.getFullYear()}-${String(fechaProgramada.getMonth() + 1).padStart(2, '0')}-${String(fechaProgramada.getDate()).padStart(2, '0')}T${String(fechaProgramada.getHours()).padStart(2, '0')}:${String(fechaProgramada.getMinutes()).padStart(2, '0')}:00`
+        : null,
           idCuenta: cuenta ? Number(cuenta) : null,
           creadoPor: user?.DNI || user?.EMAIL || 'sistema',
           idCreador: userId,
@@ -430,15 +436,41 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess, editMode = false, editData
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Programado</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Programado <span className="text-xs font-normal text-gray-400">(formato 24 horas)</span>
+                  </label>
                   <input
                     type="datetime-local"
-                    value={fechaProgramada}
-                    onChange={(e) => setFechaProgramada(e.target.value)}
+                    value={fechaProgramada instanceof Date
+                      ? `${fechaProgramada.getFullYear()}-${String(fechaProgramada.getMonth() + 1).padStart(2, '0')}-${String(fechaProgramada.getDate()).padStart(2, '0')}T${String(fechaProgramada.getHours()).padStart(2, '0')}:${String(fechaProgramada.getMinutes()).padStart(2, '0')}`
+                      : ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!val) { setFechaProgramada(''); return; }
+                      const [datePart, timePart] = val.split('T');
+                      const [y, m, d] = datePart.split('-').map(Number);
+                      const [h, min] = timePart.split(':').map(Number);
+                      setFechaProgramada(new Date(y, m - 1, d, h, min, 0));
+                    }}
                     disabled={!tipo || !cuenta}
-                    min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                    min={(() => {
+                      const n = new Date();
+                      return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}T${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+                    })()}
+                    className={`w-full px-3 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500 ${
+                      fechaProgramada instanceof Date && fechaProgramada <= new Date()
+                        ? 'border-red-400 bg-red-50'
+                        : 'border-gray-300'
+                    }`}
                   />
+                  {fechaProgramada instanceof Date && fechaProgramada <= new Date() && (
+                    <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      La fecha debe ser mayor a la fecha y hora actual
+                    </p>
+                  )}
                 </div>
               </div>
 

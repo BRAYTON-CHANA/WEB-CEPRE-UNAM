@@ -192,12 +192,13 @@ const DateTimeInput = ({
     if (dateObj) {
       if (minDateTime && new Date(dateObj) < new Date(minDateTime)) {
         setError(`Debe ser posterior a ${dateToMasked(minDateTime)}`);
-        setMaskedValue(lastValidValue);
+        // Permitir el valor pero notificar al padre para que bloquee el submit
+        baseInputProps.onChange?.(baseInputProps.name, dateObj);
         return false;
       }
       if (maxDateTime && new Date(dateObj) > new Date(maxDateTime)) {
         setError(`Debe ser anterior a ${dateToMasked(maxDateTime)}`);
-        setMaskedValue(lastValidValue);
+        baseInputProps.onChange?.(baseInputProps.name, dateObj);
         return false;
       }
       baseInputProps.onChange?.(baseInputProps.name, dateObj);
