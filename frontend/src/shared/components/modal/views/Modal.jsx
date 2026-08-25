@@ -111,12 +111,13 @@ const Modal = ({
         {/* Header */}
         {showHeader && (
           <div className={`${headerClasses} ${headerGradientClasses} ${headerPatternClasses}`}>
-            <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+            <h2 className={`text-xl font-semibold ${headerGradient ? 'text-white' : 'text-gray-900'}`}>{title}</h2>
             {showCloseButton && (
-              <ModalCloseButton 
+              <ModalCloseButton
                 onClose={handleClose}
                 customIcon={customCloseIcon}
                 preventClose={preventClose}
+                light={!!headerGradient}
               />
             )}
           </div>

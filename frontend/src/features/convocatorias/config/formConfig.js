@@ -75,7 +75,8 @@ export const convocatoriaModalConfig = {
   editTitle: 'Editar Convocatoria',
   deleteTitle: '¿Eliminar convocatoria?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar la convocatoria "${row?.NOMBRE_PERIODO}"? Se eliminarán también sus cursos/sedes y plazas asociadas.`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'lg'
 };
 
 // ===== CONVOCATORIA_CURSO (detalle por sede + curso) =====
@@ -142,7 +143,8 @@ export const convocatoriaCursoModalConfig = {
   editTitle: 'Editar Convocatoria Curso',
   deleteTitle: '¿Eliminar curso/sede?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar el curso "${row?.NOMBRE_CURSO}" en sede "${row?.NOMBRE_SEDE}"? Se eliminarán también sus plazas y postulaciones asociadas.`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'lg'
 };
 
 export const convocatoriaMultiStep = {
@@ -180,5 +182,6 @@ export const convocatoriaCursoEditModalConfig = {
   editTitle: 'Editar Número Máximo de Plazas',
   deleteTitle: '¿Eliminar curso/sede?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar el curso "${row?.NOMBRE_CURSO}" en sede "${row?.NOMBRE_SEDE}"?`,
-  widthClass: 'w-1/3'
+  widthClass: 'w-1/3',
+  size: 'md'
 };

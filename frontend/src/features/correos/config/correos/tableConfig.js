@@ -1,6 +1,8 @@
 /**
  * Configuración de tabla para Correos (un solo nivel)
  */
+import { formatDate } from '../../../../shared/utils/formatUtils.jsx';
+
 export const tableConfig = {
   tableName: 'VW_CORREOS'
 };
@@ -12,21 +14,55 @@ export const getTableLevelConfigs = (correosCrud) => [
   {
     level: 1,
     headers: [
-      { title: 'TIPO', type: 'string', label: 'Tipo' },
-      { title: 'USUARIOS_NOMBRES', type: 'array', label: 'Usuarios' },
-      { title: 'DESTINATARIOS', type: 'array', label: 'Destinatarios' },
+      {
+        title: 'CREADOR_NOMBRE',
+        type: 'stacked',
+        label: 'Creado/Enviado por',
+        displayValue: (row) => ({
+          primary: row.CREADOR_NOMBRE || '-',
+          secondary: row.ENVIADOR_NOMBRE ? `Enviado por: ${row.ENVIADOR_NOMBRE}` : 'Sin enviar'
+        })
+      },
+      { title: 'CUENTA_SMTP_NOMBRE', type: 'string', label: 'Desde' },
       { title: 'ASUNTO', type: 'string', label: 'Asunto' },
-      { title: 'ESTADO', type: 'string', label: 'Estado' },
-      { title: 'PRIORIDAD', type: 'string', label: 'Prioridad' },
-      { title: 'FECHA_PROGRAMADA', type: 'string', label: 'Programado' },
-      { title: 'CREADO_EN', type: 'string', label: 'Creado' },
-      { title: 'ENVIO_AUTOMATICO', type: 'boolean', label: 'Auto' },
-      { title: 'BLOQUEADO', type: 'boolean', label: 'Bloqueado' },
-      { title: 'PERSONALIZADO', type: 'boolean', label: 'Personalizado' },
-      { title: 'OBSERVACIONES', type: 'string', label: 'Observaciones' }
+      {
+        title: 'ESTADO',
+        type: 'stacked',
+        label: 'Estado/Prioridad',
+        displayValue: (row) => ({
+          primary: row.ESTADO || '-',
+          secondary: row.PRIORIDAD ? `Prioridad: ${row.PRIORIDAD}` : null
+        })
+      },
+      {
+        title: 'ENVIADO_EN',
+        type: 'stacked',
+        label: 'Fechas',
+        displayValue: (row) => ({
+          primary: row.ENVIADO_EN ? formatDate(row.ENVIADO_EN) : 'No enviado',
+          secondary: row.CREADO_EN ? `Creado: ${formatDate(row.CREADO_EN)}` : null
+        })
+      },
+      {
+        title: 'TIPO',
+        type: 'stacked',
+        label: 'Tipo/Obs',
+        displayValue: (row) => ({
+          primary: row.TIPO || '-',
+          secondary: row.OBSERVACIONES || (row.FECHA_PROGRAMADA ? `Prog: ${formatDate(row.FECHA_PROGRAMADA)}` : null)
+        })
+      }
     ],
     boundColumn: 'ID_CORREO',
     actions: {
+       enviar: {
+        enabled: true,
+        icon: 'send',
+        label: 'Enviar',
+        className: 'text-green-600 hover:bg-green-100',
+        showIf: (row) => row.ESTADO === 'pendiente',
+        onClick: (row) => correosCrud.handleEnviar?.(row)
+      },
       edit: {
         enabled: true,
         icon: 'edit',
@@ -49,14 +85,6 @@ export const getTableLevelConfigs = (correosCrud) => [
         label: 'Eliminar',
         className: 'text-red-600 hover:bg-red-100',
         onClick: (row) => correosCrud.handleDelete(row)
-      },
-      enviar: {
-        enabled: true,
-        icon: 'send',
-        label: 'Enviar',
-        className: 'text-green-600 hover:bg-green-100',
-        showIf: (row) => row.ESTADO === 'pendiente',
-        onClick: (row) => correosCrud.handleEnviar?.(row)
       },
       ver: [
         {

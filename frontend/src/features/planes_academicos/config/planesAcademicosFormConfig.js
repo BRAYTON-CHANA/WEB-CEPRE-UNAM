@@ -41,5 +41,6 @@ export const planesAcademicosModalConfig = {
   editTitle: 'Editar Plan Académico',
   deleteTitle: '¿Eliminar plan académico?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar el plan "${row?.DESCRIPCION || row?.DESCRIPCION_PLAN}"?`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'md'
 };

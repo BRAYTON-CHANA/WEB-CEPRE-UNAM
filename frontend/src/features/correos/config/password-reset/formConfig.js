@@ -92,5 +92,6 @@ export const passwordResetModalConfig = {
   editTitle: 'Editar Código de Reset',
   deleteTitle: '¿Eliminar código de reset?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar el código de reset para "${row?.EMAIL}"?`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'md'
 };

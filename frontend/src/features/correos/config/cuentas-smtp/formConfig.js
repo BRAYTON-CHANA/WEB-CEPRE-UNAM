@@ -72,5 +72,6 @@ export const cuentasSmtpModalConfig = {
   editTitle: 'Editar Cuenta SMTP',
   deleteTitle: '¿Eliminar cuenta SMTP?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar la cuenta SMTP "${row?.NOMBRE_CUENTA}"?`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'md'
 };

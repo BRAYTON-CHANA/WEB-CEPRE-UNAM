@@ -588,7 +588,36 @@ const Form = ({
 
     if (allFieldsHidden) return null;
 
+    const sectionColumns = section.columns || 1;
 
+    // Envolver cada campo en un div con col-span según field.colSpan
+    const renderFieldsWithColSpan = () => {
+      if (sectionColumns === 1) {
+        // Sin grid → comportamiento original (sin wrapper col-span)
+        return section.fields.map(renderField);
+      }
+
+      return section.fields.map((field) => {
+        const isFieldHidden = field.hidden ? evaluateHidden(field.hidden, formData) : false;
+        if (isFieldHidden) return null;
+
+        const colSpan = Math.min(field.colSpan || 1, sectionColumns);
+        const colSpanClass = colSpan === 1
+          ? 'md:col-span-1'
+          : colSpan === 2 ? 'md:col-span-2'
+          : colSpan === 3 ? 'md:col-span-3'
+          : colSpan === 4 ? 'md:col-span-4'
+          : colSpan === 5 ? 'md:col-span-5'
+          : colSpan === 6 ? 'md:col-span-6'
+          : 'md:col-span-1';
+
+        return (
+          <div key={field.id || `${field.name}-${field.type}`} className={colSpanClass}>
+            {renderField(field)}
+          </div>
+        );
+      });
+    };
 
     return (
 
@@ -604,11 +633,13 @@ const Form = ({
 
         description={section.description}
 
+        columns={sectionColumns}
+
         isActive={true}
 
       >
 
-        {section.fields.map(renderField)}
+        {renderFieldsWithColSpan()}
 
       </FormSection>
 

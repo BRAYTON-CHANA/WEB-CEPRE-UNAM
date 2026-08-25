@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from '@/shared/components/modal/views/Modal';
 import { useAuthContext } from '@/shared/context/AuthContext';
-import { createDraft, sendAndSave, saveMassDraft } from '@/features/correos/services/correosService';
+import { createDraft, updateEmail, sendAndSave, saveMassDraft, sendEmailById } from '@/features/correos/services/correosService';
 import { useComposerData } from '@/features/correos/hooks/useComposerData';
 import { useAdjuntos } from '@/features/correos/hooks/useAdjuntos';
 import { useRecipients } from '@/features/correos/hooks/useRecipients';
@@ -10,7 +10,31 @@ import { MASIVO_VIEWS } from '@/features/correos/constants/composer';
 import HtmlEditor from './HtmlEditor/HtmlEditor';
 import RecipientInput from './RecipientInput';
 
-const CorreoComposer = ({ isOpen, onClose, onSuccess }) => {
+let nextAdjId = 1000;
+
+const parseAdjuntos = (value) => {
+  if (!value) return [];
+  try {
+    const arr = Array.isArray(value) ? value : JSON.parse(value);
+    return arr.map((a, i) => ({
+      id: nextAdjId++,
+      filename: a.filename || 'archivo',
+      contentType: a.contentType || '',
+      path: a.path || null,
+      size: a.size || null,
+      url: a.url || null,
+    }));
+  } catch {
+    return [];
+  }
+};
+
+const parseRecipients = (arr) => {
+  if (!Array.isArray(arr)) return [];
+  return arr.map(email => ({ email, label: email, type: 'email' }));
+};
+
+const CorreoComposer = ({ isOpen, onClose, onSuccess, editMode = false, editData = null }) => {
   const { user } = useAuthContext();
 
   const {
@@ -20,14 +44,14 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess }) => {
     loadingData, error: dataError,
     esMultiUsuario,
     remitente,
-  } = useComposerData(isOpen);
+  } = useComposerData(isOpen, editMode);
 
   const {
     para, setPara, cc, setCc, bcc, setBcc,
     destinatariosEmails, userIds, clearRecipients,
   } = useRecipients(remitente);
 
-  const { adjuntos, fileInputRef, handleFiles, removeAdjunto, clearAdjuntos, isUploading } = useAdjuntos();
+  const { adjuntos, setAdjuntos, fileInputRef, handleFiles, removeAdjunto, clearAdjuntos, isUploading } = useAdjuntos();
 
   const [asunto, setAsunto] = useState('');
   const [cuerpo, setCuerpo] = useState('');
@@ -37,6 +61,32 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedView, setSelectedView] = useState('');
+
+  // ── Modo edición: cargar datos del correo cuando se abre ──────────────────
+  useEffect(() => {
+    if (!isOpen || !editMode || !editData) return;
+    setTipo(editData.TIPO || '');
+    setCuenta(editData.ID_CUENTA_SMTP ? String(editData.ID_CUENTA_SMTP) : '');
+    setPara(parseRecipients(editData.DESTINATARIOS));
+    setCc(parseRecipients(editData.CC));
+    setBcc(parseRecipients(editData.BCC));
+    setAsunto(editData.ASUNTO === 'Sin Asunto' ? '' : (editData.ASUNTO || ''));
+    setCuerpo(editData.CUERPO_HTML || '');
+    setPrioridad(editData.PRIORIDAD || DEFAULT_PRIORITY);
+    if (editData.FECHA_PROGRAMADA) {
+      try {
+        const d = new Date(editData.FECHA_PROGRAMADA);
+        const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+        setFechaProgramada(local.toISOString().slice(0, 16));
+      } catch {
+        setFechaProgramada('');
+      }
+    } else {
+      setFechaProgramada('');
+    }
+    setAdjuntos(parseAdjuntos(editData.ADJUNTOS));
+    setSelectedView('');
+  }, [isOpen, editMode, editData]);
 
   const esMasivo = tipo === 'personalizado_masivo';
   const viewConfig = MASIVO_VIEWS.find(v => v.view === selectedView);
@@ -88,12 +138,19 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess }) => {
     }
   };
 
+  const userId = user?.id_usuario || user?.ID_USUARIO;
+
   const validate = () => {
+    if (!userId) return 'Debe iniciar sesión para enviar o guardar correos.';
     if (!tipo) return 'Seleccione un tipo de correo.';
     if (!para.length) return 'Ingrese al menos un destinatario.';
-    if (!asunto.trim()) return 'El asunto es obligatorio.';
     if (!cuerpo.trim()) return 'El cuerpo del correo es obligatorio.';
     if (!cuenta) return 'Seleccione una cuenta SMTP de envío.';
+    if (fechaProgramada) {
+      const now = new Date();
+      const scheduled = new Date(fechaProgramada);
+      if (scheduled <= now) return 'La fecha programada debe ser mayor a la fecha y hora actual.';
+    }
     if (isUploading()) return 'Espere a que terminen de cargar los adjuntos.';
     return null;
   };
@@ -114,7 +171,22 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess }) => {
       const idCuenta = cuenta ? Number(cuenta) : null;
       const creadoPor = user?.DNI || user?.EMAIL || 'sistema';
 
-      if (esMasivo) {
+      if (editMode && editData) {
+        // Modo edición: actualizar correo existente.
+        await updateEmail(editData.ID_CORREO, {
+          idUsuarios: userIds(para),
+          destinatarios: destinatariosEmails(para),
+          cc: destinatariosEmails(cc),
+          bcc: destinatariosEmails(bcc),
+          asunto: asunto.trim(),
+          cuerpoHtml: cuerpo,
+          adjuntos: adjuntosListos,
+          prioridad,
+          fechaProgramada: fechaProgramada ? new Date(fechaProgramada).toISOString() : null,
+          idCuenta,
+          remitente,
+        });
+      } else if (esMasivo) {
         // Modo masivo: un correo por destinatario con merge fields.
         const recipients = para.map(p => ({
           id: p.id,
@@ -136,6 +208,7 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess }) => {
           fechaProgramada: fechaProgramada ? new Date(fechaProgramada).toISOString() : null,
           idCuenta,
           creadoPor,
+          idCreador: userId,
           remitente,
         });
       } else {
@@ -152,6 +225,7 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess }) => {
           fechaProgramada: fechaProgramada ? new Date(fechaProgramada).toISOString() : null,
           idCuenta,
           creadoPor,
+          idCreador: userId,
           remitente,
         });
       }
@@ -186,21 +260,42 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess }) => {
 
     try {
       const adjuntosListos = adjuntos.filter(a => !a.loading);
-      await sendAndSave({
-        tipo,
-        idUsuarios: userIds(para),
-        destinatarios: destinatariosEmails(para),
-        cc: destinatariosEmails(cc),
-        bcc: destinatariosEmails(bcc),
-        asunto: asunto.trim(),
-        cuerpoHtml: cuerpo,
-        adjuntos: adjuntosListos,
-        prioridad,
-        fechaProgramada: fechaProgramada ? new Date(fechaProgramada).toISOString() : null,
-        idCuenta: cuenta ? Number(cuenta) : null,
-        creadoPor: user?.DNI || user?.EMAIL || 'sistema',
-        remitente,
-      });
+      const idCuenta = cuenta ? Number(cuenta) : null;
+
+      if (editMode && editData) {
+        // Modo edición: primero actualizar, luego enviar.
+        await updateEmail(editData.ID_CORREO, {
+          idUsuarios: userIds(para),
+          destinatarios: destinatariosEmails(para),
+          cc: destinatariosEmails(cc),
+          bcc: destinatariosEmails(bcc),
+          asunto: asunto.trim(),
+          cuerpoHtml: cuerpo,
+          adjuntos: adjuntosListos,
+          prioridad,
+          fechaProgramada: fechaProgramada ? new Date(fechaProgramada).toISOString() : null,
+          idCuenta,
+          remitente,
+        });
+        await sendEmailById(editData.ID_CORREO);
+      } else {
+        await sendAndSave({
+          tipo,
+          idUsuarios: userIds(para),
+          destinatarios: destinatariosEmails(para),
+          cc: destinatariosEmails(cc),
+          bcc: destinatariosEmails(bcc),
+          asunto: asunto.trim(),
+          cuerpoHtml: cuerpo,
+          adjuntos: adjuntosListos,
+          prioridad,
+          fechaProgramada: fechaProgramada ? new Date(fechaProgramada).toISOString() : null,
+          idCuenta: cuenta ? Number(cuenta) : null,
+          creadoPor: user?.DNI || user?.EMAIL || 'sistema',
+          idCreador: userId,
+          remitente,
+        });
+      }
 
       setTipo('');
       setCuenta('');
@@ -223,7 +318,7 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess }) => {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Redactar Correo"
+      title={editMode ? 'Editar Correo' : 'Redactar Correo'}
       size="xl"
       customSize="w-[95vw] max-w-7xl"
       shadow="2xl"
@@ -246,9 +341,9 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess }) => {
             disabled={loading}
             className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
-            {loading ? 'Guardando...' : 'Guardar borrador'}
+            {loading ? 'Guardando...' : (editMode ? 'Guardar cambios' : 'Guardar borrador')}
           </button>
-          {tipo === 'notificacion' && (
+          {tipo === 'notificacion' && (!editMode || editData?.ESTADO === 'pendiente') && (
             <button
               type="button"
               onClick={handleSendNow}
@@ -279,19 +374,28 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Tipo de correo *</label>
-                  <select
-                    value={tipo}
-                    onChange={(e) => handleTipoChange(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-                    required
-                  >
-                    <option value="">Seleccione...</option>
-                    {tipos.map(t => (
-                      <option key={t.NOMBRE_TIPO} value={t.NOMBRE_TIPO}>
-                        {t.NOMBRE_TIPO} {t.DESCRIPCION ? `- ${t.DESCRIPCION}` : ''}
-                      </option>
-                    ))}
-                  </select>
+                  {editMode ? (
+                    <input
+                      type="text"
+                      value={tipo}
+                      disabled
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-gray-100 text-gray-600 outline-none"
+                    />
+                  ) : (
+                    <select
+                      value={tipo}
+                      onChange={(e) => handleTipoChange(e.target.value)}
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                      required
+                    >
+                      <option value="">Seleccione...</option>
+                      {tipos.map(t => (
+                        <option key={t.NOMBRE_TIPO} value={t.NOMBRE_TIPO}>
+                          {t.NOMBRE_TIPO} {t.DESCRIPCION ? `- ${t.DESCRIPCION}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 <div>
@@ -332,12 +436,13 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess }) => {
                     value={fechaProgramada}
                     onChange={(e) => setFechaProgramada(e.target.value)}
                     disabled={!tipo || !cuenta}
+                    min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                   />
                 </div>
               </div>
 
-              {esMasivo && (
+              {esMasivo && !editMode && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">View de destinatarios *</label>
                   <select
@@ -354,8 +459,8 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess }) => {
               )}
 
               <fieldset
-                disabled={!tipo || !cuenta || (esMasivo && !selectedView)}
-                className={`border-0 p-0 m-0 space-y-6 ${!tipo || !cuenta || (esMasivo && !selectedView) ? 'opacity-60' : ''}`}
+                disabled={!tipo || !cuenta || (esMasivo && !selectedView && !editMode)}
+                className={`border-0 p-0 m-0 space-y-6 ${!tipo || !cuenta || (esMasivo && !selectedView && !editMode) ? 'opacity-60' : ''}`}
               >
                 <div className="space-y-0">
                   <RecipientInput
@@ -387,7 +492,6 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess }) => {
                       value={asunto}
                       onChange={(e) => setAsunto(e.target.value)}
                       placeholder="Agregar un asunto"
-                      required
                       className="flex-1 min-w-[80px] bg-transparent outline-none text-sm py-1 placeholder:text-gray-400"
                     />
                   </div>
@@ -396,7 +500,7 @@ const CorreoComposer = ({ isOpen, onClose, onSuccess }) => {
                 <HtmlEditor
                   value={cuerpo}
                   onChange={setCuerpo}
-                  disabled={!tipo || !cuenta || (esMasivo && !selectedView)}
+                  disabled={!tipo || !cuenta || (esMasivo && !selectedView && !editMode)}
                   label="Cuerpo"
                   required
                   placeholder="Escriba el contenido del correo..."

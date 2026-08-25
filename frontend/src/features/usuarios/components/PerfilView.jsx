@@ -23,9 +23,9 @@ const Field = ({ label, value, isBoolean }) => (
 const PerfilView = ({ user, activeRole }) => {
   if (!user) return null;
 
-  const firstName = (user.NOMBRES || user.nombres || '').toString().trim();
-  const lastName = (user.APELLIDOS || user.apellidos || '').toString().trim();
-  const fullName = `${firstName} ${lastName}`.trim() || 'Usuario';
+  const fullName = (user.NOMBRE_COMPLETO || `${user.APELLIDO_PATERNO || ''} ${user.APELLIDO_MATERNO || ''} ${user.NOMBRES || ''}`.trim()) || 'Usuario';
+  const firstName = (user.NOMBRES || '').toString().trim();
+  const lastName = (user.APELLIDO_PATERNO || '').toString().trim();
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
   const roles = user.ROLES_NOMBRES || user.roles || [];
@@ -38,6 +38,13 @@ const PerfilView = ({ user, activeRole }) => {
     } catch {
       return value;
     }
+  };
+
+  const sexoLabel = (s) => {
+    if (!s) return null;
+    if (s === 'M') return 'Masculino';
+    if (s === 'F') return 'Femenino';
+    return s;
   };
 
   return (
@@ -63,8 +70,9 @@ const PerfilView = ({ user, activeRole }) => {
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 border-b border-slate-100 pb-2">Identidad</h2>
           <dl className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <Field label="DNI" value={user.DNI || user.dni} />
-            <Field label="Nombres" value={firstName} />
-            <Field label="Apellidos" value={lastName} />
+            <Field label="Nombres" value={user.NOMBRES} />
+            <Field label="Apellido Paterno" value={user.APELLIDO_PATERNO} />
+            <Field label="Apellido Materno" value={user.APELLIDO_MATERNO} />
           </dl>
         </section>
 
@@ -74,7 +82,7 @@ const PerfilView = ({ user, activeRole }) => {
             <Field label="Fecha de nacimiento" value={formatDate(user.FECHA_NACIMIENTO)} />
             <Field label="Edad" value={user.EDAD !== null && user.EDAD !== undefined ? `${user.EDAD} años` : null} />
             <Field label="Mayoría de edad" value={user.MAYOR_DE_EDAD} isBoolean />
-            <Field label="Sexo" value={user.SEXO} />
+            <Field label="Sexo" value={sexoLabel(user.SEXO)} />
           </dl>
         </section>
 
@@ -82,14 +90,44 @@ const PerfilView = ({ user, activeRole }) => {
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 border-b border-slate-100 pb-2">Contacto</h2>
           <dl className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <Field label="Teléfono" value={user.TELEFONO} />
+            <Field label="Teléfono opcional" value={user.TELEFONO_OPCIONAL} />
             <Field label="Email" value={user.EMAIL || user.email} />
+          </dl>
+        </section>
+
+        <section>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 border-b border-slate-100 pb-2">Ubicación</h2>
+          <dl className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             <Field label="Dirección" value={user.DIRECCION} />
+            <Field label="Referencia" value={user.REF_DOM} />
+            <Field label="Ubicación" value={user.UBICACION_COMPLETA} />
+            <Field label="Ubigeo" value={user.CODIGO_UBIGEO_NACIMIENTO} />
+          </dl>
+        </section>
+
+        <section>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 border-b border-slate-100 pb-2">Discapacidad</h2>
+          <dl className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <Field label="Tiene discapacidad" value={user.DISCAPACIDAD} isBoolean />
+            <Field label="Tipo" value={user.TIPO_DISCAPACIDAD} />
+            <Field label="N° CONADIS" value={user.NRO_CONADIS} />
+          </dl>
+        </section>
+
+        <section>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 border-b border-slate-100 pb-2">DNI</h2>
+          <dl className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            <Field label="Estado DNI" value={user.DNI_ESTADO} />
+            <Field label="Tiene archivo" value={user.DNI_TIENE_ARCHIVO} isBoolean />
+            <Field label="Vencimiento" value={formatDate(user.DNI_FECHA_VENCIMIENTO)} />
+            <Field label="Archivo" value={user.DNI_FILENAME} />
           </dl>
         </section>
 
         <section>
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 border-b border-slate-100 pb-2">Cuenta</h2>
           <dl className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <Field label="Estado" value={user.ESTADO_CUENTA} />
             <Field label="Activo" value={user.ACTIVO} isBoolean />
             <Field label="Requiere cambio de contraseña" value={user.REQUIERE_CAMBIO_PASSWORD} isBoolean />
           </dl>

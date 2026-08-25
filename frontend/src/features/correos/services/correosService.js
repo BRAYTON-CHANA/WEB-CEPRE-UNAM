@@ -21,6 +21,8 @@ export async function createDraft(payload) {
     FECHA_PROGRAMADA: payload.fechaProgramada || null,
     METADATOS: JSON.stringify({ id_cuenta: payload.idCuenta || null }),
     CREADO_POR: payload.creadoPor || 'sistema',
+    ID_CREADOR: payload.idCreador || null,
+    ID_CUENTA_SMTP: payload.idCuenta || null,
     ENVIO_AUTOMATICO: false,
     BLOQUEADO: false,
     PERSONALIZADO: false,
@@ -85,6 +87,31 @@ export async function sendEmailById(idCorreo) {
   const result = await response.json();
   if (!result.success) throw new Error(result.message || 'Error enviando el correo');
   return result.data;
+}
+
+/**
+ * Actualiza un correo existente (modo edición del composer).
+ * No actualiza TIPO, ID_CREADOR ni CREADO_POR (quedan fijos).
+ * @param {number} idCorreo - ID del correo a actualizar
+ * @param {Object} payload - Campos del correo normalizados
+ */
+export async function updateEmail(idCorreo, payload) {
+  const data = {
+    ID_USUARIOS: payload.idUsuarios,
+    DESTINATARIOS: payload.destinatarios,
+    CC: payload.cc,
+    BCC: payload.bcc,
+    ASUNTO: payload.asunto,
+    CUERPO_HTML: payload.cuerpoHtml,
+    CUERPO_TEXTO: payload.cuerpoHtml.replace(/<[^>]*>/g, ''),
+    ADJUNTOS: JSON.stringify(payload.adjuntos || []),
+    PRIORIDAD: payload.prioridad || 'normal',
+    FECHA_PROGRAMADA: payload.fechaProgramada || null,
+    ID_CUENTA_SMTP: payload.idCuenta || null,
+    REMITENTE: payload.remitente || null,
+  };
+
+  return await db.update('CORREOS', idCorreo, data, 'ID_CORREO');
 }
 
 /**

@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import BaseInput from './BaseInput';
 
 /**
  * Componente IntegerInput especializado
  * Usa BaseInput con type="number" y validación específica para números enteros
  */
-const IntegerInput = ({ 
+const IntegerInput = ({
   // Props específicas de entero
   min,
   max,
@@ -13,10 +13,25 @@ const IntegerInput = ({
   allowNegative = false,
   showControls = true,
   formatThousands = false,
-  
+
   // Pasar todas las demás props al BaseInput
-  ...baseInputProps 
+  ...baseInputProps
 }) => {
+  const inputRef = useRef(null);
+
+  // Desactivar cambio de valor con scroll
+  useEffect(() => {
+    const input = inputRef.current;
+    if (input) {
+      const handleWheel = (e) => {
+        e.preventDefault();
+      };
+      input.addEventListener('wheel', handleWheel, { passive: false });
+      return () => {
+        input.removeEventListener('wheel', handleWheel);
+      };
+    }
+  }, []);
   // Validar que el valor sea un entero
   const validateInteger = (value) => {
     if (!value) return '';
@@ -82,9 +97,10 @@ const IntegerInput = ({
     <div className="relative">
       <BaseInput
         {...baseInputProps}
+        inputRef={inputRef}
         type="number"
         step={step}
-        min={allowNegative ? undefined : 0}
+        min={min !== undefined ? min : (allowNegative ? undefined : 0)}
         max={max}
         validation={integerValidation}
         onChange={handleChange}
@@ -95,18 +111,6 @@ const IntegerInput = ({
         value={displayValue}
       />
 
-      {/* Indicadores de rango */}
-      <div className="mt-1 flex justify-between text-xs text-gray-500">
-        {min !== undefined && (
-          <span>Mínimo: {min}</span>
-        )}
-        {max !== undefined && (
-          <span>Máximo: {max}</span>
-        )}
-        {baseInputProps.required && (
-          <span>Obligatorio</span>
-        )}
-      </div>
     </div>
   );
 };

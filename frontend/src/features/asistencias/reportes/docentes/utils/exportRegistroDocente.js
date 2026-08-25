@@ -436,7 +436,7 @@ export const exportRegistroSede = async (sede, idPeriodo, docentes, onProgress) 
     if (onProgress) onProgress(0, docentes.length);
 
     for (const doc of docentes) {
-      const nombreDoc = doc.NOMBRE_COMPLETO || `${doc.APELLIDOS || ''} ${doc.NOMBRES || ''}`.trim();
+      const nombreDoc = doc.NOMBRE_COMPLETO || `${doc.APELLIDO_PATERNO || ''} ${doc.APELLIDO_MATERNO || ''} ${doc.NOMBRES || ''}`.trim();
       const sesiones = await selectAll('VW_SESIONES_COMPLETA', {
         ID_DOCENTE_PROGRAMADO: doc.ID_DOCENTE,
         ...(idPeriodo ? { ID_PERIODO: idPeriodo } : {})
@@ -448,7 +448,7 @@ export const exportRegistroSede = async (sede, idPeriodo, docentes, onProgress) 
         const porPlaza = agruparPorPlaza(sesiones);
         for (const arr of porPlaza.values()) {
           const cursoNombre = arr[0]?.NOMBRE_CURSO || 'Curso';
-          const ape = (doc.APELLIDOS || nombreDoc).split(' ')[0];
+          const ape = (doc.APELLIDO_PATERNO || nombreDoc).split(' ')[0];
           const sheetName = `${ape}-${cursoNombre}`.slice(0, 31);
           buildSheetForCurso(workbook, nombreDoc, periodo, cursoNombre, '', arr, dni, sheetName, logoLeftBuf, logoRightBuf);
           added++;

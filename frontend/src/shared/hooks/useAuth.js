@@ -49,9 +49,10 @@ export const useAuth = () => {
       const payload = data.user ?? data;
       let user = payload;
 
-      if (token && payload?.id_usuario) {
+      if (token && (payload?.id_usuario || payload?.id)) {
         try {
-          const dbUsers = await db.select('VW_USUARIOS', { ID_USUARIO: payload.id_usuario });
+          const userId = payload.id_usuario || payload.id;
+          const dbUsers = await db.select('VW_USUARIOS', { ID_USUARIO: userId });
           const dbUser = dbUsers?.[0];
           if (dbUser) {
             user = { ...payload, ...dbUser, roles: dbUser.ROLES_NOMBRES || payload.roles || [] };

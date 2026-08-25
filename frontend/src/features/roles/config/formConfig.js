@@ -39,5 +39,6 @@ export const rolesModalConfig = {
   editTitle: 'Editar Rol',
   deleteTitle: '¿Eliminar rol?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar el rol "${row?.NOMBRE_ROL}"?`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'md'
 };

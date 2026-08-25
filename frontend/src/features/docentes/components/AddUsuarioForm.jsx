@@ -12,14 +12,23 @@ const AddUsuarioForm = ({ onSuccess, onError }) => {
 
     const payload = {
       dni: formData.DNI,
-      apellidos: formData.APELLIDOS,
+      apellido_paterno: formData.APELLIDO_PATERNO,
+      apellido_materno: formData.APELLIDO_MATERNO || null,
       nombres: formData.NOMBRES,
       password: formData.DNI,
       email: formData.EMAIL || null,
       telefono: formData.TELEFONO || null,
+      telefono_opcional: formData.TELEFONO_OPCIONAL || null,
       direccion: formData.DIRECCION || null,
+      departamento: formData.DEPARTAMENTO || null,
+      provincia: formData.PROVINCIA || null,
+      distrito: formData.DISTRITO || null,
+      ref_dom: formData.REF_DOM || null,
       fecha_nacimiento: formData.FECHA_NACIMIENTO || null,
       sexo: formData.SEXO || null,
+      discapacidad: formData.DISCAPACIDAD || false,
+      tipo_discapacidad: formData.TIPO_DISCAPACIDAD || null,
+      nro_conadis: formData.NRO_CONADIS || null,
       id_roles
     };
 

@@ -58,5 +58,6 @@ export const periodosModalConfig = {
   editTitle: 'Editar Periodo',
   deleteTitle: '¿Eliminar periodo?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar el periodo "${row?.NOMBRE_PERIODO}" (${row?.CODIGO_PERIODO})?`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'md'
 };

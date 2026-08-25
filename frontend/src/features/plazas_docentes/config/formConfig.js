@@ -69,5 +69,6 @@ export const plazaModalConfig = {
   editTitle: 'Editar Plaza Docente',
   deleteTitle: '¿Eliminar plaza docente?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar la plaza "${row?.IDENTIFICADOR_DOCENTE}"?`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'lg'
 };

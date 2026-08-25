@@ -2,12 +2,14 @@ import enviar from '../../lib/handlers/correos/enviar.js';
 import enviarMasivo from '../../lib/handlers/correos/enviar-masivo.js';
 import enviarId from '../../lib/handlers/correos/enviar-id.js';
 import cuentasSmtp from '../../lib/handlers/correos/cuentas-smtp.js';
+import cronEnviar from '../../lib/handlers/correos/cron-enviar.js';
 
 const handlers = {
   enviar,
   'enviar-masivo': enviarMasivo,
   'enviar-id': enviarId,
   'cuentas-smtp': cuentasSmtp,
+  'cron-enviar': cronEnviar,
 };
 
 export default async function handler(req, res) {

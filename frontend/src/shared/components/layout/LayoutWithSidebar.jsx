@@ -8,7 +8,9 @@ import '../../theme/components/SidebarMenu.css';
  * Desktop (lg+): el sidebar es "push" — ocupa espacio real en el flex layout
  * y empuja el contenido principal. Contraído ocupa peekWidth px, abierto 280px.
  * Hover sobre el sidebar contraído lo expande. Botón "pin" lo ancla abierto
- * para que no se cierre al salir el mouse.
+ * para que no se cierre al salir el mouse. El estado del pin se persiste en
+ * localStorage por sidebar (key basada en el nombre del componente) para
+ * conservarse al navegar entre páginas que comparten el mismo sidebar.
  *
  * Mobile: toggle manual mediante botón chevron + overlay backdrop con fade.
  *
@@ -17,7 +19,7 @@ import '../../theme/components/SidebarMenu.css';
  * @param {React.ComponentType} sidebar - Componente de sidebar (opcional)
  * @param {boolean} defaultOpen - Si el sidebar inicia abierto
  * @param {boolean} hoverEnabled - Si el hover-to-expand está activo (default true)
- * @param {number} peekWidth - Ancho del sidebar cuando colapsado (default 24)
+ * @param {number} peekWidth - Ancho del sidebar cuando colapsado (default 40)
  * @param {number} hoverDelay - Ms antes de cerrar al salir el mouse (default 300)
  */
 const LayoutWithSidebar = ({
@@ -30,8 +32,19 @@ const LayoutWithSidebar = ({
   peekWidth = 40,
   hoverDelay = 300
 }) => {
+  // Key de localStorage basada en el nombre del componente sidebar
+  const sidebarKey = Sidebar?.displayName || Sidebar?.name || 'default';
+  const PIN_STORAGE_KEY = `sidebar_pin_${sidebarKey}`;
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(defaultOpen);
-  const [isPinned, setIsPinned] = useState(false);
+  const [isPinned, setIsPinned] = useState(() => {
+    try {
+      const saved = localStorage.getItem(PIN_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
+  });
   const [isHovering, setIsHovering] = useState(false);
   const closeTimerRef = useRef(null);
 
@@ -66,10 +79,14 @@ const LayoutWithSidebar = ({
     setIsHovering(true);
   }, []);
 
-  // Toggle pin (anclar/desanclar sidebar abierto)
+  // Toggle pin (anclar/desanclar sidebar abierto) — persiste en localStorage
   const handleTogglePin = useCallback(() => {
-    setIsPinned(prev => !prev);
-  }, []);
+    setIsPinned(prev => {
+      const next = !prev;
+      try { localStorage.setItem(PIN_STORAGE_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, [PIN_STORAGE_KEY]);
 
   // Toggle manual móvil
   const handleMobileToggle = useCallback(() => {

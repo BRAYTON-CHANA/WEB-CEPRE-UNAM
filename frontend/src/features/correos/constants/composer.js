@@ -6,10 +6,11 @@ export const MASIVO_VIEWS = [
     label: 'Docentes',
     idField: 'ID_USUARIO',
     emailField: 'EMAIL',
-    labelTemplate: '{APELLIDOS} {NOMBRES} - {EMAIL}',
+    labelTemplate: '{APELLIDO_PATERNO} {APELLIDO_MATERNO} {NOMBRES} - {EMAIL}',
     descriptionField: 'EMAIL',
     mergeFields: [
-      { field: 'APELLIDOS', label: 'Apellidos' },
+      { field: 'APELLIDO_PATERNO', label: 'Apellido paterno' },
+      { field: 'APELLIDO_MATERNO', label: 'Apellido materno' },
       { field: 'NOMBRES', label: 'Nombres' },
       { field: 'NOMBRE_COMPLETO', label: 'Nombre completo' },
       { field: 'DNI', label: 'DNI' },

@@ -81,5 +81,6 @@ export const planesAcademicosCursosModalConfig = {
   editTitle: 'Editar Asignación de Curso',
   deleteTitle: '¿Eliminar asignación de curso?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar el curso "${row?.NOMBRE_CURSO}" del plan "${row?.DESCRIPCION_PLAN}"?`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'md'
 };

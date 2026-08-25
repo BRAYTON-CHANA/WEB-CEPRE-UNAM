@@ -120,5 +120,6 @@ export const postulanteModalConfig = {
   editTitle: 'Editar Postulante',
   deleteTitle: '¿Eliminar postulante?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar al postulante "${row?.NOMBRES} ${row?.APELLIDOS}"?`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'lg'
 };

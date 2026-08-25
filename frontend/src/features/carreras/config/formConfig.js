@@ -60,5 +60,6 @@ export const carreraModalConfig = {
   editTitle: 'Editar Carrera',
   deleteTitle: '¿Eliminar carrera?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar la carrera "${row?.NOMBRE_CARRERA}"?`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'md'
 };

@@ -1,8 +1,8 @@
 import React from 'react';
 
 export function DocenteCard({ docente, onClick }) {
-  const nombreCompleto = `${docente.APELLIDOS || ''}, ${docente.NOMBRES || ''}`.trim();
-  const iniciales = `${docente.NOMBRES?.[0] || ''}${docente.APELLIDOS?.[0] || ''}`.toUpperCase();
+  const nombreCompleto = `${docente.APELLIDO_PATERNO || ''} ${docente.APELLIDO_MATERNO || ''}, ${docente.NOMBRES || ''}`.trim();
+  const iniciales = `${docente.NOMBRES?.[0] || ''}${docente.APELLIDO_PATERNO?.[0] || ''}`.toUpperCase();
 
   return (
     <button

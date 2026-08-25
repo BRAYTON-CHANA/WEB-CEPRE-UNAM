@@ -6,6 +6,8 @@ export const MODAL_SIZES = {
   md:   'max-w-xl',
   lg:   'max-w-3xl',
   xl:   'max-w-5xl',
+  '2xl': 'max-w-6xl',
+  '3xl': 'max-w-7xl',
   full: 'max-w-full'
 };
 
@@ -15,6 +17,8 @@ export const MODAL_MAX_HEIGHTS = {
   md:   'max-h-[70vh]',
   lg:   'max-h-[80vh]',
   xl:   'max-h-[90vh]',
+  '2xl': 'max-h-[92vh]',
+  '3xl': 'max-h-[95vh]',
   full: 'max-h-[95vh]'
 };
 
@@ -102,7 +106,7 @@ export const MODAL_PATTERNS = {
 
 // Valores por defecto
 export const MODAL_DEFAULTS = {
-  size: 'lg',
+  size: '3xl',
   position: 'center',
   overlayColor: 'blur',
   overlayOpacity: 30,

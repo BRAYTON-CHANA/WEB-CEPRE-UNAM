@@ -121,7 +121,7 @@ export async function updateRequisito(id, data, formData, originalRecord) {
  * Genera URL firmada temporal para descargar el archivo asociado.
  */
 export async function getRequisitoUrl(path) {
-  const data = await requestStorage('url', { bucket: 'postulaciones-adjuntos', path });
+  const data = await requestStorage('url', { bucket: 'usuarios-adjuntos', path });
   return data.url;
 }
 

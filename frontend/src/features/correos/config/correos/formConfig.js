@@ -22,7 +22,7 @@ export const correosFormFields = [
     referenceTable: 'USUARIOS',
     referenceField: 'ID_USUARIO',
     referenceLabelField: 'NOMBRES',
-    referenceQuery: '{APELLIDOS} {NOMBRES}',
+    referenceQuery: '{APELLIDO_PATERNO} {APELLIDO_MATERNO} {NOMBRES}',
     searchable: true,
     placeholder: 'Seleccionar usuarios...',
     required: false,
@@ -36,7 +36,7 @@ export const correosFormFields = [
     referenceTable: 'USUARIOS',
     referenceField: 'EMAIL',
     referenceLabelField: 'EMAIL',
-    referenceQuery: '{APELLIDOS} {NOMBRES} - {EMAIL}',
+    referenceQuery: '{APELLIDO_PATERNO} {APELLIDO_MATERNO} {NOMBRES} - {EMAIL}',
     searchable: true,
     placeholder: 'Seleccionar correos CC...',
     required: false,
@@ -47,7 +47,7 @@ export const correosFormFields = [
     hidden: { and: [{ field: 'ESTADO', op: '=', value: 'enviado' }] },
     type: 'text',
     label: 'Asunto',
-    required: true,
+    required: false,
     placeholder: 'Ej: Notificación de apertura de inscripciones'
   },
   {
@@ -146,9 +146,6 @@ export const correosValidation = {
   TIPO: {
     required: { value: true, message: 'El tipo de correo es obligatorio' }
   },
-  ASUNTO: {
-    required: { value: true, message: 'El asunto es obligatorio' }
-  },
   CUERPO_HTML: {
     required: { value: true, message: 'El cuerpo HTML es obligatorio' }
   },
@@ -165,5 +162,6 @@ export const correosModalConfig = {
   editTitle: 'Editar Correo',
   deleteTitle: '¿Eliminar correo?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar el correo "${row?.ASUNTO}"?`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'lg'
 };

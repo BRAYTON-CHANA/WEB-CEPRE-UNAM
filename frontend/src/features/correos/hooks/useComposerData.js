@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { db } from '@/shared/api';
 import { ALLOWED_MAIL_TYPES } from '@/features/correos/constants/composer';
 
-export function useComposerData(isOpen) {
+export function useComposerData(isOpen, editMode = false) {
   const [tipos, setTipos] = useState([]);
   const [cuentas, setCuentas] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -31,7 +31,7 @@ export function useComposerData(isOpen) {
         if (mounted) {
           setTipos(tiposFiltrados);
           setCuentas(cuentasRes || []);
-          if (tiposFiltrados.length === 1) {
+          if (!editMode && tiposFiltrados.length === 1) {
             const t = tiposFiltrados[0];
             setTipo(t.NOMBRE_TIPO);
             if (t.ID_CUENTA) setCuenta(String(t.ID_CUENTA));
@@ -58,6 +58,7 @@ export function useComposerData(isOpen) {
   );
 
   useEffect(() => {
+    if (editMode) return; // En modo edición, no sobreescribir la cuenta seleccionada.
     if (tipoSeleccionado?.ID_CUENTA) {
       const id = String(tipoSeleccionado.ID_CUENTA);
       const existe = cuentas.some(c => String(c.ID_CUENTA) === id);
@@ -65,7 +66,7 @@ export function useComposerData(isOpen) {
     } else {
       setCuenta('');
     }
-  }, [tipoSeleccionado, cuentas]);
+  }, [tipoSeleccionado, cuentas, editMode]);
 
   const remitente = useMemo(() => {
     const c = cuentas.find(cu => String(cu.ID_CUENTA) === cuenta);

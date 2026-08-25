@@ -19,7 +19,7 @@ import TestSchedule from '@/app/views/modules/test-schedule';
 import TestMultiLevelTable from '@/app/views/modules/test-multilevelTable';
 
 
-import InfraestructuraConfig from '@/app/views/configuracion/infraestructura';
+import InfraestructuraConfig from '@/app/views/configuracion/academico/infraestructura';
 import PeriodosConfig from '@/app/views/configuracion/gestion_periodo/periodos';
 import CursosConfig from '@/app/views/configuracion/academico/cursos';
 import AreasConfig from '@/app/views/configuracion/academico/areas';
@@ -108,7 +108,7 @@ function App() {
 
       <Route path="/configuracion" element={<Configuracion />} />
 
-      <Route path="/configuracion/infraestructura" element={<InfraestructuraConfig />} />
+      <Route path="/configuracion/academico/infraestructura" element={<InfraestructuraConfig />} />
 
       <Route path="/configuracion/academico/areas" element={<AreasConfig />} />
       <Route path="/configuracion/academico/cursos" element={<CursosConfig />} />

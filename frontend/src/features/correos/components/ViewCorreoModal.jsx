@@ -103,6 +103,10 @@ const ViewCorreoModal = ({ email, onClose }) => {
           <span className="text-gray-800">{formatList(email.DESTINATARIOS)}</span>
         </div>
         <div className="grid grid-cols-[80px_1fr] gap-x-4 items-start">
+          <span className="text-gray-500 font-medium">Usuarios:</span>
+          <span className="text-gray-800">{formatList(email.USUARIOS_NOMBRES)}</span>
+        </div>
+        <div className="grid grid-cols-[80px_1fr] gap-x-4 items-start">
           <span className="text-gray-500 font-medium">CC:</span>
           <span className="text-gray-800">{formatList(email.CC)}</span>
         </div>

@@ -58,15 +58,21 @@ function CrudMultiLevelManager({ crudLevels = [], children }) {
           editTitle = 'Editar Registro',
           deleteTitle = '¿Eliminar registro?',
           deleteMessage = (row) => `¿Estás seguro de que deseas eliminar este registro?`,
-          size = 'lg',
+          size = '3xl',
           createFormKey = 'free',
-          editFormKey = 'free'
+          editFormKey = 'free',
+          headerGradient = null,
+          headerPattern = null,
+          headerClassName = ''
         } = modalConfig;
 
         const {
           editTitle: editTitleOverride = editTitle,
           size: editSize = size,
-          editFormKey: editFormKeyOverride = editFormKey
+          editFormKey: editFormKeyOverride = editFormKey,
+          editHeaderGradient = headerGradient,
+          editHeaderPattern = headerPattern,
+          editHeaderClassName = headerClassName
         } = editModalConfig;
 
         const createKey = typeof createFormKey === 'function'
@@ -88,6 +94,9 @@ function CrudMultiLevelManager({ crudLevels = [], children }) {
               title={createTitle}
               size={size}
               closeOnOutsideClick={false}
+              headerGradient={headerGradient}
+              headerPattern={headerPattern}
+              headerClassName={headerClassName}
             >
               <div className="p-6">
                 <CrudForm
@@ -120,6 +129,9 @@ function CrudMultiLevelManager({ crudLevels = [], children }) {
               title={editTitleOverride}
               size={editSize}
               closeOnOutsideClick={false}
+              headerGradient={editHeaderGradient}
+              headerPattern={editHeaderPattern}
+              headerClassName={editHeaderClassName}
             >
               <div className="p-6">
                 {crud.selectedRow && (

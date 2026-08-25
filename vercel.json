@@ -4,6 +4,12 @@
   "framework": "vite",
   "devCommand": "cd frontend && npm run dev -- --port $PORT",
   "outputDirectory": "frontend/dist",
+  "crons": [
+    {
+      "path": "/api/correos/cron-enviar?secret=cepre-cron-2026-xyz789",
+      "schedule": "*/15 * * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/((?!api/|@|.*\\..*$).*)",

@@ -256,11 +256,6 @@ const ColorInput = ({
         {renderColorPicker()}
       </div>
 
-      {/* Mensaje de ayuda */}
-      <div className="text-xs text-gray-500">
-        Formato: #RRGGBB (ej: #3B82F6) {allowAlpha && 'o #RRGGBBAA'}
-      </div>
-
       {renderColorPalette()}
     </div>
   );

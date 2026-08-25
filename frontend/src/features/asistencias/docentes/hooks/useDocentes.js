@@ -54,7 +54,7 @@ export function useDocentes(idPeriodo, idSede) {
         });
 
         // Ordenar por apellidos
-        docentesConPlazas.sort((a, b) => (a.APELLIDOS || '').localeCompare(b.APELLIDOS || ''));
+        docentesConPlazas.sort((a, b) => (a.APELLIDO_PATERNO || '').localeCompare(b.APELLIDO_PATERNO || ''));
 
         setDocentes(docentesConPlazas);
       })

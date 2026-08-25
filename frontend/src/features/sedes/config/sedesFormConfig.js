@@ -40,5 +40,6 @@ export const sedesModalConfig = {
   editTitle: 'Editar Sede',
   deleteTitle: '¿Eliminar sede?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar la sede "${row.NOMBRE_SEDE}"?`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'md'
 };

@@ -3,7 +3,7 @@ import { useCrudForms } from '@/shared/components/crud';
 import { useMultiLevelFetch } from '@/shared/hooks/useMultiLevelFetch';
 import { headerProps, getHeaderActions, getSedesLevelConfig } from '@/features/sedes/config/sedesTableConfig';
 import { sedesFormFields, sedesMultiStep, sedesValidation, sedesModalConfig } from '@/features/sedes/config/sedesFormConfig';
-import { aulaBaseFields, aulaMultiStep, aulaValidation, aulasModalConfig } from '@/features/aulas/config/aulasFormConfig';
+import { aulaBaseFields, aulaMultiStep, aulaValidation, aulasModalConfig, aulaFormLayout } from '@/features/aulas/config/aulasFormConfig';
 import { getAulasLevelConfig } from '@/features/aulas/config/aulasTableConfig';
 
 const FETCH_CONFIGS = [
@@ -93,7 +93,7 @@ export function useSedesYAulas() {
       tableName: 'AULAS',
       primaryKey: 'ID_AULA',
       formFields: aulaFormFields,
-      formLayout: null,
+      formLayout: aulaFormLayout,
       multiStep: aulaMultiStep,
       validation: aulaValidation,
       confirmSubmit: true,

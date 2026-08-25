@@ -5,7 +5,7 @@ import { useReferenceData } from '@/shared/hooks/useReferenceData';
 const DEFAULT_CONFIG = {
   tableName: 'USUARIOS',
   valueField: 'ID_USUARIO',
-  labelTemplate: '{APELLIDOS} {NOMBRES} - {EMAIL}',
+  labelTemplate: '{APELLIDO_PATERNO} {APELLIDO_MATERNO} {NOMBRES} - {EMAIL}',
   descriptionField: 'EMAIL',
   filters: [{ field: 'ACTIVO', op: '=', value: 1 }],
 };

@@ -7,7 +7,7 @@ export function formatList(value) {
 export function formatDate(value) {
   if (!value) return '-';
   const d = new Date(value);
-  return isNaN(d) ? value : d.toLocaleString('es-PE');
+  return isNaN(d) ? value : d.toLocaleString('es-PE', { timeZone: 'America/Lima' });
 }
 
 import React from 'react';

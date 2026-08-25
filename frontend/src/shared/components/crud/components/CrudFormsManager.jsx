@@ -37,7 +37,7 @@ function CrudFormsManager({
   formMultiStep,
   formValidation,
   confirmSubmit = true,
-  modalSize = 'lg',
+  modalSize = '3xl',
   createTitle = 'Crear Nuevo Registro',
   editTitle = 'Editar Registro',
   deleteTitle = '¿Eliminar registro?',

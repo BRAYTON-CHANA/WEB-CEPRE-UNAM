@@ -7,18 +7,21 @@ import React from 'react';
 const FormSection = ({
   // Identificación
   id,
-  
+
   // Contenido
   title = '',
   description = '',
-  
+
   // Children (campos del formulario)
   children,
-  
+
+  // Layout de columnas
+  columns = 1,
+
   // Opciones de estilo
   variant = 'default', // 'default' | 'bordered' | 'card'
   className = '',
-  
+
   // Estado
   isActive = true,
   isCompleted = false
@@ -31,6 +34,23 @@ const FormSection = ({
     bordered: 'bg-white border border-gray-200 rounded-lg p-6',
     card: 'bg-white shadow-md rounded-lg p-6 border border-gray-100'
   };
+
+  /**
+   * Clases de grid según número de columnas
+   * Responsive: 1 columna en móvil, N columnas desde md (768px+)
+   */
+  const gridColsClass = {
+    1: 'grid grid-cols-1 gap-4',
+    2: 'grid grid-cols-1 md:grid-cols-2 gap-4',
+    3: 'grid grid-cols-1 md:grid-cols-3 gap-4',
+    4: 'grid grid-cols-1 md:grid-cols-4 gap-4',
+    5: 'grid grid-cols-1 md:grid-cols-5 gap-4',
+    6: 'grid grid-cols-1 md:grid-cols-6 gap-4'
+  };
+
+  const fieldsContainerClass = columns > 1
+    ? (gridColsClass[columns] || gridColsClass[6])
+    : 'space-y-4';
 
   /**
    * Renderizar el header de la sección
@@ -80,8 +100,8 @@ const FormSection = ({
       `}
     >
       {renderHeader()}
-      
-      <div className="space-y-4">
+
+      <div className={fieldsContainerClass}>
         {children}
       </div>
     </div>

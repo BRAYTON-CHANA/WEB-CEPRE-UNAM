@@ -253,6 +253,13 @@ const ConfigSidebar = () => {
       expanded: expandedMenus.academico,
       children: [
         {
+          id: 'infraestructura',
+          name: 'Infraestructura',
+          icon: <BuildingIcon />,
+          href: '/configuracion/academico/infraestructura',
+          active: location.pathname === '/configuracion/academico/infraestructura'
+        },
+        {
           id: 'areas',
           name: 'Áreas',
           icon: <GridIcon />,
@@ -293,14 +300,8 @@ const ConfigSidebar = () => {
           icon: <TimetableIcon />,
           href: '/configuracion/academico/horarios',
           active: location.pathname === '/configuracion/academico/horarios'
-        },
-        {
-          id: 'infraestructura',
-          name: 'Infraestructura',
-          icon: <BuildingIcon />,
-          href: '/configuracion/infraestructura',
-          active: location.pathname === '/configuracion/infraestructura'
         }
+        
       ]
     },
     {
@@ -431,5 +432,7 @@ const ConfigSidebar = () => {
     />
   );
 };
+
+ConfigSidebar.displayName = 'ConfigSidebar';
 
 export default ConfigSidebar;

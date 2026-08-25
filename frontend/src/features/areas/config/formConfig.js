@@ -40,5 +40,6 @@ export const areasModalConfig = {
   editTitle: 'Editar Área',
   deleteTitle: '¿Eliminar área?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar el área "${row?.NOMBRE_AREA}"?`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'md'
 };

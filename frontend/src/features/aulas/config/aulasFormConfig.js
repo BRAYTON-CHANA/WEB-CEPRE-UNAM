@@ -1,5 +1,6 @@
 /**
  * Configuración de formulario para AULAS
+ * Layout: 2 columnas con colSpan para distribuir los campos
  */
 export const aulaBaseFields = [
   {
@@ -13,21 +14,16 @@ export const aulaBaseFields = [
     referenceFilters: [
       { field: 'ACTIVO', op: '=', value: 1 }
     ],
-    placeholder: 'Seleccione una sede'
+    placeholder: 'Seleccione una sede',
+    colSpan: 2
   },
   {
     name: 'NOMBRE_AULA',
     type: 'text',
     label: 'Nombre del Aula',
     required: true,
-    placeholder: 'Ej: Aula 101, Laboratorio 1, etc.'
-  },
-  {
-    name: 'UBICACION',
-    type: 'text',
-    label: 'Ubicación',
-    required: false,
-    placeholder: 'Ej: Pabellón A, 1er Piso'
+    placeholder: 'Ej: Aula 101, Laboratorio 1, etc.',
+    colSpan: 1
   },
   {
     name: 'TIPO',
@@ -38,19 +34,16 @@ export const aulaBaseFields = [
       { value: 'presencial', label: 'Presencial' },
       { value: 'virtual', label: 'Virtual' }
     ],
-    defaultValue: 'presencial'
+    defaultValue: 'presencial',
+    colSpan: 1
   },
   {
-    name: 'ENLACE_VIRTUAL',
+    name: 'UBICACION',
     type: 'text',
-    label: 'Enlace Virtual',
-    placeholder: 'URL para aulas virtuales',
-    blocked: {
-      and: [
-        { field: 'TIPO', op: '=', value: 'presencial' }
-      ],
-      clearOnBlock: true
-    }
+    label: 'Ubicación',
+    required: false,
+    placeholder: 'Ej: Pabellón A, 1er Piso',
+    colSpan: 1
   },
   {
     name: 'CAPACIDAD',
@@ -58,7 +51,21 @@ export const aulaBaseFields = [
     label: 'Capacidad',
     required: true,
     placeholder: 'Número de estudiantes',
-    min: 1
+    min: 1,
+    colSpan: 1
+  },
+  {
+    name: 'ENLACE_VIRTUAL',
+    type: 'text',
+    label: 'Enlace Virtual',
+    placeholder: 'URL para aulas virtuales',
+    colSpan: 2,
+    blocked: {
+      and: [
+        { field: 'TIPO', op: '=', value: 'presencial' }
+      ],
+      clearOnBlock: true
+    }
   }
 ];
 
@@ -68,6 +75,18 @@ export const aulaMultiStep = {
   nextText: 'Siguiente',
   prevText: 'Atrás',
   submitText: 'Guardar Aula'
+};
+
+/**
+ * Layout del formulario de aulas: 2 columnas
+ * - Sede: full width (colSpan 2)
+ * - Nombre + Tipo: misma fila (1 col cada uno)
+ * - Ubicación + Capacidad: misma fila (1 col cada uno)
+ * - Enlace Virtual: full width (colSpan 2)
+ */
+export const aulaFormLayout = {
+  type: 'single',
+  columns: 2
 };
 
 export const aulaValidation = {
@@ -91,5 +110,6 @@ export const aulasModalConfig = {
   editTitle: 'Editar Aula',
   deleteTitle: '¿Eliminar aula?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar el aula "${row.NOMBRE_AULA}"?`,
-  widthClass: 'w-full'
+  widthClass: 'w-full',
+  size: 'lg'
 };

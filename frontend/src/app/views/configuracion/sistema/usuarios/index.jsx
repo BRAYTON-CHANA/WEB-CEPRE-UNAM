@@ -4,6 +4,8 @@ import { TableMultiLevelEditable } from '@/shared/components/table';
 import Toast from '@/shared/components/ui/Toast';
 import Modal from '@/shared/components/modal/views/Modal';
 import PerfilView from '@/features/usuarios/components/PerfilView';
+import DniViewerModal from '@/features/usuarios/components/DniViewerModal';
+import ArrayEditorModal from '@/shared/components/ui/ArrayEditorModal';
 import { ConfigLayout } from '@/features/layout';
 import { headerProps, getHeaderActions } from '@/features/usuarios/config/headerConfig';
 import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
@@ -17,7 +19,11 @@ function UsuariosConfig() {
     records, loading, error,
     usuariosCrud, tableLevelConfigs, crudLevels,
     notification, setNotification,
-    perfilModalOpen, setPerfilModalOpen, selectedUser
+    perfilModalOpen, setPerfilModalOpen, selectedUser,
+    dniViewerOpen, setDniViewerOpen, dniViewerUser,
+    refresh,
+    rolesModalOpen, rolesEditingRow, rolesSaving,
+    handleSaveRoles, handleCloseRoles
   } = useUsuarios();
 
   return (
@@ -75,7 +81,7 @@ function UsuariosConfig() {
                     levelConfigs={enrichedLevelConfigs}
                     saveMode="auto"
                     formatToastMessage={(recordId, field, newValue, primaryKey, rowData, header) => {
-                      const name = [rowData?.NOMBRES, rowData?.APELLIDOS].filter(Boolean).join(' ') || 'Usuario';
+                      const name = [rowData?.NOMBRES, rowData?.APELLIDO_PATERNO].filter(Boolean).join(' ') || 'Usuario';
                       return `${name}: ${header?.label || field} → ${newValue ? 'Activo' : 'No activo'}`;
                     }}
                     toastProps={{ fontFamily: 'inherit', backgroundColor: '#2E3A68' }}
@@ -100,6 +106,28 @@ function UsuariosConfig() {
           />
         </div>
       </Modal>
+
+      <DniViewerModal
+        open={dniViewerOpen}
+        user={dniViewerUser}
+        onClose={() => setDniViewerOpen(false)}
+        onUpdated={refresh}
+      />
+
+      <ArrayEditorModal
+        isOpen={rolesModalOpen}
+        onClose={handleCloseRoles}
+        title={`Roles de: ${rolesEditingRow?.NOMBRE_COMPLETO || ''}`}
+        tableName="ROLES"
+        valueField="ID_ROL"
+        labelField="NOMBRE_ROL"
+        searchField="NOMBRE_ROL"
+        searchPlaceholder="Buscar rol..."
+        filters={[{ field: 'ES_SISTEMA', op: '=', value: false }]}
+        selectedValues={rolesEditingRow?.ID_ROLES || []}
+        onSave={handleSaveRoles}
+        loading={rolesSaving}
+      />
     </ConfigLayout>
   );
 }

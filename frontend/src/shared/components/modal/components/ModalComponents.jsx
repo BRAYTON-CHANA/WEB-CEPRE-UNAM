@@ -27,13 +27,13 @@ export const ModalError = ({ error }) => (
 /**
  * Componente de botón de cierre para el modal
  */
-export const ModalCloseButton = ({ onClose, customIcon, preventClose }) => {
+export const ModalCloseButton = ({ onClose, customIcon, preventClose, light = false }) => {
   if (preventClose) return null;
-  
+
   return (
     <button
       onClick={onClose}
-      className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+      className={`${light ? 'text-white/80 hover:text-white' : 'text-gray-400 hover:text-gray-600'} transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded`}
       aria-label="Cerrar modal"
     >
       {customIcon || (

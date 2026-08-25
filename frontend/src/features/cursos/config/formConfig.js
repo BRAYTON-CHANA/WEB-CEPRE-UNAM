@@ -7,14 +7,16 @@ export const cursosFormFields = [
     type: 'text',
     label: 'Código del Curso',
     required: true,
-    placeholder: 'Ej: MAT-I, RM'
+    placeholder: 'Ej: MAT-I, RM',
+    colSpan: 1
   },
   {
     name: 'NOMBRE_CURSO',
     type: 'text',
     label: 'Nombre del Curso',
     required: true,
-    placeholder: 'Ej: MATEMATICA I, RAZONAMIENTO MATEMATICO'
+    placeholder: 'Ej: MATEMATICA I, RAZONAMIENTO MATEMATICO',
+    colSpan: 1
   },
   {
     name: 'EJE_TEMATICO',
@@ -25,7 +27,8 @@ export const cursosFormFields = [
     columnName: 'EJE_TEMATICO',
     allowCreate: true,
     createTitle: 'Agregar Nuevo Eje Temático',
-    searchable: false
+    searchable: false,
+    colSpan: 2
   },
   {
     name: 'COLOR',
@@ -33,9 +36,21 @@ export const cursosFormFields = [
     label: 'Color del Curso',
     placeholder: '#3B82F6',
     showPalettes: true,
-    paletteType: 'material'
+    paletteType: 'material',
+    colSpan: 2
   }
 ];
+
+/**
+ * Layout del formulario de cursos: 2 columnas
+ * - Código + Nombre: misma fila
+ * - Eje Temático: full width
+ * - Color: full width
+ */
+export const cursosFormLayout = {
+  type: 'single',
+  columns: 2
+};
 
 export const cursosMultiStep = {
   showDots: true,
@@ -62,5 +77,6 @@ export const cursosModalConfig = {
   editTitle: 'Editar Curso',
   deleteTitle: '¿Eliminar curso?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar el curso "${row?.NOMBRE_CURSO}"?`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'lg'
 };

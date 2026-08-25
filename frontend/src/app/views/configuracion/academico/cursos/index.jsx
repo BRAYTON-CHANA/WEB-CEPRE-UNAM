@@ -3,7 +3,7 @@ import { useTableData, useCrudForms, CrudMultiLevelManager, CrudHeader } from '@
 import { TableMultiLevelEditable } from '@/shared/components/table';
 import { ConfigLayout } from '@/features/layout';
 import { tableConfig, getTableLevelConfigs } from '@/features/cursos/config/tableConfig';
-import { cursosFormFields, cursosMultiStep, cursosValidation, cursosModalConfig } from '@/features/cursos/config/formConfig';
+import { cursosFormFields, cursosFormLayout, cursosMultiStep, cursosValidation, cursosModalConfig } from '@/features/cursos/config/formConfig';
 import { headerProps, getHeaderActions } from '@/features/cursos/config/headerConfig';
 
 /**
@@ -38,7 +38,7 @@ function CursosConfig() {
       tableName: 'CURSOS',
       primaryKey: 'ID_CURSO',
       formFields: cursosFormFields,
-      formLayout: null,
+      formLayout: cursosFormLayout,
       multiStep: cursosMultiStep,
       validation: cursosValidation,
       confirmSubmit: true,

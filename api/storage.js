@@ -1,17 +1,20 @@
 import {
   getAttachmentUrl,
   getPostulacionFileUrl,
+  getUsuarioDocUrl,
   uploadAttachment,
   uploadPostulacionFile,
   uploadRequisitoFile,
+  uploadUsuarioDoc,
   deleteAttachment,
   deletePostulacionFile,
+  deleteUsuarioDoc,
 } from '../lib/shared/storageService.js';
 import { withAuth } from '../lib/middleware/auth.js';
 import 'dotenv/config';
 
-const ALLOWED_BUCKETS = ['correos-adjuntos', 'postulaciones-adjuntos'];
-const ALLOWED_UPLOAD_DOMAINS = ['correos', 'postulaciones', 'requisitos'];
+const ALLOWED_BUCKETS = ['correos-adjuntos', 'usuarios-adjuntos'];
+const ALLOWED_UPLOAD_DOMAINS = ['correos', 'postulaciones', 'requisitos', 'usuarios'];
 
 function base64ToBuffer(file) {
   if (typeof file !== 'string') {
@@ -58,7 +61,7 @@ async function handler(req, res) {
       const url =
         bucket === 'correos-adjuntos'
           ? await getAttachmentUrl(path, expirySeconds || 3600)
-          : await getPostulacionFileUrl(path, expirySeconds || 3600);
+          : await getUsuarioDocUrl(path, expirySeconds || 3600);
 
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
       res.json({ success: true, data: { url } });
@@ -90,6 +93,8 @@ async function handler(req, res) {
         result = await uploadPostulacionFile(fileBuffer, filename, contentType, id, tipo || 'cv', options);
       } else if (domain === 'requisitos') {
         result = await uploadRequisitoFile(fileBuffer, filename, contentType, id);
+      } else if (domain === 'usuarios') {
+        result = await uploadUsuarioDoc(fileBuffer, filename, contentType, id, tipo || 'dni');
       }
 
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -111,7 +116,7 @@ async function handler(req, res) {
       const result =
         bucket === 'correos-adjuntos'
           ? await deleteAttachment(path)
-          : await deletePostulacionFile(path);
+          : await deleteUsuarioDoc(path);
 
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
       res.json({ success: true, data: result });

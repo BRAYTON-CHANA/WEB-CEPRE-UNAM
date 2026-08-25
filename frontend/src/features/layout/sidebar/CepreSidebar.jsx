@@ -27,4 +27,6 @@ const CepreSidebar = () => {
   );
 };
 
+CepreSidebar.displayName = 'CepreSidebar';
+
 export default CepreSidebar;

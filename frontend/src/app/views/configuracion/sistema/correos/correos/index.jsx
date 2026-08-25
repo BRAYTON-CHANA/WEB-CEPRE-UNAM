@@ -25,7 +25,18 @@ function CorreosConfig() {
   const tableLevelConfigs = getTableLevelConfigs(correosCrud);
   const [viewEmail, setViewEmail] = useState(null);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [editEmail, setEditEmail] = useState(null);
   const handleView = (row) => setViewEmail(row);
+
+  const handleEditComposer = (row) => {
+    setEditEmail(row);
+    setComposerOpen(true);
+  };
+
+  const handleCloseComposer = () => {
+    setComposerOpen(false);
+    setEditEmail(null);
+  };
 
   const handleEnviar = async (row) => {
     if (!row?.ID_CORREO) return;
@@ -61,8 +72,8 @@ function CorreosConfig() {
             ...level,
             actions: level.actions ? {
               ...level.actions,
-              edit: level.actions.edit ? { ...level.actions.edit, onClick: h.handleEdit } : undefined,
-              observaciones: level.actions.observaciones ? { ...level.actions.observaciones, onClick: h.handleEdit } : undefined,
+              edit: level.actions.edit ? { ...level.actions.edit, onClick: handleEditComposer } : undefined,
+              observaciones: level.actions.observaciones ? { ...level.actions.observaciones, onClick: handleEditComposer } : undefined,
               delete: level.actions.delete ? { ...level.actions.delete, onClick: h.handleDelete } : undefined,
               enviar: level.actions.enviar ? { ...level.actions.enviar, onClick: handleEnviar } : undefined,
               ver: level.actions.ver ? level.actions.ver.map(action => ({ ...action, onClick: handleView })) : undefined
@@ -105,8 +116,10 @@ function CorreosConfig() {
               <ViewCorreoModal email={viewEmail} onClose={() => setViewEmail(null)} />
               <CorreoComposer
                 isOpen={composerOpen}
-                onClose={() => setComposerOpen(false)}
-                onSuccess={() => { refresh(); setComposerOpen(false); }}
+                editMode={!!editEmail}
+                editData={editEmail}
+                onClose={handleCloseComposer}
+                onSuccess={() => { refresh(); handleCloseComposer(); }}
               />
             </div>
           );

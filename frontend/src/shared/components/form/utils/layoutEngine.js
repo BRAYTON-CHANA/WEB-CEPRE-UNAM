@@ -13,7 +13,7 @@
 export const organizeFields = (fields, layout = null, showWarnings = true) => {
   // Si no hay layout explícito, crear estructura single-page por defecto
   if (!layout || layout.type === 'single') {
-    return createSinglePageStructure(fields, showWarnings);
+    return createSinglePageStructure(fields, layout, showWarnings);
   }
 
   // Layout multi-step
@@ -24,15 +24,16 @@ export const organizeFields = (fields, layout = null, showWarnings = true) => {
   if (showWarnings) {
     console.error(`[layoutEngine] Tipo de layout no soportado: ${layout.type}`);
   }
-  return createSinglePageStructure(fields, showWarnings);
+  return createSinglePageStructure(fields, layout, showWarnings);
 };
 
 /**
  * Crea estructura de página única (default)
  */
-const createSinglePageStructure = (fields, showWarnings = true) => {
+const createSinglePageStructure = (fields, layout = null, showWarnings = true) => {
   const warnings = [];
   const assignedFields = [];
+  const sectionColumns = layout?.columns || 1;
 
   fields.forEach((field) => {
     if (field.page || field.section) {
@@ -65,6 +66,7 @@ const createSinglePageStructure = (fields, showWarnings = true) => {
             id: 'section-1',
             number: 1,
             title: '',
+            columns: sectionColumns,
             fields: assignedFields
           }
         ]
@@ -171,6 +173,7 @@ const createMultiStepStructure = (fields, pagesConfig, showWarnings = true) => {
           number: sectionNum,
           title: sectionConfig.title || '',
           description: sectionConfig.description || '',
+          columns: sectionConfig.columns || 1,
           fields: sectionFields
         });
       });
@@ -188,6 +191,7 @@ const createMultiStepStructure = (fields, pagesConfig, showWarnings = true) => {
         number: 1,
         title: '',
         description: '',
+        columns: pageConfig.columns || 1,
         fields: pageFields
       });
     }

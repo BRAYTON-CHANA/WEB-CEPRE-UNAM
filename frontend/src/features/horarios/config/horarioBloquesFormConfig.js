@@ -82,5 +82,6 @@ export const bloqueModalConfig = {
   editTitle: 'Editar Bloque',
   deleteTitle: '¿Eliminar bloque?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar el bloque "${row.ETIQUETA || row.TIPO_BLOQUE}"?`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'md'
 };

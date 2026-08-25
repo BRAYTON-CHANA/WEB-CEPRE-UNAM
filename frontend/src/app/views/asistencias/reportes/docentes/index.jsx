@@ -74,7 +74,7 @@ function AsistenciasReportesDocentes() {
   });
 
   const handleExportDocente = async (docente) => {
-    const nombre = docente.NOMBRE_COMPLETO || `${docente.APELLIDOS} ${docente.NOMBRES}`;
+    const nombre = docente.NOMBRE_COMPLETO || `${docente.APELLIDO_PATERNO || ''} ${docente.APELLIDO_MATERNO || ''} ${docente.NOMBRES || ''}`.trim();
     setExportandoDocente(docente.ID_DOCENTE);
     try {
       await exportRegistroDocente(docente.ID_DOCENTE, nombre, periodoActivo);
@@ -203,10 +203,10 @@ function AsistenciasReportesDocentes() {
                       <div key={docente.ID_DOCENTE} className="bg-white border border-gray-100 rounded-2xl p-4 hover:shadow-md hover:border-violet-200 transition-all cursor-pointer">
                         <div className="flex items-center gap-3 mb-3">
                           <div className="w-12 h-12 rounded-full bg-violet-100 flex items-center justify-center text-violet-700 font-bold text-lg">
-                            {docente.NOMBRES?.[0]}{docente.APELLIDOS?.[0]}
+                            {docente.NOMBRES?.[0]}{docente.APELLIDO_PATERNO?.[0]}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-900 text-sm truncate">{docente.APELLIDOS} {docente.NOMBRES}</h3>
+                            <h3 className="font-semibold text-gray-900 text-sm truncate">{docente.APELLIDO_PATERNO} {docente.APELLIDO_MATERNO} {docente.NOMBRES}</h3>
                           </div>
                         </div>
                         <div className="space-y-1 mb-3">

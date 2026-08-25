@@ -67,5 +67,6 @@ export const requisitosModalConfig = {
   editTitle: 'Editar Requisito',
   deleteTitle: '¿Eliminar requisito?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar el requisito "${row?.NOMBRE}"?`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'md'
 };

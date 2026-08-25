@@ -78,5 +78,6 @@ export const docentesModalConfig = {
   editTitle: 'Editar Docente',
   deleteTitle: '¿Eliminar docente?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar al docente "${row?.NOMBRE_COMPLETO}"?`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'lg'
 };

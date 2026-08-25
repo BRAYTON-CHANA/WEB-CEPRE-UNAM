@@ -176,5 +176,6 @@ export const grupoModalConfig = {
   editTitle: 'Editar Grupo',
   deleteTitle: '¿Eliminar grupo?',
   deleteMessage: (row) => `¿Estás seguro de que deseas eliminar el grupo "${row?.NOMBRE_GRUPO}" (${row?.CODIGO_GRUPO})?`,
-  widthClass: 'w-1/2'
+  widthClass: 'w-1/2',
+  size: 'lg'
 };
