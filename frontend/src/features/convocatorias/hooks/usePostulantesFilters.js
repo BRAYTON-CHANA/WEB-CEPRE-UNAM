@@ -42,13 +42,34 @@ export function usePostulantesFilters(initialFilters) {
       const data = await db.select('VW_CONVOCATORIAS_CURSO', { ID_CONVOCATORIA: idConvocatoria });
       const sedesMap = new Map();
       (data || []).forEach(row => {
-        if (!sedesMap.has(row.ID_SEDE)) {
-          sedesMap.set(row.ID_SEDE, { ID_SEDE: row.ID_SEDE, NOMBRE_SEDE: row.NOMBRE_SEDE, CODIGO_SEDE: row.CODIGO_SEDE });
+        const modalidad = row.MODALIDAD || 'PRESENCIAL';
+        if (modalidad === 'VIRTUAL') {
+          // Pseudo-sede Virtual (clave 'virtual' para distinguir de IDs numéricos)
+          if (!sedesMap.has('virtual')) {
+            sedesMap.set('virtual', {
+              ID_SEDE: 'virtual',
+              NOMBRE_SEDE: 'Virtual',
+              CODIGO_SEDE: 'VRT',
+              MODALIDAD: 'VIRTUAL'
+            });
+          }
+        } else {
+          if (!sedesMap.has(row.ID_SEDE)) {
+            sedesMap.set(row.ID_SEDE, {
+              ID_SEDE: row.ID_SEDE,
+              NOMBRE_SEDE: row.NOMBRE_SEDE,
+              CODIGO_SEDE: row.CODIGO_SEDE,
+              MODALIDAD: 'PRESENCIAL'
+            });
+          }
         }
       });
-      setSedes(Array.from(sedesMap.values()).sort((a, b) =>
-        String(a.NOMBRE_SEDE || '').localeCompare(String(b.NOMBRE_SEDE || ''), 'es', { sensitivity: 'base' })
-      ));
+      // Ordenar: sedes reales primero (alfabético), Virtual al final
+      setSedes(Array.from(sedesMap.values()).sort((a, b) => {
+        if (a.MODALIDAD === 'VIRTUAL' && b.MODALIDAD !== 'VIRTUAL') return 1;
+        if (a.MODALIDAD !== 'VIRTUAL' && b.MODALIDAD === 'VIRTUAL') return -1;
+        return String(a.NOMBRE_SEDE || '').localeCompare(String(b.NOMBRE_SEDE || ''), 'es', { sensitivity: 'base' });
+      }));
     } catch (err) {
       console.error('Error cargando sedes:', err);
       setSedes([]);
@@ -63,6 +84,7 @@ export function usePostulantesFilters(initialFilters) {
   }, [selectedIdConvocatoria]);
 
   // Cargar cursos para una convocatoria + sede
+  // Si idSede === 'virtual', filtra por MODALIDAD='VIRTUAL' en lugar de ID_SEDE
   const loadCursos = async (idConvocatoria, idSede) => {
     if (!idConvocatoria || !idSede) {
       setCursos([]);
@@ -70,10 +92,13 @@ export function usePostulantesFilters(initialFilters) {
     }
     setLoadingFilters(true);
     try {
-      const data = await db.select('VW_CONVOCATORIAS_CURSO', {
-        ID_CONVOCATORIA: idConvocatoria,
-        ID_SEDE: idSede
-      });
+      const filters = { ID_CONVOCATORIA: idConvocatoria };
+      if (idSede === 'virtual') {
+        filters.MODALIDAD = 'VIRTUAL';
+      } else {
+        filters.ID_SEDE = idSede;
+      }
+      const data = await db.select('VW_CONVOCATORIAS_CURSO', filters);
       const sorted = [...(data || [])].sort((a, b) =>
         String(a.NOMBRE_CURSO || '').localeCompare(String(b.NOMBRE_CURSO || ''), 'es', { sensitivity: 'base' })
       );

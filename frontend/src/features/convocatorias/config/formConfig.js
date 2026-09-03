@@ -23,15 +23,15 @@ export const convocatoriaFormFields = [
   },
   {
     name: 'FECHA_APERTURA',
-    type: 'datetime',
+    type: 'native-datetime',
     label: 'Fecha apertura',
     required: true
   },
   {
     name: 'FECHA_CIERRE',
-    type: 'datetime',
+    type: 'native-datetime',
     label: 'Fecha cierre',
-    required: false
+    required: true
   }
 ];
 
@@ -41,6 +41,9 @@ export const convocatoriaValidation = {
   },
   FECHA_APERTURA: {
     required: { value: true, message: 'La fecha de apertura es obligatoria' }
+  },
+  FECHA_CIERRE: {
+    required: { value: true, message: 'La fecha de cierre es obligatoria' }
   }
 };
 
@@ -57,12 +60,16 @@ export const convocatoriaValidationSinPeriodo = (formData) => {
     errors.FECHA_APERTURA = 'La fecha de apertura es obligatoria';
   }
 
+  if (!formData.FECHA_CIERRE) {
+    errors.FECHA_CIERRE = 'La fecha de cierre es obligatoria';
+  }
+
   if (formData.FECHA_APERTURA && formData.FECHA_CIERRE) {
     const apertura = new Date(formData.FECHA_APERTURA);
     const cierre = new Date(formData.FECHA_CIERRE);
     if (!isNaN(apertura.getTime()) && !isNaN(cierre.getTime())) {
       if (apertura >= cierre) {
-        errors.FECHA_APERTURA = 'La fecha de apertura debe ser menor que la fecha de cierre';
+        errors.FECHA_CIERRE = 'La fecha de cierre debe ser mayor que la fecha de apertura';
       }
     }
   }
@@ -94,6 +101,18 @@ export const convocatoriaCursoFormFields = [
     searchable: true
   },
   {
+    name: 'MODALIDAD',
+    type: 'select',
+    label: 'Modalidad',
+    required: true,
+    defaultValue: 'PRESENCIAL',
+    options: [
+      { value: 'PRESENCIAL', label: 'Presencial' },
+      { value: 'VIRTUAL', label: 'Virtual' }
+    ],
+    placeholder: 'Seleccione modalidad'
+  },
+  {
     name: 'ID_SEDE',
     type: 'reference-select',
     label: 'Sede',
@@ -101,7 +120,9 @@ export const convocatoriaCursoFormFields = [
     referenceTable: 'SEDES',
     referenceField: 'ID_SEDE',
     referenceQuery: '{NOMBRE_SEDE}',
-    placeholder: 'Seleccione una sede'
+    placeholder: 'Seleccione una sede',
+    // Ocultar cuando MODALIDAD = 'VIRTUAL'
+    hidden: { field: 'MODALIDAD', op: '=', value: 'VIRTUAL' }
   },
   {
     name: 'ID_CURSO',
@@ -123,19 +144,28 @@ export const convocatoriaCursoFormFields = [
   }
 ];
 
-export const convocatoriaCursoValidation = {
-  ID_CONVOCATORIA: {
-    required: { value: true, message: 'La convocatoria es obligatoria' }
-  },
-  ID_SEDE: {
-    required: { value: true, message: 'La sede es obligatoria' }
-  },
-  ID_CURSO: {
-    required: { value: true, message: 'El curso es obligatorio' }
-  },
-  NUMERO_PLAZAS: {
-    required: { value: true, message: 'El número de plazas es obligatorio' }
+export const convocatoriaCursoValidation = (formData) => {
+  const errors = {};
+  if (!formData.ID_CONVOCATORIA) {
+    errors.ID_CONVOCATORIA = 'La convocatoria es obligatoria';
   }
+  const modalidad = formData.MODALIDAD || 'PRESENCIAL';
+  if (!formData.MODALIDAD) {
+    errors.MODALIDAD = 'La modalidad es obligatoria';
+  }
+  if (modalidad === 'PRESENCIAL' && !formData.ID_SEDE) {
+    errors.ID_SEDE = 'La sede es obligatoria para modalidad presencial';
+  }
+  if (modalidad === 'VIRTUAL' && formData.ID_SEDE) {
+    errors.ID_SEDE = 'La sede debe estar vacía para modalidad virtual';
+  }
+  if (!formData.ID_CURSO) {
+    errors.ID_CURSO = 'El curso es obligatorio';
+  }
+  if (!formData.NUMERO_PLAZAS) {
+    errors.NUMERO_PLAZAS = 'El número de plazas es obligatorio';
+  }
+  return errors;
 };
 
 export const convocatoriaCursoModalConfig = {

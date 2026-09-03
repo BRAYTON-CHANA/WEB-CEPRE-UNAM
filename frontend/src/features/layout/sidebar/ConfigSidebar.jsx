@@ -165,6 +165,17 @@ const ConfigSidebar = () => {
     </svg>
   );
 
+  const HolidayIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="16" y1="2" x2="16" y2="6"></line>
+      <line x1="8" y1="2" x2="8" y2="6"></line>
+      <line x1="3" y1="10" x2="21" y2="10"></line>
+      <line x1="9" y1="16" x2="15" y2="14"></line>
+      <line x1="15" y1="16" x2="9" y2="14"></line>
+    </svg>
+  );
+
   const KeyIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 0 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
@@ -331,13 +342,20 @@ const ConfigSidebar = () => {
               active: location.pathname === '/configuracion/gestion_periodo/contratacion_docente/convocatorias'
             },
             {
-              id: 'requisitos-docentes',
-              name: 'Requisitos Docentes',
+              id: 'requisitos',
+              name: 'Requisitos',
               icon: <GridIcon />,
-              href: '/configuracion/gestion_periodo/contratacion_docente/requisitos-docentes',
-              active: location.pathname === '/configuracion/gestion_periodo/contratacion_docente/requisitos-docentes'
+              href: '/configuracion/gestion_periodo/contratacion_docente/requisitos',
+              active: location.pathname === '/configuracion/gestion_periodo/contratacion_docente/requisitos'
             }
           ]
+        },
+        {
+          id: 'feriados',
+          name: 'Feriados',
+          icon: <HolidayIcon />,
+          href: '/configuracion/gestion_periodo/feriados',
+          active: location.pathname === '/configuracion/gestion_periodo/feriados'
         },
         {
           id: 'grupos',
@@ -352,28 +370,6 @@ const ConfigSidebar = () => {
           icon: <UserIcon />,
           href: '/configuracion/gestion_periodo/postulantes',
           active: location.pathname === '/configuracion/gestion_periodo/postulantes'
-        },
-        {
-          id: 'gestion_periodo_programacion',
-          name: 'Programación',
-          icon: <TimetableIcon />,
-          expanded: expandedMenus.gestion_periodo_programacion,
-          children: [
-            {
-              id: 'programacion_grupo',
-              name: 'Programación de Grupo',
-              icon: <TimetableIcon />,
-              href: '/configuracion/gestion_periodo/programacion_grupo',
-              active: location.pathname === '/configuracion/gestion_periodo/programacion_grupo'
-            },
-            {
-              id: 'programacion_plazas_docentes',
-              name: 'Programación por Plaza (En mantenimiento)',
-              icon: <TimetableIcon />,
-              disabled: true,
-              active: false
-            }
-          ]
         },
         {
           id: 'gestion_periodo_reportes',

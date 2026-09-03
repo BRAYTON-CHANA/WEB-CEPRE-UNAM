@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { db } from '@/shared/api';
 import cacheService from '@/shared/services/cacheService';
-import { generateBlockTimeRanges } from '@/features/configuracion/programacion_grupo/config/transformers';
+import { generateBlockTimeRanges } from '@/features/grupos/config/transformers';
 
 /**
  * Intercambia el ORDEN de dos bloques respetando la restricción UNIQUE(ID_HORARIO, ORDEN).

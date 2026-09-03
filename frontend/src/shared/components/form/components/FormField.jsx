@@ -15,7 +15,8 @@ const FormField = ({
   onBlur,
   showVisualDebugs = false,
   formData = {},
-  onReferenceSelectLoadComplete = null
+  onReferenceSelectLoadComplete = null,
+  disabled: propDisabled = false
 }) => {
   const {
     name,
@@ -23,7 +24,7 @@ const FormField = ({
     label,
     placeholder,
     required,
-    disabled = false,
+    disabled: fieldDisabled = false,
     showTypeIndicator,
     hidden,
     blocked,
@@ -97,10 +98,10 @@ const FormField = ({
     label: resolvedLabel,
     placeholder: resolvedPlaceholder,
     required,
-    disabled: disabled || isBlocked,
+    disabled: propDisabled || fieldDisabled || isBlocked,
     error,
     touched: touched || false
-  }), [name, value, onChange, onBlur, resolvedLabel, resolvedPlaceholder, required, disabled, isBlocked, error, touched]);
+  }), [name, value, onChange, onBlur, resolvedLabel, resolvedPlaceholder, required, propDisabled, fieldDisabled, isBlocked, error, touched]);
 
   // Memoizar props adicionales para evitar re-renders innecesarios
   const conditionalProps = useMemo(() => ({
@@ -178,6 +179,23 @@ const FormField = ({
           separateInputs: field.separateInputs
         };
 
+      case 'native-datetime':
+        return {
+          min: field.min,
+          max: field.max
+        };
+
+      case 'native-date': {
+        const minVal = typeof field.min === 'string' && field.min.includes('{')
+          ? (formData ? formData[field.min.replace(/[{}]/g, '')] : undefined) : field.min;
+        const maxVal = typeof field.max === 'string' && field.max.includes('{')
+          ? (formData ? formData[field.max.replace(/[{}]/g, '')] : undefined) : field.max;
+        return {
+          min: minVal || undefined,
+          max: maxVal || undefined
+        };
+      }
+
       case 'select':
       case 'dropdown':
         return {
@@ -237,7 +255,8 @@ const FormField = ({
           showAddButton: field.showAddButton,
           addComponent: field.addComponent,
           addModalTitle: field.addModalTitle,
-          addModalSize: field.addModalSize
+          addModalSize: field.addModalSize,
+          onAddClick: field.onAddClick
         };
 
       case 'function-select':
@@ -257,6 +276,7 @@ const FormField = ({
           addComponent: field.addComponent,
           addModalTitle: field.addModalTitle,
           addModalSize: field.addModalSize,
+          onAddClick: field.onAddClick,
           displayFields: field.displayFields
         };
 
@@ -287,7 +307,8 @@ const FormField = ({
           allowedExtensions: field.allowedExtensions,
           showFileIcon: field.showFileIcon,
           replaceMode: field.replaceMode,
-          singleFile: field.singleFile
+          singleFile: field.singleFile,
+          getDownloadUrl: field.getDownloadUrl
         };
 
       case 'checkbox':
@@ -301,6 +322,11 @@ const FormField = ({
       case 'boolean':
         return {
           // BooleanInput no requiere props adicionales, usa name, label, value, etc.
+        };
+
+      case 'switch':
+        return {
+          // SwitchInput no requiere props adicionales, usa name, label, value, etc.
         };
 
       case 'radio':
@@ -361,6 +387,13 @@ const FormField = ({
           maxSize: field.maxSize
         };
 
+      case 'string-array':
+        return {
+          placeholderItem: field.placeholderItem,
+          maxItems: field.maxItems,
+          maxItemLength: field.maxItemLength
+        };
+
       default:
         return {};
     }
@@ -374,8 +407,16 @@ const FormField = ({
     ...commonProps,
     ...specificProps,
     ...conditionalProps,
-    ...(type === 'reference-select' && onReferenceSelectLoadComplete ? { onReferenceSelectLoadComplete } : {})
-  }), [commonProps, specificProps, conditionalProps, type, onReferenceSelectLoadComplete]);
+    ...(type === 'reference-select' && onReferenceSelectLoadComplete ? { onReferenceSelectLoadComplete } : {}),
+    // Pasar props de add directamente desde field (evita stale memo de specificProps)
+    ...(type === 'reference-select' ? {
+      showAddButton: field.showAddButton,
+      addComponent: field.addComponent,
+      addModalTitle: field.addModalTitle,
+      addModalSize: field.addModalSize,
+      onAddClick: field.onAddClick
+    } : {})
+  }), [commonProps, specificProps, conditionalProps, type, onReferenceSelectLoadComplete, field.showAddButton, field.addComponent, field.addModalTitle, field.addModalSize, field.onAddClick]);
 
   return (
     <div className="relative">

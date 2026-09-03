@@ -1,7 +1,7 @@
 import React from 'react';
 import { Form } from '@/shared/components/form';
 import { Modal } from '@/shared/components/modal';
-import { postulacionValidation } from '@/features/plazas_docentes/config/postulacionFormConfig';
+import { postulacionValidation } from '@/features/convocatorias/config/postulacionFormConfig';
 
 /**
  * PostulacionCreateModal — modal para crear una postulación.

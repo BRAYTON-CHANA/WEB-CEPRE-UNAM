@@ -208,14 +208,28 @@ export const renderCell = (value, rowIndex, header, columnType, colorMap) => {
   // ── Date / Datetime ───────────────────────────────────────────────────────
   if ((columnType === 'date' || columnType === 'datetime') && value) {
     try {
-      const date = new Date(value);
-      if (!isNaN(date.getTime())) {
-        if (columnType === 'datetime') {
+      if (columnType === 'datetime') {
+        const date = new Date(value);
+        if (!isNaN(date.getTime())) {
           const dateStr = date.toLocaleDateString('es-PE', { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' });
           const timeStr = date.toLocaleTimeString('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit', hour12: false });
           return <span>{`${dateStr} ${timeStr}`}</span>;
         }
-        const dateStr = date.toLocaleDateString('es-PE', { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' });
+      }
+      // date puro: evitar conversión de zona horaria.
+      // PostgreSQL DATE llega como "YYYY-MM-DD"; new Date() lo parsea como UTC medianoche
+      // y toLocaleDateString con timeZone: 'America/Lima' (UTC-5) lo muestra un día antes.
+      // Solución: parsear como fecha local (año, mes, día) y formatear sin timeZone.
+      const str = String(value);
+      const m = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) {
+        const localDate = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+        const dateStr = localDate.toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        return <span>{dateStr}</span>;
+      }
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        const dateStr = date.toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' });
         return <span>{dateStr}</span>;
       }
     } catch (e) {

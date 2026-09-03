@@ -1,15 +1,20 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { CrudForm } from '@/shared/components/form';
 import { authService } from '@/features/login/services/authService';
 import cacheService from '@/shared/services/cacheService';
-import { usuariosFormFields, usuariosValidation } from '@/features/usuarios/config/formConfig';
+import { usuariosFormFields, usuariosFormLayout } from '@/features/usuarios/config/formConfig';
 
 const AddUsuarioForm = ({ onSuccess, onError }) => {
-  const createUsuario = useCallback(async (formData) => {
-    const id_roles = Array.isArray(formData.ID_ROLES)
-      ? formData.ID_ROLES.map(r => (typeof r === 'object' ? Number(r.ID_ROL) : Number(r))).filter(Boolean)
-      : [];
+  // Filtrar el campo de roles — no aplica al vincular usuario desde docente/wizard
+  // TEMPORAL: quitar required para ir probando el layout
+  const fieldsWithoutRoles = useMemo(
+    () => usuariosFormFields
+      .filter(f => f.name !== 'ID_ROLES')
+      .map(f => ({ ...f, required: false })),
+    []
+  );
 
+  const createUsuario = useCallback(async (formData) => {
     const payload = {
       dni: formData.DNI,
       apellido_paterno: formData.APELLIDO_PATERNO,
@@ -29,7 +34,7 @@ const AddUsuarioForm = ({ onSuccess, onError }) => {
       discapacidad: formData.DISCAPACIDAD || false,
       tipo_discapacidad: formData.TIPO_DISCAPACIDAD || null,
       nro_conadis: formData.NRO_CONADIS || null,
-      id_roles
+      id_roles: []
     };
 
     const result = await authService.register(payload);
@@ -46,12 +51,14 @@ const AddUsuarioForm = ({ onSuccess, onError }) => {
     <CrudForm
       tableName="USUARIOS"
       mode="create"
-      fields={usuariosFormFields}
+      fields={fieldsWithoutRoles}
+      layout={usuariosFormLayout}
       primaryKey="ID_USUARIO"
-      validation={usuariosValidation}
+      validation={{}}
       createFunction={createUsuario}
       onSuccess={handleSuccess}
       onError={onError}
+      submitWrapperClassName="hidden"
     />
   );
 };

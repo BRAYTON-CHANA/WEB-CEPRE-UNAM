@@ -42,9 +42,11 @@ export const getManageCrudLevels = ({
   plazaDocenteCrud,
   formFieldsWithDefaults,
   selectedSedeForNewCurso,
+  selectedModalidadForNewCurso,
   refresh,
   setSelectedConvocatoriaForNewCurso,
   setSelectedSedeForNewCurso,
+  setSelectedModalidadForNewCurso,
   setEditingConvocatoriaId
 }) => [
   {
@@ -59,16 +61,18 @@ export const getManageCrudLevels = ({
     createFunction: addConvocatoriaCursoPlazas,
     modalConfig: {
       ...convocatoriaCursoModalConfig,
-      createFormKey: selectedSedeForNewCurso ?? 'free'
+      createFormKey: `${selectedSedeForNewCurso ?? 'free'}-${selectedModalidadForNewCurso ?? 'free'}`
     },
     onCreateSuccess: () => {
       refresh();
       setSelectedConvocatoriaForNewCurso(null);
       setSelectedSedeForNewCurso(null);
+      setSelectedModalidadForNewCurso(null);
     },
     onCreateClose: () => {
       setSelectedConvocatoriaForNewCurso(null);
       setSelectedSedeForNewCurso(null);
+      setSelectedModalidadForNewCurso(null);
     },
     onEditSuccess: () => {
       refresh();

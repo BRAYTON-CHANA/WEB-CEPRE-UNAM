@@ -18,13 +18,13 @@ export const periodosFormFields = [
   },
   {
     name: 'FECHA_INICIO',
-    type: 'date',
+    type: 'native-date',
     label: 'Fecha de Inicio',
     required: true
   },
   {
     name: 'FECHA_FIN',
-    type: 'date',
+    type: 'native-date',
     label: 'Fecha de Fin',
     required: true
   }
@@ -38,19 +38,33 @@ export const periodosMultiStep = {
   submitText: 'Guardar Periodo'
 };
 
-export const periodosValidation = {
-  CODIGO_PERIODO: {
-    required: { value: true, message: 'El código del periodo es requerido' }
-  },
-  NOMBRE_PERIODO: {
-    required: { value: true, message: 'El nombre del periodo es requerido' }
-  },
-  FECHA_INICIO: {
-    required: { value: true, message: 'La fecha de inicio es requerida' }
-  },
-  FECHA_FIN: {
-    required: { value: true, message: 'La fecha de fin es requerida' }
+export const periodosValidation = (formData) => {
+  const errors = {};
+
+  if (!formData.CODIGO_PERIODO || formData.CODIGO_PERIODO.toString().trim() === '') {
+    errors.CODIGO_PERIODO = 'El código del periodo es requerido';
   }
+
+  if (!formData.NOMBRE_PERIODO || formData.NOMBRE_PERIODO.toString().trim() === '') {
+    errors.NOMBRE_PERIODO = 'El nombre del periodo es requerido';
+  }
+
+  if (!formData.FECHA_INICIO || formData.FECHA_INICIO.toString().trim() === '') {
+    errors.FECHA_INICIO = 'La fecha de inicio es requerida';
+  }
+
+  if (!formData.FECHA_FIN || formData.FECHA_FIN.toString().trim() === '') {
+    errors.FECHA_FIN = 'La fecha de fin es requerida';
+  }
+
+  // Validación cross-field: la fecha de fin debe ser mayor que la de inicio
+  if (formData.FECHA_INICIO && formData.FECHA_FIN) {
+    if (formData.FECHA_INICIO >= formData.FECHA_FIN) {
+      errors.FECHA_FIN = 'La fecha de fin debe ser mayor que la fecha de inicio';
+    }
+  }
+
+  return errors;
 };
 
 export const periodosModalConfig = {

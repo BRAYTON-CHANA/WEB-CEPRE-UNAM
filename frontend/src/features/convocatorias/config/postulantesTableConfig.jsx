@@ -1,5 +1,4 @@
-import React from 'react';
-import { formatDatePEWithStatus } from '@/shared/utils/formatUtils.jsx';
+﻿import React from 'react';
 
 /**
  * Headers de la tabla de postulaciones (VW_POSTULACIONES_PLAZA).
@@ -17,9 +16,9 @@ export const getPostulantesTableHeaders = () => [
           {row.RUC && <span>· RUC: {row.RUC}</span>}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {row.CONDICION_LABORAL_SNAPSHOT && (
+          {row.SNAP_CONDICION_LABORAL && (
             <span className="inline-flex w-fit items-center px-1.5 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] rounded font-medium border border-indigo-200">
-              {row.CONDICION_LABORAL_SNAPSHOT}
+              {row.SNAP_CONDICION_LABORAL}
             </span>
           )}
           <span className="text-[10px] text-gray-400">
@@ -43,40 +42,15 @@ export const getPostulantesTableHeaders = () => [
     ),
   },
   {
-    field: 'FECHA_ENTREVISTA',
-    title: 'Entrevista',
-    type: 'date',
+    field: 'APTO',
+    title: 'Apto',
+    type: 'boolean',
     editable: true,
     targetTable: 'POSTULACION_PLAZA',
-    targetField: 'FECHA_ENTREVISTA',
-    render: (value, row) => formatDatePEWithStatus(value, row.ENTREVISTA_REALIZADA, 'Realizada', 'Pendiente'),
-  },
-  { field: 'FECHA_CONTRATO', title: 'Contrato', type: 'date', render: (value, row) => formatDatePEWithStatus(value, row.CONTRATO_FIRMADO, 'Firmado', 'Sin firmar') },
-  { field: 'ESTADO', title: 'Estado', type: 'string' },
-  {
-    field: 'ID_PLAZA_DOCENTE',
-    title: 'Plaza',
-    type: 'reference-select',
-    editable: true,
-    referenceTable: 'VW_PLAZA_DOCENTE_ASIGNADA',
-    referenceField: 'ID_PLAZA_DOCENTE',
-    referenceLabelField: 'IDENTIFICADOR_DOCENTE',
-    referenceFilters: [
-      { field: 'ID_CONVOCATORIA_CURSO', op: '=', value: '{ID_CONVOCATORIA_CURSO}' }
-    ],
-    excludeValues: true,
-    excludeGroupField: 'ID_CONVOCATORIA_CURSO',
-    targetTable: 'POSTULACION_PLAZA',
-    targetField: 'ID_PLAZA_DOCENTE',
-    placeholder: 'Sin asignar',
-    render: (value, row) => {
-      if (!value) return <span className="text-gray-300 italic">Sin asignar</span>;
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 bg-[#57C7C2]/10 text-[#57C7C2] text-xs rounded font-medium border border-[#57C7C2]/20">
-          {row.IDENTIFICADOR_PLAZA || value}
-        </span>
-      );
-    },
+    targetField: 'APTO',
+    render: (value) => value
+      ? <span className="inline-flex items-center px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded font-medium border border-green-200">Apto</span>
+      : <span className="inline-flex items-center px-2 py-0.5 bg-gray-50 text-gray-500 text-xs rounded font-medium border border-gray-200">No apto</span>,
   },
 ];
 

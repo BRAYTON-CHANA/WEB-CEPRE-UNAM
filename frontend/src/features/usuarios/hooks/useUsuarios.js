@@ -173,6 +173,17 @@ export function useUsuarios() {
     onAdminRoles: handleAdminRoles
   }), [usuariosCrud, handleResetPassword, handleVerPerfil, handleVerDni, handleAdminRoles]);
 
+  // Transformar record para construir objetos file desde metadata de storage
+  const transformRecord = useCallback((record) => ({
+    ...record,
+    DNI_ARCHIVO: record.DNI_STORAGE_PATH ? {
+      name: record.DNI_FILENAME || 'archivo.pdf',
+      size: record.DNI_TAMAÑO_BYTES || 0,
+      url: null,
+      storagePath: record.DNI_STORAGE_PATH  // path para generar URL firmada
+    } : ''
+  }), []);
+
   const crudLevels = useMemo(() => [
     {
       crud: usuariosCrud,
@@ -184,9 +195,10 @@ export function useUsuarios() {
       confirmSubmit: true,
       modalConfig: usuariosModalConfig,
       createFunction: createUsuario,
-      editFunction: editUsuario
+      editFunction: editUsuario,
+      transformRecord
     }
-  ], [usuariosCrud, createUsuario, editUsuario]);
+  ], [usuariosCrud, createUsuario, editUsuario, transformRecord]);
 
   return {
     records,

@@ -1,20 +1,7 @@
 /**
- * Configuración de formulario para HORARIOS
+ * Configuración de formulario para HORARIOS (globales, sin sede)
  */
 export const horariosFormFields = [
-  {
-    name: 'ID_SEDE',
-    type: 'reference-select',
-    label: 'Sede',
-    required: true,
-    referenceTable: 'SEDES',
-    referenceField: 'ID_SEDE',
-    referenceQuery: '{NOMBRE_SEDE}',
-    referenceFilters: [
-      { field: 'ACTIVO', op: '=', value: 1 }
-    ],
-    placeholder: 'Seleccione una sede'
-  },
   {
     name: 'NOMBRE_HORARIO',
     type: 'text',
@@ -24,14 +11,14 @@ export const horariosFormFields = [
   },
   {
     name: 'HORA_INICIO_JORNADA',
-    type: 'time',
+    type: 'native-time',
     label: 'Hora Inicio Jornada',
     required: true,
     placeholder: 'Ej: 08:00'
   },
   {
     name: 'HORA_FIN_JORNADA',
-    type: 'time',
+    type: 'native-time',
     label: 'Hora Fin Jornada',
     required: true,
     placeholder: 'Ej: 14:00'

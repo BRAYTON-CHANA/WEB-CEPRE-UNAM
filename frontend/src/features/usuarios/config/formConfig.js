@@ -1,6 +1,8 @@
 /**
  * Configuración de formulario para USUARIOS
  */
+import { getDniUrl } from '@/features/usuarios/services/usuariosStorageService';
+
 export const usuariosFormFields = [
   // ── Identidad ──
   {
@@ -75,9 +77,10 @@ export const usuariosFormFields = [
   // ── Nacimiento ──
   {
     name: 'FECHA_NACIMIENTO',
-    type: 'date',
+    type: 'native-date',
     label: 'Fecha de Nacimiento',
     required: false,
+    max: new Date().toISOString().split('T')[0],
     colSpan: 2
   },
   // ── Ubicación ──
@@ -128,7 +131,7 @@ export const usuariosFormFields = [
     label: 'Tiene Discapacidad',
     required: false,
     defaultValue: false,
-    colSpan: 1
+    colSpan: 3
   },
   {
     name: 'TIPO_DISCAPACIDAD',
@@ -136,6 +139,8 @@ export const usuariosFormFields = [
     label: 'Tipo de Discapacidad',
     required: false,
     placeholder: 'Ej: Visual',
+    hidden: { field: 'DISCAPACIDAD', op: '=', value: false },
+    blocked: { clearOnBlock: true, field: 'DISCAPACIDAD', op: '=', value: false },
     colSpan: 1
   },
   {
@@ -144,6 +149,8 @@ export const usuariosFormFields = [
     label: 'N° CONADIS',
     required: false,
     placeholder: 'Ej: 1234567',
+    hidden: { field: 'DISCAPACIDAD', op: '=', value: false },
+    blocked: { clearOnBlock: true, field: 'DISCAPACIDAD', op: '=', value: false },
     colSpan: 1
   },
   // ── DNI documento ──
@@ -157,11 +164,17 @@ export const usuariosFormFields = [
     showPreview: true,
     allowDragDrop: true,
     ignoreField: true,
-    colSpan: 3
+    colSpan: 3,
+    getDownloadUrl: (fileValue) => {
+      if (fileValue && fileValue.storagePath) {
+        return getDniUrl(fileValue.storagePath);
+      }
+      return null;
+    }
   },
   {
     name: 'DNI_FECHA_VENCIMIENTO',
-    type: 'date',
+    type: 'native-date',
     label: 'Vencimiento del DNI',
     required: false,
     colSpan: 3

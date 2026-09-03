@@ -109,6 +109,13 @@ export const buildPayload = (formData, schema, primaryKey, formFields, originalR
           value = null;
         }
       }
+
+      // native-date: el valor ya viene en YYYY-MM-DD del input nativo
+      if (fieldConfig?.type === 'native-date' && typeof value === 'string') {
+        if (value === '') {
+          value = null;
+        }
+      }
       
       // No incluir campos undefined o null (a menos que sea explícito)
       if (value !== undefined) {

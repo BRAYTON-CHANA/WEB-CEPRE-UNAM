@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { DatabaseTableEditable } from '@/shared/components/table';
 import { useManagePostulantes } from '@/features/convocatorias/hooks/useManagePostulantes';
 import { usePostulantesFilters } from '@/features/convocatorias/hooks/usePostulantesFilters';
 import { getPostulantesTableHeaders, getPostulantesTableActions } from '@/features/convocatorias/config/postulantesTableConfig.jsx';
-import { getPostulacionFormFieldsWithConvocatoriaCurso } from '@/features/plazas_docentes/config/postulacionFormConfig';
 import FilterSelect from '@/shared/components/ui/inputs/FilterSelect';
 import PostulantesHeader from '@/features/convocatorias/components/PostulantesHeader';
-import PostulacionCreateModal from '@/features/convocatorias/components/PostulacionCreateModal';
-import AsignarPlazaModal from '@/features/convocatorias/components/AsignarPlazaModal';
+import PostulacionWizardModal from '@/features/convocatorias/components/PostulacionWizardModal';
 import AdjuntosModal from '@/features/convocatorias/components/AdjuntosModal';
+import Toast from '@/shared/components/ui/Toast';
 import { db } from '@/shared/api';
 
 function ManagePostulantesPanel({ initialFilters }) {
@@ -41,6 +40,7 @@ function ManagePostulantesPanel({ initialFilters }) {
 
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [toast, setToast] = useState(null);
 
   // Debounce de búsqueda: solo actualiza searchTerm 300ms después del último keystroke
   useEffect(() => {
@@ -53,7 +53,7 @@ function ManagePostulantesPanel({ initialFilters }) {
     isModalOpen, creating, formError,
     initialValues,
     handleOpenCreate, handleCloseModal, handleSubmit,
-    asignarModal, setAsignarModal, handleConfirmarAsignacion, closeAsignarModal,
+    refresh,
     handleSaveSuccess, handleSaveError,
     handleDeletePostulacion,
     adjuntosModal, handleViewAdjuntos, handleSaveAdjuntos, closeAdjuntosModal,
@@ -93,11 +93,6 @@ function ManagePostulantesPanel({ initialFilters }) {
 
   const convocatoriaCursosForForm = selectedIdSede ? cursos : allConvocatoriaCursos;
 
-  const formFields = useMemo(() => {
-    const lockConvocatoriaCurso = !!selectedIdConvocatoriaCurso;
-    return getPostulacionFormFieldsWithConvocatoriaCurso(convocatoriaCursosForForm, lockConvocatoriaCurso, convocatoriaLabel);
-  }, [convocatoriaCursosForForm, selectedIdConvocatoriaCurso, convocatoriaLabel]);
-
   const tableActions = useMemo(
     () => getPostulantesTableActions(handleViewAdjuntos, handleDeletePostulacion),
     [handleViewAdjuntos, handleDeletePostulacion]
@@ -106,6 +101,21 @@ function ManagePostulantesPanel({ initialFilters }) {
   // Memoizar headers para evitar re-creación de arrays/objetos en cada render
   // Esto previene que EditableCell y ReferenceSelectInput re-disparen consultas
   const tableHeaders = useMemo(() => getPostulantesTableHeaders(), []);
+
+  // Handler de éxito del wizard: refrescar postulaciones + mostrar toast
+  const handleWizardSuccess = useCallback((result) => {
+    refresh();
+    const count = result?.count ?? 0;
+    setToast({
+      type: 'success',
+      title: count > 0 ? 'Postulación creada' : 'Sin postulaciones nuevas',
+      description: count > 0
+        ? `${count} postulación${count > 1 ? 'es' : ''} registrada${count > 1 ? 's' : ''} correctamente.`
+        : 'No se registraron postulaciones nuevas (ya estaban postuladas).'
+    });
+  }, [refresh]);
+
+  const handleCloseToast = useCallback(() => setToast(null), []);
 
   return (
     <div className="px-8 py-8 space-y-6 pb-12">
@@ -230,7 +240,7 @@ function ManagePostulantesPanel({ initialFilters }) {
           actions={tableActions}
           primaryKey="ID_POSTULACION"
           externalLoading={loading}
-          saveMode="manual"
+          saveMode="auto"
           onSaveSuccess={handleSaveSuccess}
           onSaveError={handleSaveError}
           tableProps={{ emptyMessage: 'No hay postulaciones para los filtros seleccionados' }}
@@ -249,21 +259,13 @@ function ManagePostulantesPanel({ initialFilters }) {
       )}
 
       {/* Modales */}
-      <PostulacionCreateModal
+      <PostulacionWizardModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        formFields={formFields}
-        initialValues={initialValues}
-        onSubmit={handleSubmit}
-        creating={creating}
-        formError={formError}
-      />
-
-      <AsignarPlazaModal
-        asignarModal={asignarModal}
-        onSelectPlaza={(idPlaza) => setAsignarModal(prev => ({ ...prev, selectedPlaza: idPlaza }))}
-        onConfirm={handleConfirmarAsignacion}
-        onClose={closeAsignarModal}
+        idConvocatoriaCursoInicial={selectedIdConvocatoriaCurso || null}
+        convocatoriaCursos={convocatoriaCursosForForm}
+        convocatoriaLabel={convocatoriaLabel}
+        onSuccess={handleWizardSuccess}
       />
 
       <AdjuntosModal
@@ -271,6 +273,19 @@ function ManagePostulantesPanel({ initialFilters }) {
         onSave={handleSaveAdjuntos}
         onClose={closeAdjuntosModal}
       />
+
+      {/* Toast de feedback tras finalizar el wizard */}
+      {toast && (
+        <Toast
+          type={toast.type}
+          title={toast.title}
+          description={toast.description}
+          onClose={handleCloseToast}
+          position="top-right"
+          duration={3500}
+          backgroundColor="#2E3A68"
+        />
+      )}
     </div>
   );
 }

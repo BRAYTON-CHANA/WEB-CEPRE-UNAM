@@ -4,6 +4,7 @@ import CrudHeader from '@/shared/components/crud/views/CrudHeader';
 import Table from './Table';
 import EditableCell from '../components/EditableCell';
 import TableActions from '../components/TableActions';
+import Toast from '@/shared/components/ui/Toast';
 import { db } from '@/shared/api';
 import cacheService from '@/shared/services/cacheService';
 
@@ -68,6 +69,8 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
   const [editingData, setEditingData] = useState({});
   const [isBatchSaving, setIsBatchSaving] = useState(false);
   const [batchSaveError, setBatchSaveError] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [activeEditCellId, setActiveEditCellId] = useState(null);
 
   const isBatchMode = saveMode === 'manual';
 
@@ -90,6 +93,14 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
   useEffect(() => {
     if (refreshTrigger > 0 && !isExternal) refresh();
   }, [refreshTrigger, refresh, isExternal]);
+
+  // Enhanced headers with editable support
+  // Una columna es editable si el header la declara editable=true o si está en editableColumns
+  // Memoizado para evitar re-creación de objetos que cascada a re-renders de EditableCell
+  const enhancedHeaders = useMemo(() => headers.map(header => ({
+    ...header,
+    editable: (header.editable === true || typeof header.editable === 'function' || editableColumns.includes(header.field))
+  })), [headers, editableColumns]);
 
   const handleCellChange = useCallback((recordId, field, newValue) => {
     // Ignorar emisiones espurias de undefined (ej: ReferenceSelectInput al remontar)
@@ -144,15 +155,20 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
     } else {
       console.log('[DatabaseTableEditable] ⏭️ Datos externos: no se refresca internamente, se delega a onSaveSuccess');
     }
-    // Disparar callback externo si existe
+    // Mostrar toast de éxito
+    const header = enhancedHeaders.find(h => h.field === field);
+    const fieldLabel = header?.label || header?.title || field;
+    setToast({ title: 'Guardado exitoso', description: `${fieldLabel} → ${newValue}`, type: 'success' });
+    // Disparar callback externo si existe, pasando primaryKey
     if (onSaveSuccess) {
-      console.log('[DatabaseTableEditable] 📢 Disparando onSaveSuccess externo', { recordId, field, newValue });
-      onSaveSuccess(recordId, field, newValue);
+      console.log('[DatabaseTableEditable] 📢 Disparando onSaveSuccess externo', { recordId, field, newValue, primaryKey });
+      onSaveSuccess(recordId, field, newValue, primaryKey);
     }
-  }, [isExternal, refresh, onSaveSuccess]);
+  }, [isExternal, refresh, onSaveSuccess, primaryKey, enhancedHeaders]);
 
   const handleSaveError = useCallback((recordId, field, error) => {
     console.error('[DatabaseTableEditable] ❌ handleSaveError', { recordId, field, error: error?.message || error });
+    setToast({ title: 'Error', description: error?.message || 'Error al guardar', type: 'error' });
     if (onSaveError) {
       console.log('[DatabaseTableEditable] 📢 Disparando onSaveError externo');
       onSaveError(recordId, field, error);
@@ -181,14 +197,6 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
       }
     }
   };
-
-  // Enhanced headers with editable support
-  // Una columna es editable si el header la declara editable=true o si está en editableColumns
-  // Memoizado para evitar re-creación de objetos que cascada a re-renders de EditableCell
-  const enhancedHeaders = useMemo(() => headers.map(header => ({
-    ...header,
-    editable: header.editable === true || editableColumns.includes(header.field)
-  })), [headers, editableColumns]);
 
   // ── Modo batch: guardar todos los cambios acumulados ─────────────
   const handleBatchSave = useCallback(async () => {
@@ -291,7 +299,9 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
       }
     : !Array.isArray(actions) && actions && Object.keys(actions).length > 0
       ? actions
-      : {};
+      : null;
+
+  const hasRowActions = Boolean(tableActions);
 
   // Pre-calcular merged rows para que EditableCell pueda excluir valores de otras filas
   const allMergedRows = records.map(row => ({ ...row, ...(editingData[row[primaryKey]] || {}) }));
@@ -301,13 +311,39 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
 
   return (
     <div className="space-y-4">
+      {/* Toast de feedback */}
+      {toast && (
+        <Toast
+          title={toast.title}
+          description={toast.description}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={3000}
+          position="bottom-right"
+          size="lg"
+          showProgress
+        />
+      )}
+
       {(headerProps.headerTitle || headerProps.headerDescription || headerProps.actions?.length > 0) && (
         <CrudHeader {...headerProps} />
       )}
 
       {error && (
         <div className="bg-red-50 rounded-xl border border-red-100 p-4">
-          <p className="text-red-700 text-sm"><strong>Error:</strong> {error}</p>
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-red-700 text-sm"><strong>Error:</strong> {error}</p>
+            <button
+              onClick={() => { refresh(); }}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-white border border-red-200 rounded-lg hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Reintentar
+            </button>
+          </div>
         </div>
       )}
 
@@ -345,7 +381,7 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
                       <span>{header.title}</span>
                     </th>
                   ))}
-                  {tableActions && (
+                  {hasRowActions && (
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       Acciones
                     </th>
@@ -381,6 +417,9 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
                               onSaveSuccess={handleSaveSuccess}
                               onSaveError={handleSaveError}
                               allRows={allMergedRows}
+                              activeEditCellId={activeEditCellId}
+                              onEditStart={(cellId) => setActiveEditCellId(cellId)}
+                              onEditEnd={() => setActiveEditCellId(null)}
                             />
                           );
                         }
@@ -395,7 +434,7 @@ const DatabaseTableEditable = forwardRef(function DatabaseTableEditable({
                         );
                       })}
 
-                      {tableActions && (
+                      {hasRowActions && (
                         <td className="px-4 py-2.5 text-sm whitespace-nowrap text-left">
                           <TableActions
                             actions={tableActions}

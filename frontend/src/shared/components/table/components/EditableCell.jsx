@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
 import FunctionSelectInput from '@/shared/components/ui/inputs/FunctionSelectInput';
 import ToggleSwitch from '@/shared/components/ui/inputs/ToggleSwitch';
@@ -34,18 +35,31 @@ const EditableCell = ({
   saveMode = 'auto',
   onSaveSuccess,
   onSaveError,
-  allRows = []
+  allRows = [],
+  activeEditCellId,
+  onEditStart,
+  onEditEnd
 }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const cellId = `${rowId}::${column.field}`;
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [inputValue, setInputValue] = useState(value); // estado local del input (commit en blur/Enter)
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingValue, setPendingValue] = useState(null);
+
+  // Cerrar edición si otra celda se activa
+  useEffect(() => {
+    if (isEditing && activeEditCellId && activeEditCellId !== cellId) {
+      setIsEditing(false);
+    }
+  }, [activeEditCellId, cellId, isEditing]);
 
   const isBlocked = column.blocked
     ? evaluateOperatorSet(column.blocked, rowData)
     : false;
 
-  const canEdit = column.editable && !isBlocked;
+  const canEdit = (typeof column.editable === 'function' ? column.editable(rowData) : column.editable) && !isBlocked;
   const isSelectType = SELECT_TYPES.has(column.type);
   const isPending = saveMode !== 'auto' && value !== originalValue;
 
@@ -133,6 +147,14 @@ const EditableCell = ({
     const previousValue = value;
     console.log(`[EditableCell:${column.field}] 🖱️ handleChange iniciado`, { rowId, previousValue, newValue, hasAutoSave, hasEditFunction: !!editFunction, saveMode });
 
+    // Intercept: si hay confirmBeforeSave y el nuevo valor coincide con whenValue, mostrar modal
+    if (column.confirmBeforeSave && newValue === column.confirmBeforeSave.whenValue) {
+      console.log(`[EditableCell:${column.field}] 🔒 confirmBeforeSave detectado, esperando confirmación`);
+      setPendingValue(newValue);
+      setShowConfirm(true);
+      return;
+    }
+
     // Actualizar estado local inmediatamente para feedback visual
     if (!editFunction) {
       console.log(`[EditableCell:${column.field}] 📝 Notificando onCellChange (estado local) -> newValue`);
@@ -172,21 +194,58 @@ const EditableCell = ({
     // For auto save mode, exit editing after change
     if (saveMode === 'auto') {
       console.log(`[EditableCell:${column.field}] 🚪 Cerrando modo edición (saveMode=auto)`);
-      setIsEditing(false);
+      closeEditing();
     }
     console.log(`[EditableCell:${column.field}] 🏁 handleChange finalizado`);
   }, [rowId, column.field, value, onCellChange, editFunction, hasAutoSave, executeSave, saveMode]);
+
+  // ===== Handlers de confirmación (confirmBeforeSave) =====
+  const handleConfirmSave = useCallback(async () => {
+    const previousValue = value;
+    setShowConfirm(false);
+    if (!editFunction) {
+      onCellChange(rowId, column.field, pendingValue);
+    }
+    if (hasAutoSave && saveMode === 'auto') {
+      try {
+        await executeSave(pendingValue);
+      } catch (err) {
+        if (!editFunction) {
+          onCellChange(rowId, column.field, previousValue);
+        }
+      }
+    }
+    if (editFunction) {
+      try {
+        await editFunction(rowId, column.field, pendingValue);
+      } catch (err) {
+        console.error(`[EditableCell:${column.field}] confirmSave editFunction falló`, err);
+      }
+    }
+    setPendingValue(null);
+  }, [pendingValue, value, editFunction, onCellChange, rowId, column.field, hasAutoSave, saveMode, executeSave]);
+
+  const handleCancelConfirm = useCallback(() => {
+    setShowConfirm(false);
+    setPendingValue(null);
+  }, []);
 
   const handleActivate = (e) => {
     if (canEdit && !isEditing) {
       e.stopPropagation();
       setInputValue(value);
       setIsEditing(true);
+      if (onEditStart) onEditStart(cellId);
     }
   };
 
+  const closeEditing = useCallback(() => {
+    setIsEditing(false);
+    if (onEditEnd) onEditEnd();
+  }, [onEditEnd]);
+
   const handleKeyDown = (e) => {
-    if (e.key === 'Escape') setIsEditing(false);
+    if (e.key === 'Escape') closeEditing();
     if (e.key === 'Enter') {
       e.preventDefault();
       commitInput();
@@ -205,7 +264,7 @@ const EditableCell = ({
       if (finalValue === '' || finalValue === null || isNaN(num) || num < 0) {
         // Inválido: revertir sin guardar
         setInputValue(value);
-        setIsEditing(false);
+        closeEditing();
         return;
       }
       finalValue = num;
@@ -214,7 +273,7 @@ const EditableCell = ({
     if (finalValue !== value) {
       handleChange(column.field, finalValue);
     } else {
-      setIsEditing(false);
+      closeEditing();
     }
   };
 
@@ -300,6 +359,43 @@ const EditableCell = ({
               !
             </span>
           )}
+          {showConfirm && column.confirmBeforeSave && createPortal(
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleCancelConfirm} />
+              <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+                <div className="p-6 border-b border-amber-200 bg-amber-50">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 bg-amber-100">
+                      <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-amber-700">{column.confirmBeforeSave.title}</h3>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <p className="text-sm text-gray-600">{column.confirmBeforeSave.message}</p>
+                </div>
+                <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+                  <button
+                    onClick={handleCancelConfirm}
+                    className="px-5 py-2 text-sm font-semibold rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    {column.confirmBeforeSave.cancelText || 'Cancelar'}
+                  </button>
+                  <button
+                    onClick={handleConfirmSave}
+                    className="px-5 py-2 text-sm font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors"
+                  >
+                    {column.confirmBeforeSave.confirmText || 'Confirmar'}
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
         </td>
       );
     }
@@ -353,6 +449,43 @@ const EditableCell = ({
         >
           !
         </span>
+      )}
+      {showConfirm && column.confirmBeforeSave && createPortal(
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleCancelConfirm} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="p-6 border-b border-amber-200 bg-amber-50">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 bg-amber-100">
+                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-amber-700">{column.confirmBeforeSave.title}</h3>
+                </div>
+              </div>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-600">{column.confirmBeforeSave.message}</p>
+            </div>
+            <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+              <button
+                onClick={handleCancelConfirm}
+                className="px-5 py-2 text-sm font-semibold rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                {column.confirmBeforeSave.cancelText || 'Cancelar'}
+              </button>
+              <button
+                onClick={handleConfirmSave}
+                className="px-5 py-2 text-sm font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition-colors"
+              >
+                {column.confirmBeforeSave.confirmText || 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </td>
   );
@@ -411,7 +544,7 @@ function renderSimpleInput(column, inputValue, setInputValue, commitInput, isSav
           value={inputValue ?? ''}
           disabled={isSaving}
           onChange={e => setInputValue(e.target.value === '' ? '' : e.target.value)}
-          onBlur={commitInput}
+          onBlur={() => commitInput()}
           className="w-full min-w-[100px] px-2 py-1 text-sm border border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
           autoFocus
         />
@@ -421,10 +554,10 @@ function renderSimpleInput(column, inputValue, setInputValue, commitInput, isSav
       return (
         <input
           type="date"
-          value={inputValue ? new Date(inputValue).toISOString().split('T')[0] : ''}
+          value={inputValue ? String(inputValue).slice(0, 10) : ''}
           disabled={isSaving}
           onChange={e => setInputValue(e.target.value)}
-          onBlur={commitInput}
+          onBlur={() => commitInput()}
           className="w-full min-w-[140px] px-2 py-1 text-sm border border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
           autoFocus
         />
@@ -437,7 +570,7 @@ function renderSimpleInput(column, inputValue, setInputValue, commitInput, isSav
           value={inputValue ?? ''}
           disabled={isSaving}
           onChange={e => setInputValue(e.target.value)}
-          onBlur={commitInput}
+          onBlur={() => commitInput()}
           className="w-full min-w-[140px] px-2 py-1 text-sm border border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
           autoFocus
         />

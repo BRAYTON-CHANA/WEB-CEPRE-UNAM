@@ -26,15 +26,14 @@ import AreasConfig from '@/app/views/configuracion/academico/areas';
 import DocentesConfig from '@/app/views/configuracion/academico/docentes';
 import HorariosConfig from '@/app/views/configuracion/academico/horarios';
 import PlanesAcademicosConfig from '@/app/views/configuracion/academico/planes_academicos';
-// import PlazasDocentesConfig from '@/app/views/configuracion/gestion_periodo/plazas_docentes'; // TEMP: Se maneja desde convocatorias
 import ConvocatoriasConfig from '@/app/views/configuracion/gestion_periodo/contratacion_docente/convocatorias';
+import FeriadosConfig from '@/app/views/configuracion/gestion_periodo/feriados';
 import GruposConfig from '@/app/views/configuracion/gestion_periodo/grupos';
 import PostulantesConfig from '@/app/views/configuracion/gestion_periodo/postulantes';
 import CarrerasConfig from '@/app/views/configuracion/academico/carreras';
 import CorreosConfig from '@/app/views/configuracion/sistema/correos/correos';
 import PasswordResetConfig from '@/app/views/configuracion/sistema/correos/password-reset';
 import CuentasSmtpConfig from '@/app/views/configuracion/sistema/correos/cuentas-smtp';
-import ProgramacionGrupoConfig from '@/app/views/configuracion/gestion_periodo/programacion_grupo';
 // import ProgramacionPlazasDocentes from '@/app/views/configuracion/gestion_periodo/programacion_plazas_docentes'; // TEMP: En mantenimiento
 import ReportesIndex from '@/app/views/configuracion/gestion_periodo/reportes';
 import ReportesGrupos from '@/app/views/configuracion/gestion_periodo/reportes/grupos';
@@ -43,7 +42,7 @@ import ReportesDocentes from '@/app/views/configuracion/gestion_periodo/reportes
 import UsuariosConfig from '@/app/views/configuracion/sistema/usuarios';
 import PermisosConfig from '@/app/views/configuracion/sistema/permisos';
 import RolesConfig from '@/app/views/configuracion/sistema/roles';
-import RequisitosDocentesConfig from '@/app/views/configuracion/gestion_periodo/contratacion_docente/requisitos-docentes';
+import DocumentosPreguntasDocentesConfig from '@/app/views/configuracion/gestion_periodo/contratacion_docente/requisitos';
 
 
 import Asistencias from '@/app/views/asistencias';
@@ -116,14 +115,13 @@ function App() {
       <Route path="/configuracion/academico/docentes" element={<DocentesConfig />} />
       <Route path="/configuracion/academico/planes_academicos" element={<PlanesAcademicosConfig />} />
       <Route path="/configuracion/academico/horarios" element={<HorariosConfig />} />
-      <Route path="/configuracion/gestion_periodo/contratacion_docente/requisitos-docentes" element={<RequisitosDocentesConfig />} />
+      <Route path="/configuracion/gestion_periodo/contratacion_docente/requisitos" element={<DocumentosPreguntasDocentesConfig />} />
 
       <Route path="/configuracion/gestion_periodo/periodos" element={<PeriodosConfig />} />
-      {/* <Route path="/configuracion/gestion_periodo/plazas_docentes" element={<PlazasDocentesConfig />} /> TEMP: Se maneja desde convocatorias */}
       <Route path="/configuracion/gestion_periodo/contratacion_docente/convocatorias" element={<ConvocatoriasConfig />} />
+      <Route path="/configuracion/gestion_periodo/feriados" element={<FeriadosConfig />} />
       <Route path="/configuracion/gestion_periodo/grupos" element={<GruposConfig />} />
       <Route path="/configuracion/gestion_periodo/postulantes" element={<PostulantesConfig />} />
-      <Route path="/configuracion/gestion_periodo/programacion_grupo" element={<ProgramacionGrupoConfig />} />
       {/* <Route path="/configuracion/gestion_periodo/programacion_plazas_docentes" element={<ProgramacionPlazasDocentes />} /> TEMP: En mantenimiento */}
 
       <Route path="/configuracion/sistema/usuarios" element={<UsuariosConfig />} />

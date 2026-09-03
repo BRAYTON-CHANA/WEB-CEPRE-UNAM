@@ -101,6 +101,15 @@ export const useMultiLevelGrouping = (data, levelConfigs) => {
         }
         
         return { ...groupItem, children };
+      }).sort((a, b) => {
+        // Ordenar grupos: "Virtual" siempre al final, resto alfabético
+        const aVal = String(a.value ?? '');
+        const bVal = String(b.value ?? '');
+        const aIsVirtual = aVal.toLowerCase() === 'virtual';
+        const bIsVirtual = bVal.toLowerCase() === 'virtual';
+        if (aIsVirtual && !bIsVirtual) return 1;
+        if (!aIsVirtual && bIsVirtual) return -1;
+        return aVal.localeCompare(bVal, 'es', { sensitivity: 'base' });
       });
     };
     

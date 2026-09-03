@@ -53,6 +53,7 @@ const FunctionSelectInput = React.memo(({
   addComponent: AddComponent = null,
   addModalTitle = 'Nueva referencia',
   addModalSize = 'lg',
+  onAddClick = null,
   displayFields = [],
   watch,
   setValue,
@@ -265,11 +266,11 @@ const FunctionSelectInput = React.memo(({
             </svg>
           </button>
         )}
-        {showAddButton && AddComponent && (
+        {showAddButton && (AddComponent || onAddClick) && (
           <button
             type="button"
-            onClick={() => setIsAddOpen(true)}
-            title={addModalTitle}
+            onClick={() => onAddClick ? onAddClick() : setIsAddOpen(true)}
+            title={addModalTitle || 'Nuevo'}
             className="flex-shrink-0 self-end h-10 w-10 flex items-center justify-center rounded-md border border-gray-300 bg-white text-gray-400 hover:text-green-600 hover:border-green-400 hover:bg-green-50 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -279,7 +280,7 @@ const FunctionSelectInput = React.memo(({
         )}
       </div>
 
-      {showAddButton && AddComponent && (
+      {showAddButton && AddComponent && !onAddClick && (
         <Modal
           isOpen={isAddOpen}
           onClose={() => setIsAddOpen(false)}

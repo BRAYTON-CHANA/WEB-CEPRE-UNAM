@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMultiLevelGrouping } from '../hooks/useMultiLevelGrouping';
 import TableActions from '../components/TableActions';
 import EditableCell from '../components/EditableCell';
@@ -93,6 +93,7 @@ const TableMultiLevel = ({
   childrenData,
   childrenLoading,
   levelStyles,
+  autoExpand = false,
   _depth = 0,
   _levelIndex = 0,
   editingData = {},
@@ -120,6 +121,25 @@ const TableMultiLevel = ({
   const boundColumn = config?.boundColumn;
   const styles = levelStyles || DEFAULT_LEVEL_STYLES;
   const levelStyle = styles[_depth] || styles[styles.length - 1];
+
+  // Auto-expandir todas las filas al cargar data (para lazy loading por defecto)
+  useEffect(() => {
+    if (!autoExpand || isLastLevel) return;
+    const items = isAsyncMode ? data : groupedData;
+    if (!items || items.length === 0) return;
+    const newKeys = new Set();
+    items.forEach(item => {
+      const rowData = isAsyncMode ? item : (item.rows[0] || {});
+      const boundValue = boundColumn ? rowData[boundColumn] : null;
+      const key = `${boundValue}`;
+      newKeys.add(key);
+      if (isAsyncMode && onExpand) {
+        onExpand(_levelIndex + 1, boundValue);
+      }
+    });
+    setExpandedKeys(newKeys);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, autoExpand]);
 
   const hasActions = actions
     ? Object.values(actions).some(v => {
@@ -283,7 +303,7 @@ const TableMultiLevel = ({
                       );
                     }
 
-                    if (header.editable && onCellChange && !isGroupByCol) {
+                    if (header.editable && onCellChange && (header.editableOnGroupBy || !isGroupByCol)) {
                       return (
                         <EditableCell
                           key={header.title}
@@ -376,14 +396,21 @@ const TableMultiLevel = ({
                           }
 
                           if (childData && childData.length > 0) {
+                            // Ordenar hijos por IDENTIFICADOR_DOCENTE si existe
+                            const sortedChildData = [...childData].sort((a, b) => {
+                              const aId = String(a.IDENTIFICADOR_DOCENTE ?? '');
+                              const bId = String(b.IDENTIFICADOR_DOCENTE ?? '');
+                              return aId.localeCompare(bId, 'es', { sensitivity: 'base' });
+                            });
                             return (
                               <TableMultiLevel
-                                data={childData}
+                                data={sortedChildData}
                                 levelConfigs={subConfigs}
                                 onExpand={onExpand}
                                 childrenData={childrenData}
                                 childrenLoading={childrenLoading}
                                 levelStyles={styles}
+                                autoExpand={autoExpand}
                                 _depth={_depth + 1}
                                 _levelIndex={_levelIndex + 1}
                                 editingData={editingData}
@@ -411,6 +438,7 @@ const TableMultiLevel = ({
                           childrenData={childrenData}
                           childrenLoading={childrenLoading}
                           levelStyles={styles}
+                          autoExpand={autoExpand}
                           _depth={_depth + 1}
                           _levelIndex={_levelIndex}
                           editingData={editingData}

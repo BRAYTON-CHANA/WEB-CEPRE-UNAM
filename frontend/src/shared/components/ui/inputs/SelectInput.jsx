@@ -31,6 +31,9 @@ const SelectInput = ({
   interactButtonClassName = '',
   interactButtonOnClick = null,
   
+  // Clase personalizada para el combobox (ej: "text-sm" para tamaño compacto)
+  comboboxClassName = '',
+  
   // Pasar todas las demás props (excepto type)
   ...baseInputProps 
 }) => {
@@ -42,6 +45,30 @@ const SelectInput = ({
   const isUserChange = useRef(false);
   const dropdownRef = useRef(null);
   const triggerRef = useRef(null);
+  const dropdownId = useRef(Symbol('select-dropdown'));
+
+  // Cerrar este dropdown cuando otro SelectInput abre el suyo
+  useEffect(() => {
+    const handleOtherOpen = (e) => {
+      if (e.detail.id !== dropdownId.current && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('select-dropdown-open', handleOtherOpen);
+    return () => window.removeEventListener('select-dropdown-open', handleOtherOpen);
+  }, [isOpen]);
+
+  const toggleDropdown = () => {
+    if (baseInputProps.disabled) return;
+    if (!isOpen) {
+      setIsOpen(true);
+      window.dispatchEvent(new CustomEvent('select-dropdown-open', {
+        detail: { id: dropdownId.current }
+      }));
+    } else {
+      setIsOpen(false);
+    }
+  };
 
   // Sincronizar valor inicial/default desde props (solo cuando no es cambio del usuario)
   React.useEffect(() => {
@@ -311,7 +338,16 @@ const SelectInput = ({
 
     updatePosition();
 
-    const handleScroll = () => {
+    const handleScroll = (event) => {
+      // Si el scroll es dentro del dropdown, no cerrar
+      if (dropdownRef.current && dropdownRef.current.contains(event.target)) {
+        return;
+      }
+      // Si el scroll es dentro del trigger, no cerrar
+      if (triggerRef.current && triggerRef.current.contains(event.target)) {
+        return;
+      }
+      // Scroll fuera del dropdown → cerrar
       setIsOpen(false);
     };
 
@@ -345,7 +381,7 @@ const SelectInput = ({
             ${baseInputProps.disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white cursor-pointer'}
             transition-colors duration-200
           `}
-          onClick={() => !baseInputProps.disabled && setIsOpen(!isOpen)}
+          onClick={toggleDropdown}
           onKeyDown={handleKeyDown}
           tabIndex={baseInputProps.disabled ? -1 : 0}
           role="combobox"
@@ -353,7 +389,7 @@ const SelectInput = ({
           aria-haspopup="listbox"
         >
           {/* Placeholder o valor seleccionado */}
-          <div className="flex items-center px-3 py-2">
+          <div className={`flex items-center px-3 py-2 ${comboboxClassName}`}>
           {selectedOptions.length === 0 ? (
             <span className="text-gray-800">
               {baseInputProps.placeholder || 'Selecciona una opción'}

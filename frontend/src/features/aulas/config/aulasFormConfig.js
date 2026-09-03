@@ -26,18 +26,6 @@ export const aulaBaseFields = [
     colSpan: 1
   },
   {
-    name: 'TIPO',
-    type: 'select',
-    label: 'Tipo de Aula',
-    required: true,
-    options: [
-      { value: 'presencial', label: 'Presencial' },
-      { value: 'virtual', label: 'Virtual' }
-    ],
-    defaultValue: 'presencial',
-    colSpan: 1
-  },
-  {
     name: 'UBICACION',
     type: 'text',
     label: 'Ubicación',
@@ -52,20 +40,7 @@ export const aulaBaseFields = [
     required: true,
     placeholder: 'Número de estudiantes',
     min: 1,
-    colSpan: 1
-  },
-  {
-    name: 'ENLACE_VIRTUAL',
-    type: 'text',
-    label: 'Enlace Virtual',
-    placeholder: 'URL para aulas virtuales',
-    colSpan: 2,
-    blocked: {
-      and: [
-        { field: 'TIPO', op: '=', value: 'presencial' }
-      ],
-      clearOnBlock: true
-    }
+    colSpan: 2
   }
 ];
 
@@ -80,9 +55,8 @@ export const aulaMultiStep = {
 /**
  * Layout del formulario de aulas: 2 columnas
  * - Sede: full width (colSpan 2)
- * - Nombre + Tipo: misma fila (1 col cada uno)
- * - Ubicación + Capacidad: misma fila (1 col cada uno)
- * - Enlace Virtual: full width (colSpan 2)
+ * - Nombre + Ubicación: misma fila (1 col cada uno)
+ * - Capacidad: full width (colSpan 2)
  */
 export const aulaFormLayout = {
   type: 'single',
@@ -95,9 +69,6 @@ export const aulaValidation = {
   },
   NOMBRE_AULA: {
     required: { value: true, message: 'Debe ingresar el nombre del aula' }
-  },
-  TIPO: {
-    required: { value: true, message: 'Debe seleccionar un tipo de aula' }
   },
   CAPACIDAD: {
     required: { value: true, message: 'Debe ingresar la capacidad del aula' },

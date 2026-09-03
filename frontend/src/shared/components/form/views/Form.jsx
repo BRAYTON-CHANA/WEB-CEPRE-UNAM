@@ -536,7 +536,9 @@ const Form = ({
 
     const hasFunctionParamsTemplates = field.functionParams && Object.values(field.functionParams).some(v => typeof v === 'string' && v.includes('{'));
 
-    const conditionalFormData = (field.hidden || field.blocked || field.labelWhen?.length || field.referenceSelfTable || field.referenceSelfFilter || hasDynamicReferenceFilters || hasFunctionParamsTemplates || field.triggerField || field.idDocenteField) ? formData : undefined;
+    const hasDynamicDateBounds = (typeof field.min === 'string' && field.min.includes('{')) || (typeof field.max === 'string' && field.max.includes('{'));
+
+    const conditionalFormData = (field.hidden || field.blocked || field.labelWhen?.length || field.referenceSelfTable || field.referenceSelfFilter || hasDynamicReferenceFilters || hasFunctionParamsTemplates || field.triggerField || field.idDocenteField || hasDynamicDateBounds) ? formData : undefined;
 
 
 

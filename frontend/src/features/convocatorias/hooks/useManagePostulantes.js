@@ -1,12 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { db } from '@/shared/api';
 import cacheService from '@/shared/services/cacheService';
-import { createPostulacion, loadAdjuntosPostulacion, updateAdjuntosPostulacion } from '@/features/plazas_docentes/services/postulacionesService';
-import {
-  getPlazasDisponibles,
-  asignarPlazaPostulacion,
-  liberarPlazaPostulacion
-} from '@/features/convocatorias/services/convocatoriasService';
+import { createPostulacion, loadAdjuntosPostulacion, updateAdjuntosPostulacion } from '@/features/convocatorias/services/postulacionesService';
 
 /**
  * useManagePostulantes — lógica del panel de postulantes.
@@ -27,8 +22,6 @@ export function useManagePostulantes({ idConvocatoriaCurso, idConvocatoria, idSe
   const [editingPostulacion, setEditingPostulacion] = useState(null);
   const [editingAdjuntos, setEditingAdjuntos] = useState(null);
   const [loadingAdjuntos, setLoadingAdjuntos] = useState(false);
-
-  const [asignarModal, setAsignarModal] = useState({ open: false, postulacion: null, plazas: [], loadingPlazas: false, selectedPlaza: null, asignando: false });
 
   // Modal ver/editar adjuntos
   const [adjuntosModal, setAdjuntosModal] = useState({ open: false, postulacion: null, adjuntos: null, loading: false, saving: false });
@@ -63,12 +56,17 @@ export function useManagePostulantes({ idConvocatoriaCurso, idConvocatoria, idSe
     load();
   }, [load]);
 
-  // Filtrado client-side: sede, curso y búsqueda (DNI/nombre/RUC)
+  // Filtrado client-side: sede (o virtual), curso y búsqueda (DNI/nombre/RUC)
   const filteredPostulaciones = useMemo(() => {
     let result = postulaciones;
 
     if (idSede) {
-      result = result.filter(p => String(p.ID_SEDE) === String(idSede));
+      if (idSede === 'virtual') {
+        // Pseudo-sede Virtual: filtrar por MODALIDAD='VIRTUAL'
+        result = result.filter(p => p.MODALIDAD === 'VIRTUAL');
+      } else {
+        result = result.filter(p => String(p.ID_SEDE) === String(idSede));
+      }
     }
     if (idConvocatoriaCurso) {
       result = result.filter(p => String(p.ID_CONVOCATORIA_CURSO) === String(idConvocatoriaCurso));
@@ -88,10 +86,7 @@ export function useManagePostulantes({ idConvocatoriaCurso, idConvocatoria, idSe
   const initialValues = useMemo(() => ({
     ID_CONVOCATORIA: convocatoriaLabel,
     ID_CONVOCATORIA_CURSO: idConvocatoriaCurso || '',
-    ESTADO: 'postulado',
-    ACEPTADO: false,
-    CONTRATO_FIRMADO: false,
-    ENTREVISTA_REALIZADA: false,
+    APTO: false,
     ACTIVO: true,
   }), [idConvocatoriaCurso, convocatoriaLabel]);
 
@@ -102,7 +97,6 @@ export function useManagePostulantes({ idConvocatoriaCurso, idConvocatoria, idSe
       if (editingPostulacion) {
         const { ID_POSTULACION, ...restData } = submitData;
         const updateData = { ...restData };
-        delete updateData.ID_PLAZA_DOCENTE;
         delete updateData.ID_CONVOCATORIA_CURSO;
         await db.update('POSTULACION_PLAZA', editingPostulacion.ID_POSTULACION, updateData, 'ID_POSTULACION');
         await updateAdjuntosPostulacion(editingPostulacion.ID_POSTULACION, rawFormData);
@@ -128,7 +122,7 @@ export function useManagePostulantes({ idConvocatoriaCurso, idConvocatoria, idSe
     try {
       const adjuntos = await loadAdjuntosPostulacion(
         postulacion.ID_POSTULACION,
-        postulacion.CONDICION_LABORAL_SNAPSHOT
+        postulacion.SNAP_CONDICION_LABORAL
       );
       setEditingAdjuntos(adjuntos);
     } catch (err) {
@@ -151,63 +145,17 @@ export function useManagePostulantes({ idConvocatoriaCurso, idConvocatoria, idSe
     setFormError(null);
   };
 
-  const handleConfirmarAsignacion = async () => {
-    const { postulacion, selectedPlaza } = asignarModal;
-    if (!postulacion || !selectedPlaza) return;
-    setAsignarModal(prev => ({ ...prev, asignando: true }));
-    try {
-      await asignarPlazaPostulacion(postulacion.ID_POSTULACION, selectedPlaza);
-      setAsignarModal({ open: false, postulacion: null, plazas: [], loadingPlazas: false, selectedPlaza: null, asignando: false });
-      refresh();
-    } catch (err) {
-      setFormError(err.message);
-      setAsignarModal(prev => ({ ...prev, asignando: false }));
-    }
-  };
-
-  const handleLiberarPlaza = async (postulacion) => {
-    if (!postulacion?.ACEPTADO) return;
-    if (!window.confirm('¿Liberar la plaza asignada? La postulación será descartada y la plaza quedará disponible.')) return;
-    try {
-      await liberarPlazaPostulacion(postulacion.ID_POSTULACION);
-      refresh();
-    } catch (err) {
-      setFormError(err.message);
-    }
-  };
-
   const handleSaveSuccess = async (recordId, field, newValue, primaryKey) => {
-    if (field === 'ACEPTADO' && newValue === true) {
-      const postulacion = postulaciones.find(p => String(p.ID_POSTULACION) === String(recordId));
-      if (postulacion) {
-        setAsignarModal({ open: true, postulacion, plazas: [], loadingPlazas: true, selectedPlaza: null, asignando: false });
-        try {
-          const plazas = await getPlazasDisponibles(idConvocatoriaCurso);
-          setAsignarModal(prev => ({ ...prev, plazas: plazas || [], loadingPlazas: false }));
-        } catch (err) {
-          setAsignarModal(prev => ({ ...prev, loadingPlazas: false, plazas: [] }));
-          setFormError(err.message);
-        }
-        refresh();
-        return;
-      }
-    }
-    if (field === 'ACEPTADO' && newValue === false) {
-      const postulacion = postulaciones.find(p => String(p.ID_POSTULACION) === String(recordId));
-      if (postulacion?.ACEPTADO) {
-        await handleLiberarPlaza(postulacion);
-        return;
-      }
-    }
-    refresh();
+    // Actualizar visualmente (optimista) sin recargar
+    setPostulaciones(prev => prev.map(row =>
+      String(row[primaryKey]) === String(recordId)
+        ? { ...row, [field]: newValue }
+        : row
+    ));
   };
 
   const handleSaveError = (recordId, field, error) => {
     setFormError(error?.message || 'Error al guardar');
-  };
-
-  const closeAsignarModal = () => {
-    setAsignarModal({ open: false, postulacion: null, plazas: [], loadingPlazas: false, selectedPlaza: null, asignando: false });
   };
 
   // ===== Eliminar postulación =====
@@ -228,7 +176,7 @@ export function useManagePostulantes({ idConvocatoriaCurso, idConvocatoria, idSe
     try {
       const adjuntos = await loadAdjuntosPostulacion(
         postulacion.ID_POSTULACION,
-        postulacion.CONDICION_LABORAL_SNAPSHOT
+        postulacion.SNAP_CONDICION_LABORAL
       );
       setAdjuntosModal(prev => ({ ...prev, adjuntos, loading: false }));
     } catch (err) {
@@ -247,7 +195,7 @@ export function useManagePostulantes({ idConvocatoriaCurso, idConvocatoria, idSe
       // Recargar adjuntos para reflejar cambios
       const adjuntos = await loadAdjuntosPostulacion(
         idPostulacion,
-        adjuntosModal.postulacion.CONDICION_LABORAL_SNAPSHOT
+        adjuntosModal.postulacion.SNAP_CONDICION_LABORAL
       );
       setAdjuntosModal(prev => ({ ...prev, adjuntos, saving: false }));
     } catch (err) {
@@ -263,13 +211,12 @@ export function useManagePostulantes({ idConvocatoriaCurso, idConvocatoria, idSe
   return {
     // Data
     postulaciones: filteredPostulaciones, loading, error,
+    refresh,
     // Modal crear/editar
     isModalOpen, creating, formError,
     editingPostulacion, editingAdjuntos, loadingAdjuntos,
     initialValues,
     handleOpenCreate, handleEditPostulacion, handleCloseModal, handleSubmit,
-    // Asignar plaza
-    asignarModal, setAsignarModal, handleConfirmarAsignacion, closeAsignarModal,
     // Tabla editable
     handleSaveSuccess, handleSaveError,
     // Eliminar

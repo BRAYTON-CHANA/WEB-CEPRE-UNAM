@@ -32,7 +32,8 @@ const FormSection = ({
   const variantClasses = {
     default: 'bg-white',
     bordered: 'bg-white border border-gray-200 rounded-lg p-6',
-    card: 'bg-white shadow-md rounded-lg p-6 border border-gray-100'
+    card: 'bg-white shadow-md rounded-lg p-6 border border-gray-100',
+    plain: ''
   };
 
   /**

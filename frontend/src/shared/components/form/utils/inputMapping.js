@@ -4,8 +4,11 @@ import PasswordInput from '@/shared/components/ui/inputs/PasswordInput';
 import IntegerInput from '@/shared/components/ui/inputs/IntegerInput';
 import FloatInput from '@/shared/components/ui/inputs/FloatInput';
 import DateInput from '@/shared/components/ui/inputs/DateInput';
+import NativeDateInput from '@/shared/components/ui/inputs/NativeDateInput';
 import TimeInput from '@/shared/components/ui/inputs/TimeInput';
+import NativeTimeInput from '@/shared/components/ui/inputs/NativeTimeInput';
 import DateTimeInput from '@/shared/components/ui/inputs/DateTimeInput';
+import NativeDateTimeInput from '@/shared/components/ui/inputs/NativeDateTimeInput';
 import SelectInput from '@/shared/components/ui/inputs/SelectInput';
 import UniqueSelectInput from '@/shared/components/ui/inputs/UniqueSelectInput';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
@@ -23,6 +26,8 @@ import ColorInput from '@/shared/components/ui/inputs/ColorInput';
 import LocationInput from '@/shared/components/ui/inputs/LocationInput';
 import MatrixInput from '@/shared/components/ui/inputs/MatrixInput';
 import PredefinedFilesInput from '@/shared/components/ui/inputs/PredefinedFilesInput';
+import StringArrayInput from '@/shared/components/ui/inputs/StringArrayInput';
+import SwitchInput from '@/shared/components/ui/inputs/SwitchInput';
 
 /**
  * Mapeo de tipos de campo a componentes de input
@@ -43,8 +48,11 @@ export const INPUT_COMPONENTS = {
 
   // Inputs de fecha/tiempo
   date: DateInput,
+  'native-date': NativeDateInput,
   time: TimeInput,
+  'native-time': NativeTimeInput,
   datetime: DateTimeInput,
+  'native-datetime': NativeDateTimeInput,
 
   // Inputs de selección
   select: SelectInput,
@@ -73,7 +81,13 @@ export const INPUT_COMPONENTS = {
   matrix: MatrixInput,
 
   // Input para subir archivos contra una lista predefinida de requisitos
-  'predefined-files': PredefinedFilesInput
+  'predefined-files': PredefinedFilesInput,
+
+  // Input para editar arrays de strings simples (add/remove/edit inline)
+  'string-array': StringArrayInput,
+
+  // Input tipo switch (palanca) para booleanos
+  switch: SwitchInput,
 };
 
 /**

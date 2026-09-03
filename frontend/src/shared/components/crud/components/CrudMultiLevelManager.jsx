@@ -50,7 +50,8 @@ function CrudMultiLevelManager({ crudLevels = [], children }) {
           modalConfig = {},
           editModalConfig = {},
           createFunction = null,
-          editFunction = null
+          editFunction = null,
+          transformRecord = null
         } = level;
 
         const {
@@ -147,6 +148,7 @@ function CrudMultiLevelManager({ crudLevels = [], children }) {
                     confirmSubmit={confirmSubmit}
                     validation={editValidation || validation}
                     editFunction={editFunction}
+                    transformRecord={transformRecord}
                     onSuccess={(result) => {
                       level.onEditSuccess?.(result);
                       crud.handleFormSuccess(result);

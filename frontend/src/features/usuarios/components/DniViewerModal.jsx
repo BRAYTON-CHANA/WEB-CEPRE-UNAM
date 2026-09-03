@@ -19,10 +19,22 @@ function DniViewerModal({ open, user, onClose, onUpdated }) {
   const [error, setError] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  const [fechaVencimiento, setFechaVencimiento] = useState('');
+  const [savingFecha, setSavingFecha] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    if (!open || !user?.DNI_STORAGE_PATH) {
+    if (!open || !user) {
+      setUrl(null);
+      setError(null);
+      setLoading(false);
+      setFechaVencimiento('');
+      return;
+    }
+    // Inicializar fecha de vencimiento desde el usuario
+    setFechaVencimiento(user.DNI_FECHA_VENCIMIENTO || '');
+
+    if (!user.DNI_STORAGE_PATH) {
       setUrl(null);
       setError(null);
       setLoading(false);
@@ -110,6 +122,23 @@ function DniViewerModal({ open, user, onClose, onUpdated }) {
     }
   }, [user, onUpdated]);
 
+  const handleGuardarFecha = useCallback(async () => {
+    const idUsuario = user?.ID_USUARIO;
+    if (!idUsuario) return;
+    setSavingFecha(true);
+    try {
+      await db.update('USUARIOS', idUsuario, {
+        DNI_FECHA_VENCIMIENTO: fechaVencimiento || null
+      }, 'ID_USUARIO');
+      cacheService.invalidateAll();
+      if (onUpdated) onUpdated();
+    } catch (err) {
+      console.error('[DniViewerModal] Error guardando fecha:', err);
+    } finally {
+      setSavingFecha(false);
+    }
+  }, [user, fechaVencimiento, onUpdated]);
+
   const userName = user?.NOMBRE_COMPLETO || [user?.NOMBRES, user?.APELLIDO_PATERNO].filter(Boolean).join(' ') || 'Usuario';
 
   return (
@@ -190,6 +219,30 @@ function DniViewerModal({ open, user, onClose, onUpdated }) {
               </>
             )}
           </button>
+        </div>
+
+        {/* Panel de edición: fecha de vencimiento del DNI */}
+        <div className="mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <p className="text-xs font-medium text-gray-600 mb-2">Vencimiento del DNI</p>
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <input
+                type="date"
+                value={fechaVencimiento || ''}
+                onChange={(e) => setFechaVencimiento(e.target.value)}
+                disabled={savingFecha}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleGuardarFecha}
+              disabled={savingFecha}
+              className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              {savingFecha ? 'Guardando...' : 'Guardar fecha'}
+            </button>
+          </div>
         </div>
 
         {/* Error de upload */}

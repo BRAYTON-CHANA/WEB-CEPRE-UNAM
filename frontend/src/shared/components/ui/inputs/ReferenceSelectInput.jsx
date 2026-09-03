@@ -58,9 +58,11 @@ const ReferenceSelectInput = React.memo(({
   addComponent: AddComponent = null,
   addModalTitle = 'Nueva referencia',
   addModalSize = 'lg',
+  onAddClick = null,
   referenceDisplayFields = [],
   required = false,
   excludeValues = [],
+  comboboxClassName = '',
   ...props
 }) => {
   // Estado para manejar errores
@@ -417,20 +419,9 @@ const ReferenceSelectInput = React.memo(({
             optionValue="value"
             optionLabel="label"
             optionDescription="description"
+            comboboxClassName={comboboxClassName}
           />
         </div>
-        {showAddButton && AddComponent && (
-          <button
-            type="button"
-            onClick={() => setIsAddOpen(true)}
-            title={addModalTitle}
-            className="flex-shrink-0 self-end h-10 w-10 flex items-center justify-center rounded-md border border-gray-300 bg-white text-gray-400 hover:text-green-600 hover:border-green-400 hover:bg-green-50 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
-        )}
         {showRefreshButton && (
           <button
             type="button"
@@ -442,6 +433,18 @@ const ReferenceSelectInput = React.memo(({
             <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        )}
+        {showAddButton && (AddComponent || onAddClick) && (
+          <button
+            type="button"
+            onClick={() => onAddClick ? onAddClick() : setIsAddOpen(true)}
+            title={addModalTitle || 'Nuevo'}
+            className="flex-shrink-0 self-end h-10 w-10 flex items-center justify-center rounded-md border border-gray-300 bg-white text-gray-400 hover:text-green-600 hover:border-green-400 hover:bg-green-50 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
           </button>
         )}

@@ -190,7 +190,7 @@ export const useFunctionData = (config) => {
       setLoading(false);
       console.log('[useFunctionData] 🏁 loadData finalizado', { functionName });
     }
-  }, [cacheKey, functionName, shouldLoadData, hasAllRequiredValues, valueField, labelField, descriptionField, statusField, activeParams, freezeParams]);
+  }, [cacheKey, functionName, shouldLoadData, hasAllRequiredValues, valueField, labelField, descriptionField, statusField, freezeParams]);
 
   // Efecto para carga inicial y cuando cambian dependencias
   useEffect(() => {

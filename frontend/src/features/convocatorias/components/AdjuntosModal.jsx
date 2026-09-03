@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '@/shared/components/modal';
 import PredefinedFilesInput from '@/shared/components/ui/inputs/PredefinedFilesInput';
-import { getRequisitoUrl } from '@/features/requisitos_docentes/services/requisitosDocentesService';
+import { getDocumentoUrl } from '@/features/convocatorias/requisitos/documentos/services/convocatoriaDocumentosService';
 
 /**
  * AdjuntosModal — modal para ver/editar documentos adjuntos de una postulación.
@@ -48,7 +48,7 @@ function AdjuntosModal({
               onChange={(name, value) => setLocalValue(value)}
               label="Documentos de postulación"
               mode="edit"
-              getDownloadUrl={getRequisitoUrl}
+              getDownloadUrl={getDocumentoUrl}
               accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.png,.jpg,.jpeg"
               maxSize={10 * 1024 * 1024}
             />

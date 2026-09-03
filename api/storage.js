@@ -2,19 +2,23 @@ import {
   getAttachmentUrl,
   getPostulacionFileUrl,
   getUsuarioDocUrl,
+  getAsistenciaDocenteUrl,
   uploadAttachment,
   uploadPostulacionFile,
   uploadRequisitoFile,
   uploadUsuarioDoc,
+  uploadAsistenciaDocenteFile,
   deleteAttachment,
   deletePostulacionFile,
   deleteUsuarioDoc,
+  deleteAsistenciaDocenteFile,
+  copyUsuarioDoc,
 } from '../lib/shared/storageService.js';
 import { withAuth } from '../lib/middleware/auth.js';
 import 'dotenv/config';
 
-const ALLOWED_BUCKETS = ['correos-adjuntos', 'usuarios-adjuntos'];
-const ALLOWED_UPLOAD_DOMAINS = ['correos', 'postulaciones', 'requisitos', 'usuarios'];
+const ALLOWED_BUCKETS = ['correos-adjuntos', 'usuarios-adjuntos', 'asistencias'];
+const ALLOWED_UPLOAD_DOMAINS = ['correos', 'postulaciones', 'requisitos', 'usuarios', 'asistencias'];
 
 function base64ToBuffer(file) {
   if (typeof file !== 'string') {
@@ -61,7 +65,9 @@ async function handler(req, res) {
       const url =
         bucket === 'correos-adjuntos'
           ? await getAttachmentUrl(path, expirySeconds || 3600)
-          : await getUsuarioDocUrl(path, expirySeconds || 3600);
+          : bucket === 'asistencias'
+            ? await getAsistenciaDocenteUrl(path, expirySeconds || 3600)
+            : await getUsuarioDocUrl(path, expirySeconds || 3600);
 
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
       res.json({ success: true, data: { url } });
@@ -95,6 +101,8 @@ async function handler(req, res) {
         result = await uploadRequisitoFile(fileBuffer, filename, contentType, id);
       } else if (domain === 'usuarios') {
         result = await uploadUsuarioDoc(fileBuffer, filename, contentType, id, tipo || 'dni');
+      } else if (domain === 'asistencias') {
+        result = await uploadAsistenciaDocenteFile(fileBuffer, filename, contentType, id);
       }
 
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -116,7 +124,28 @@ async function handler(req, res) {
       const result =
         bucket === 'correos-adjuntos'
           ? await deleteAttachment(path)
-          : await deleteUsuarioDoc(path);
+          : bucket === 'asistencias'
+            ? await deleteAsistenciaDocenteFile(path)
+            : await deleteUsuarioDoc(path);
+
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.json({ success: true, data: result });
+      return;
+    }
+
+    if (action === 'copy') {
+      // Copia un archivo dentro del bucket usuarios-adjuntos (server-side).
+      // Usado para snapshots de archivos al crear postulaciones.
+      const { sourcePath, destPath } = req.body || {};
+
+      if (!sourcePath || !destPath) {
+        return res.status(400).json({
+          success: false,
+          message: 'sourcePath y destPath son obligatorios'
+        });
+      }
+
+      const result = await copyUsuarioDoc(sourcePath, destPath);
 
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
       res.json({ success: true, data: result });
@@ -125,7 +154,7 @@ async function handler(req, res) {
 
     return res.status(400).json({
       success: false,
-      message: 'action no válida. Use "url", "upload" o "delete"'
+      message: 'action no válida. Use "url", "upload", "delete" o "copy"'
     });
   } catch (error) {
     console.error('[storage] Error:', error);

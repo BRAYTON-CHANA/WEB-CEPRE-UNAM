@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Layout from './Layout';
 import '../../theme/components/SidebarMenu.css';
 
@@ -47,6 +47,7 @@ const LayoutWithSidebar = ({
   });
   const [isHovering, setIsHovering] = useState(false);
   const closeTimerRef = useRef(null);
+  const sidebarRef = useRef(null);
 
   // Abrir sidebar por hover (solo desktop)
   const handleHoverOpen = useCallback(() => {
@@ -100,6 +101,26 @@ const LayoutWithSidebar = ({
     };
   }, []);
 
+  // Cerrar sidebar al hacer click fuera del área (solo desktop, respeta pin)
+  useEffect(() => {
+    if (!hoverEnabled) return;
+    const handleClickOutside = (e) => {
+      // Si no está abierto o está pineado, no hacer nada
+      if (!isSidebarOpen || isPinned) return;
+      // Si el click fue dentro del sidebar, no cerrar
+      if (sidebarRef.current && sidebarRef.current.contains(e.target)) return;
+      // Cancelar cualquier timer pendiente y cerrar inmediatamente
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+      setIsHovering(false);
+      setIsSidebarOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [hoverEnabled, isSidebarOpen, isPinned]);
+
   return (
     <Layout header={header} footer={footer}>
       <div className="flex relative min-w-0 w-full min-h-[calc(100vh-4rem)]">
@@ -139,9 +160,10 @@ const LayoutWithSidebar = ({
         {/* === DESKTOP: sidebar push (relative en el flex) === */}
         {Sidebar && (
           <aside
+            ref={sidebarRef}
             onMouseEnter={handleHoverOpen}
             onMouseLeave={handleHoverClose}
-            className="hidden lg:flex relative flex-shrink-0 h-[calc(100vh-4rem)] overflow-hidden"
+            className="hidden lg:flex sticky top-16 flex-shrink-0 h-[calc(100vh-4rem)] overflow-hidden"
             style={{
               width: isSidebarOpen ? '280px' : `${peekWidth}px`,
               transition: 'width 500ms cubic-bezier(0.4, 0, 0.2, 1)',
@@ -149,7 +171,7 @@ const LayoutWithSidebar = ({
             }}
           >
             {/* Contenido fijo a 280px — el overflow del aside lo clipa cuando contraído */}
-            <div className="h-full w-[280px]">
+            <div className="h-full w-[280px]" onMouseEnter={handleHoverCancelClose}>
               <Sidebar />
             </div>
 

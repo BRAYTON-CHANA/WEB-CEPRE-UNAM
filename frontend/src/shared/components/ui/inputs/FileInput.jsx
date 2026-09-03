@@ -37,9 +37,12 @@ const FileInput = ({
   // Props de validación legacy
   allowedTypes = [],
   minFiles = 1,
-  
+
+  // Función para obtener URL de descarga de archivo existente (storage)
+  getDownloadUrl = null,
+
   // Pasar todas las demás props al BaseInput
-  ...baseInputProps 
+  ...baseInputProps
 }) => {
   const fileInputRef = useRef(null);
   const dragCounter = useRef(0);
@@ -57,6 +60,35 @@ const FileInput = ({
   
   const [dragActive, setDragActive] = useState(false);
   const lastValueRef = useRef(null);
+  const objectUrlRef = useRef(null);  // URL temporal para archivos recién subidos
+  const [resolvedUrl, setResolvedUrl] = useState(null);  // URL firmada de archivo existente
+  const [urlLoading, setUrlLoading] = useState(false);
+
+  // Limpiar object URL al desmontar
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+    };
+  }, []);
+
+  // Cargar URL firmada para archivo existente si no hay previewUrl
+  useEffect(() => {
+    if (fileState.hasFile && !fileState.previewUrl && !resolvedUrl && getDownloadUrl && !urlLoading) {
+      setUrlLoading(true);
+      const currentValue = baseInputProps.value;
+      Promise.resolve(getDownloadUrl(currentValue))
+        .then(url => setResolvedUrl(url))
+        .catch(err => console.error('[FileInput] Error obteniendo URL:', err))
+        .finally(() => setUrlLoading(false));
+    }
+    // Limpiar resolvedUrl cuando cambia el archivo
+    if (!fileState.hasFile && resolvedUrl) {
+      setResolvedUrl(null);
+    }
+  }, [fileState.hasFile, fileState.previewUrl, resolvedUrl, getDownloadUrl, urlLoading, baseInputProps.value]);
 
   // Inicializar el estado del archivo cuando el value representa un archivo existente
   useEffect(() => {
@@ -64,6 +96,9 @@ const FileInput = ({
 
     if (currentValue === lastValueRef.current) return;
     lastValueRef.current = currentValue;
+
+    // Limpiar URL firmada anterior siempre que cambia el value
+    setResolvedUrl(null);
 
     if (
       currentValue &&
@@ -86,6 +121,17 @@ const FileInput = ({
         fileName: file.name || 'Archivo',
         fileSize: file.size || 0,
         previewUrl: file.url || null,
+        isReplacing: false,
+        errors: []
+      });
+    } else if (!currentValue || currentValue === '') {
+      // Resetear fileState cuando no hay archivo
+      setFileState({
+        hasFile: false,
+        fileType: null,
+        fileName: '',
+        fileSize: 0,
+        previewUrl: null,
         isReplacing: false,
         errors: []
       });
@@ -182,6 +228,16 @@ const FileInput = ({
       };
       reader.readAsDataURL(fileToProcess);
     }
+
+    // Crear object URL para documentos (permite "Ver archivo" en nueva pestaña)
+    if (!fileToProcess.type.startsWith('image/')) {
+      // Limpiar URL anterior si existe
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+      }
+      previewUrl = URL.createObjectURL(fileToProcess);
+      objectUrlRef.current = previewUrl;
+    }
     
     setFileState({
       hasFile: true,
@@ -242,6 +298,11 @@ const FileInput = ({
 
   // Eliminar archivo actual
   const removeFile = () => {
+    // Limpiar object URL si existe
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
     setFileState({
       hasFile: false,
       fileType: null,
@@ -324,7 +385,13 @@ const FileInput = ({
   );
 
   // Renderizar preview de documento
-  const DocumentPreview = () => (
+  const DocumentPreview = () => {
+    const isPdf = fileState.fileType?.icon === 'pdf' ||
+      fileState.fileName?.toLowerCase().endsWith('.pdf') ||
+      fileState.fileType?.label?.toLowerCase().includes('pdf');
+    const viewUrl = fileState.previewUrl || resolvedUrl;
+
+    return (
     <div className="space-y-4">
       <div className="text-center">
         <h3 className="text-lg font-medium text-gray-900 mb-2">Documento Subido</h3>
@@ -332,25 +399,35 @@ const FileInput = ({
           {showFileIcon && (
             <FileIcon type={fileState.fileType.icon} size="xl" />
           )}
-          
+
           <div>
             <p className="text-lg font-bold text-gray-900">{fileState.fileName}</p>
             <p className="text-sm text-gray-600">{fileState.fileType.label}</p>
             <p className="text-xs text-gray-500">{formatFileSize(fileState.fileSize)}</p>
 
-            {fileState.previewUrl && (
+            {viewUrl && (
               <a
-                href={fileState.previewUrl}
+                href={viewUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-2 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                title={isPdf ? 'Abrir PDF en nueva pestaña' : 'Descargar archivo'}
               >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {isPdf ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  )}
                 </svg>
-                Ver archivo
+                {isPdf ? 'Ver archivo' : 'Descargar archivo'}
               </a>
+            )}
+            {!viewUrl && urlLoading && (
+              <div className="mt-3 inline-flex items-center gap-2 text-sm text-gray-500">
+                <span className="inline-block w-3.5 h-3.5 border-2 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
+                Obteniendo URL...
+              </div>
             )}
           </div>
 
@@ -364,7 +441,8 @@ const FileInput = ({
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-4">

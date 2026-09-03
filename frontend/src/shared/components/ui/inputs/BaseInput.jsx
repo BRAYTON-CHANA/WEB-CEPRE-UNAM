@@ -180,6 +180,7 @@ const BaseInput = ({
       )}
 
       {/* Indicadores visuales adicionales */}
+      {(minLength || maxLength) && (
       <div className="mt-1 flex justify-between text-xs text-gray-500">
         {minLength && (
           <span>Mínimo {minLength} caracteres</span>
@@ -188,6 +189,7 @@ const BaseInput = ({
           <span>Máximo {maxLength} caracteres</span>
         )}
       </div>
+      )}
     </div>
   );
 };

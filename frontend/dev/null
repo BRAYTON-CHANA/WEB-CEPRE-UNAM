@@ -1,0 +1,285 @@
+import { Fragment, jsx, jsxs } from "react/jsx-runtime";
+import React, { useState, useEffect, useCallback, useMemo, useImperativeHandle, forwardRef } from "react";
+import { db } from "@/shared/api";
+import cacheService from "@/shared/services/cacheService";
+const TablaEditableDocente = forwardRef(({
+  tableName,
+  primaryKey,
+  columns,
+  idDocente,
+  title,
+  description,
+  mode = "edit",
+  onRowsChange,
+  initialRows
+}, ref) => {
+  const isCreateMode = mode === "create";
+  const [rows, setRows] = useState(isCreateMode ? initialRows || [] : []);
+  const [deletedIds, setDeletedIds] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
+  const loadRows = useCallback(async () => {
+    if (isCreateMode || !idDocente || !tableName) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await db.selectWithOrderBy(tableName, "FECHA_CREACION", "ASC", { ID_DOCENTE: idDocente });
+      setRows(Array.isArray(data) ? data : []);
+      setDeletedIds([]);
+    } catch (err) {
+      console.error(`[TablaEditableDocente:${tableName}] Error cargando:`, err);
+      setError(err.message || "Error al cargar registros");
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [idDocente, tableName, isCreateMode]);
+  useEffect(() => {
+    if (!isCreateMode) loadRows();
+  }, [loadRows, isCreateMode]);
+  useEffect(() => {
+    if (isCreateMode && onRowsChange) {
+      const cleanRows = rows.map(({ _isNew, ...rest }) => rest);
+      onRowsChange(cleanRows);
+    }
+  }, [rows, isCreateMode, onRowsChange]);
+  const emptyRow = useMemo(() => {
+    const obj = {};
+    columns.forEach((col) => {
+      obj[col.field] = "";
+    });
+    return obj;
+  }, [columns]);
+  const handleAddRow = () => {
+    setRows((prev) => [...prev, { ...emptyRow, _isNew: true }]);
+  };
+  const handleDeleteRow = (index) => {
+    const row = rows[index];
+    if (!row) return;
+    if (!window.confirm("\xBFEliminar esta fila?")) return;
+    if (!isCreateMode && row[primaryKey] && !row._isNew) {
+      setDeletedIds((prev) => [...prev, row[primaryKey]]);
+    }
+    setRows((prev) => prev.filter((_, i) => i !== index));
+  };
+  const handleCellChange = (index, field, value) => {
+    setRows((prev) => prev.map((row, i) => i === index ? { ...row, [field]: value } : row));
+  };
+  const validateRows = () => {
+    if (rows.length === 0) return { valid: true };
+    for (let i = 0; i < rows.length; i++) {
+      for (const col of columns) {
+        const val = rows[i][col.field];
+        const isEmpty = val === "" || val === null || val === void 0;
+        if (col.required && isEmpty) {
+          return {
+            valid: false,
+            error: `Fila ${i + 1}: el campo "${col.label}" es obligatorio`
+          };
+        }
+        if (col.type === "integer" && val !== "" && val !== null && val !== void 0) {
+          const num = Number(val);
+          if (isNaN(num) || col.min !== void 0 && num < col.min) {
+            return {
+              valid: false,
+              error: `Fila ${i + 1}: el campo "${col.label}" debe ser un n\xFAmero v\xE1lido${col.min !== void 0 ? ` (m\xEDnimo ${col.min})` : ""}`
+            };
+          }
+        }
+      }
+    }
+    return { valid: true };
+  };
+  const handleSave = async () => {
+    if (isCreateMode) return;
+    const validation = validateRows();
+    if (!validation.valid) {
+      setToast({ type: "error", message: validation.error });
+      setTimeout(() => setToast(null), 4e3);
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      for (const id of deletedIds) {
+        await db.delete(tableName, id, primaryKey);
+      }
+      for (const row of rows) {
+        const payload = {};
+        columns.forEach((col) => {
+          let val = row[col.field];
+          if (col.type === "integer") {
+            val = val === "" || val === null || val === void 0 ? null : Number(val);
+          }
+          payload[col.field] = val;
+        });
+        if (row._isNew) {
+          payload.ID_DOCENTE = idDocente;
+          await db.insert(tableName, payload);
+        } else if (row[primaryKey]) {
+          await db.update(tableName, row[primaryKey], payload, primaryKey);
+        }
+      }
+      setDeletedIds([]);
+      setToast({ type: "success", message: "Cambios guardados correctamente" });
+      setTimeout(() => setToast(null), 3e3);
+      await loadRows();
+      cacheService.invalidateAll();
+    } catch (err) {
+      console.error(`[TablaEditableDocente:${tableName}] Error guardando:`, err);
+      setError(err.message || "Error al guardar");
+      setToast({ type: "error", message: err.message || "Error al guardar" });
+      setTimeout(() => setToast(null), 4e3);
+    } finally {
+      setSaving(false);
+    }
+  };
+  const validateAndGetData = useCallback(() => {
+    const validation = validateRows();
+    if (!validation.valid) {
+      return { valid: false, error: validation.error, data: null };
+    }
+    const cleanData = rows.map(({ _isNew, [primaryKey]: _pk, ...rest }) => rest);
+    return { valid: true, error: null, data: cleanData };
+  }, [rows, columns, primaryKey]);
+  useImperativeHandle(ref, () => ({
+    validateAndGetData
+  }), [validateAndGetData]);
+  const renderInput = (col, value, onChange) => {
+    const baseClass = "w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors";
+    const disabledClass = saving || isCreateMode === false && saving ? "bg-gray-100 cursor-not-allowed" : "bg-white";
+    switch (col.type) {
+      case "native-date":
+        return /* @__PURE__ */ jsx(
+          "input",
+          {
+            type: "date",
+            value: value || "",
+            onChange: (e) => onChange(e.target.value),
+            disabled: saving,
+            className: `${baseClass} ${disabledClass}`
+          }
+        );
+      case "integer":
+        return /* @__PURE__ */ jsx(
+          "input",
+          {
+            type: "number",
+            value: value || "",
+            onChange: (e) => onChange(e.target.value),
+            disabled: saving,
+            min: col.min,
+            placeholder: col.placeholder || "",
+            className: `${baseClass} ${disabledClass}`
+          }
+        );
+      case "text":
+      default:
+        return /* @__PURE__ */ jsx(
+          "input",
+          {
+            type: "text",
+            value: value || "",
+            onChange: (e) => onChange(e.target.value),
+            disabled: saving,
+            placeholder: col.placeholder || "",
+            className: `${baseClass} ${disabledClass}`
+          }
+        );
+    }
+  };
+  if (loading) {
+    return /* @__PURE__ */ jsxs("div", { className: "py-6 text-center", children: [
+      /* @__PURE__ */ jsx("div", { className: "animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto" }),
+      /* @__PURE__ */ jsxs("p", { className: "mt-2 text-sm text-gray-600", children: [
+        "Cargando ",
+        title,
+        "..."
+      ] })
+    ] });
+  }
+  if (!isCreateMode && !idDocente) {
+    return /* @__PURE__ */ jsx("div", { className: "p-4 bg-amber-50 border border-amber-200 rounded-md", children: /* @__PURE__ */ jsxs("p", { className: "text-sm text-amber-700", children: [
+      "Guarde el docente en la p\xE1gina anterior para poder gestionar ",
+      title.toLowerCase(),
+      "."
+    ] }) });
+  }
+  return /* @__PURE__ */ jsxs("div", { className: "bg-white border border-gray-200 rounded-lg overflow-hidden", children: [
+    /* @__PURE__ */ jsx("div", { className: "px-4 py-3 border-b border-gray-200 bg-gray-50", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between", children: [
+      /* @__PURE__ */ jsxs("div", { children: [
+        /* @__PURE__ */ jsx("h3", { className: "text-sm font-semibold text-gray-900", children: title }),
+        description && /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-500 mt-0.5", children: description })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
+        /* @__PURE__ */ jsxs(
+          "button",
+          {
+            type: "button",
+            onClick: handleAddRow,
+            disabled: saving,
+            className: "inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors disabled:opacity-50",
+            children: [
+              /* @__PURE__ */ jsx("svg", { className: "w-3.5 h-3.5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", strokeWidth: 2, children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 4v16m8-8H4" }) }),
+              "A\xF1adir fila"
+            ]
+          }
+        ),
+        !isCreateMode && /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            onClick: handleSave,
+            disabled: saving || rows.length === 0 && deletedIds.length === 0,
+            className: "inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+            children: saving ? /* @__PURE__ */ jsxs(Fragment, { children: [
+              /* @__PURE__ */ jsx("div", { className: "w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" }),
+              "Guardando..."
+            ] }) : /* @__PURE__ */ jsxs(Fragment, { children: [
+              /* @__PURE__ */ jsx("svg", { className: "w-3.5 h-3.5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", strokeWidth: 2, children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M5 13l4 4L19 7" }) }),
+              "Guardar cambios"
+            ] })
+          }
+        )
+      ] })
+    ] }) }),
+    toast && /* @__PURE__ */ jsx("div", { className: `px-4 py-2 text-sm border-b ${toast.type === "success" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`, children: toast.message }),
+    rows.length === 0 ? /* @__PURE__ */ jsx("div", { className: "px-4 py-8 text-center text-sm text-gray-500", children: 'No hay registros. Haga clic en "A\xF1adir fila" para empezar.' }) : /* @__PURE__ */ jsx("div", { className: "overflow-x-auto", children: /* @__PURE__ */ jsxs("table", { className: "w-full text-sm", children: [
+      /* @__PURE__ */ jsx("thead", { className: "bg-gray-50 border-b border-gray-200", children: /* @__PURE__ */ jsxs("tr", { children: [
+        columns.map((col) => /* @__PURE__ */ jsxs(
+          "th",
+          {
+            className: "px-3 py-2 text-left font-medium text-gray-700 whitespace-nowrap",
+            children: [
+              col.label,
+              col.required && /* @__PURE__ */ jsx("span", { className: "text-red-500 ml-0.5", children: "*" })
+            ]
+          },
+          col.field
+        )),
+        /* @__PURE__ */ jsx("th", { className: "px-3 py-2 text-center font-medium text-gray-700 w-16", children: "Acci\xF3n" })
+      ] }) }),
+      /* @__PURE__ */ jsx("tbody", { className: "divide-y divide-gray-100", children: rows.map((row, index) => /* @__PURE__ */ jsxs("tr", { className: row._isNew ? "bg-blue-50/30" : "hover:bg-gray-50", children: [
+        columns.map((col) => /* @__PURE__ */ jsx("td", { className: "px-3 py-2", children: renderInput(col, row[col.field], (val) => handleCellChange(index, col.field, val)) }, col.field)),
+        /* @__PURE__ */ jsx("td", { className: "px-3 py-2 text-center", children: /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            onClick: () => handleDeleteRow(index),
+            disabled: saving,
+            className: "inline-flex items-center justify-center w-7 h-7 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50",
+            title: "Eliminar fila",
+            children: /* @__PURE__ */ jsx("svg", { className: "w-4 h-4", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", strokeWidth: 2, children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" }) })
+          }
+        ) })
+      ] }, index)) })
+    ] }) }),
+    error && /* @__PURE__ */ jsx("div", { className: "px-4 py-2 bg-red-50 border-t border-red-200 text-sm text-red-600", children: error })
+  ] });
+});
+var TablaEditableDocente_default = TablaEditableDocente;
+export {
+  TablaEditableDocente_default as default
+};

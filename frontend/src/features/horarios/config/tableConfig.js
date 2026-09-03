@@ -6,7 +6,6 @@ export const getHorariosLevelConfig = (horariosCrud, handleEditarBloques) => ({
   level: 1,
   headers: [
     { title: 'NOMBRE_HORARIO', type: 'string', groupBy: true, label: 'Horario' },
-    { title: 'NOMBRE_SEDE', type: 'string', label: 'Sede' },
     { title: 'HORA_INICIO_JORNADA', type: 'string', label: 'Inicio' },
     { title: 'HORA_FIN_JORNADA', type: 'string', label: 'Fin' }
   ],

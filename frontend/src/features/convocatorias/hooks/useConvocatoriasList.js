@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useCrudForms } from '@/shared/components/crud';
 import { useMultiLevelFetch } from '@/shared/hooks/useMultiLevelFetch';
-import { getConvocatoriasListLevelConfig } from '@/features/convocatorias/config/tableConfig';
+import { getConvocatoriasListLevelConfig } from '@/features/convocatorias/config/tableConfig.jsx';
 import { getListCrudLevels } from '@/features/convocatorias/config/crudLevels';
 import { createConvocatoriaConPlazas } from '@/features/convocatorias/services/convocatoriaService';
 

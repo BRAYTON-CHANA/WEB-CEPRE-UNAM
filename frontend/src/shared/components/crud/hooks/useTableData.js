@@ -46,10 +46,19 @@ export function useTableData(tableName, filters = {}) {
     return fetchData();
   }, [fetchData, tableName]);
 
+  // Actualización optimista local (sin refetch) para campos boolean editables
+  const updateRecord = useCallback((recordId, primaryKey, field, newValue) => {
+    const idStr = String(recordId);
+    setRecords(prev => prev.map(row =>
+      String(row[primaryKey]) === idStr ? { ...row, [field]: newValue } : row
+    ));
+  }, []);
+
   return {
     records,
     loading,
     error,
-    refresh
+    refresh,
+    updateRecord
   };
 }

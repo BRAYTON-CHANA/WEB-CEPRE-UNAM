@@ -51,7 +51,10 @@ const CrudForm = ({
   editFunction = null,
 
   // Valores iniciales personalizados (para campos no persistentes como archivos)
-  initialFormValues = {}
+  initialFormValues = {},
+
+  // Transformar el record antes de construir initialValues (ej: construir objetos file)
+  transformRecord = null
 }) => {
   const [fieldErrors, setFieldErrors] = useState([]);
   const [submitAttempted, setSubmitAttempted] = useState(false);
@@ -70,9 +73,14 @@ const CrudForm = ({
 
   // Memoizar initialValues para evitar re-renders en cascada
   const formInitialValues = useMemo(() => {
-    const base = mode === 'edit' && record
+    // Aplicar transformRecord si existe (ej: construir objetos file desde metadata)
+    const effectiveRecord = (mode === 'edit' && record && transformRecord)
+      ? transformRecord(record)
+      : record;
+
+    const base = mode === 'edit' && effectiveRecord
       ? fields.reduce((acc, field) => {
-          const value = record[field.name];
+          const value = effectiveRecord[field.name];
           // Preservar 0 y false como valores válidos, solo usar '' para null/undefined
           acc[field.name] = value !== null && value !== undefined ? value : '';
           return acc;
@@ -83,7 +91,7 @@ const CrudForm = ({
           return acc;
         }, {});
     return { ...base, ...initialFormValues };
-  }, [mode, record, fields, initialFormValues]);
+  }, [mode, record, fields, initialFormValues, transformRecord]);
 
   // Resetear errores cuando cambia el schema
   useEffect(() => {

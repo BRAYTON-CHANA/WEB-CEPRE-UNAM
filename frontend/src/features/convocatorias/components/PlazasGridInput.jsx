@@ -6,8 +6,9 @@ import { db } from '@/shared/api';
  *
  * Por defecto añade TODAS las combinaciones (sede activa x curso activo)
  * con NUMERO_PLAZAS=0. El usuario ajusta con +/- y elimina los que no apliquen.
+ * Incluye una pseudo-sede "Virtual" (MODALIDAD='VIRTUAL', ID_SEDE=null) al final.
  *
- * value = array de { ID_SEDE, ID_CURSO, NUMERO_PLAZAS, NOMBRE_SEDE?, NOMBRE_CURSO? }
+ * value = array de { ID_SEDE, ID_CURSO, NUMERO_PLAZAS, MODALIDAD, NOMBRE_SEDE?, NOMBRE_CURSO? }
  * onChange(name, value) emite el array actualizado.
  */
 const PlazasGridInput = ({
@@ -68,6 +69,18 @@ const PlazasGridInput = ({
     return () => { mounted = false; };
   }, []);
 
+  // Sedes con la pseudo-sede "Virtual" al final
+  const sedesConVirtual = useMemo(() => [
+    ...sedes.map(s => ({ ...s, MODALIDAD: 'PRESENCIAL' })),
+    {
+      ID_SEDE: null,
+      NOMBRE_SEDE: 'Virtual',
+      CODIGO_SEDE: 'VRT',
+      MODALIDAD: 'VIRTUAL',
+      _isVirtual: true
+    }
+  ], [sedes]);
+
   // Notificar cambios al formulario
   const notify = useCallback((next) => {
     onChange?.(name, next);
@@ -79,12 +92,13 @@ const PlazasGridInput = ({
     if (loading || sedes.length === 0 || cursos.length === 0) return;
     if (plazas.length > 0) return; // ya tiene datos
     const allCombos = [];
-    sedes.forEach((s) => {
+    sedesConVirtual.forEach((s) => {
       cursos.forEach((c) => {
         allCombos.push({
-          ID_SEDE: Number(s.ID_SEDE),
+          ID_SEDE: s.ID_SEDE == null ? null : Number(s.ID_SEDE),
           ID_CURSO: Number(c.ID_CURSO),
           NUMERO_PLAZAS: 0,
+          MODALIDAD: s.MODALIDAD,
           NOMBRE_SEDE: s.NOMBRE_SEDE,
           CODIGO_SEDE: s.CODIGO_SEDE,
           NOMBRE_CURSO: c.NOMBRE_CURSO,
@@ -94,32 +108,43 @@ const PlazasGridInput = ({
       });
     });
     notify(allCombos);
-  }, [loading, sedes, cursos, plazas.length, notify]);
+  }, [loading, sedes, cursos, sedesConVirtual, plazas.length, notify]);
+
+  // Clave compuesta (ID_SEDE, MODALIDAD) para distinguir Virtual (ID_SEDE=null)
+  const sedeKey = (p) => `${p.ID_SEDE == null ? 'null' : p.ID_SEDE}|${p.MODALIDAD || 'PRESENCIAL'}`;
 
   // Plazas añadidas a una sede concreta
-  const plazasBySede = useCallback((idSede) => {
-    return plazas.filter(p => Number(p.ID_SEDE) === Number(idSede));
+  const plazasBySede = useCallback((idSede, modalidad) => {
+    return plazas.filter(p =>
+      (p.ID_SEDE == null ? null : Number(p.ID_SEDE)) === (idSede == null ? null : Number(idSede))
+      && (p.MODALIDAD || 'PRESENCIAL') === (modalidad || 'PRESENCIAL')
+    );
   }, [plazas]);
 
   // Cursos disponibles para re-añadir a una sede (no añadidos actualmente)
-  const cursosDisponiblesBySede = useCallback((idSede) => {
-    const addedIds = new Set(plazasBySede(idSede).map(p => Number(p.ID_CURSO)));
+  const cursosDisponiblesBySede = useCallback((idSede, modalidad) => {
+    const addedIds = new Set(plazasBySede(idSede, modalidad).map(p => Number(p.ID_CURSO)));
     return cursos.filter(c => !addedIds.has(Number(c.ID_CURSO)));
   }, [cursos, plazasBySede]);
 
   // Re-añadir curso a una sede (desde el select)
-  const handleAddCurso = (idSede) => {
-    const idCurso = selectCursoBySede[idSede];
+  const handleAddCurso = (idSede, modalidad) => {
+    const key = sedeKey({ ID_SEDE: idSede, MODALIDAD: modalidad });
+    const idCurso = selectCursoBySede[key];
     if (!idCurso) return;
     const curso = cursos.find(c => Number(c.ID_CURSO) === Number(idCurso));
     if (!curso) return;
-    const sede = sedes.find(s => Number(s.ID_SEDE) === Number(idSede));
+    const sede = sedesConVirtual.find(s =>
+      (s.ID_SEDE == null ? null : Number(s.ID_SEDE)) === (idSede == null ? null : Number(idSede))
+      && (s.MODALIDAD || 'PRESENCIAL') === (modalidad || 'PRESENCIAL')
+    );
     const next = [
       ...plazas,
       {
-        ID_SEDE: Number(idSede),
+        ID_SEDE: idSede == null ? null : Number(idSede),
         ID_CURSO: Number(idCurso),
         NUMERO_PLAZAS: 0,
+        MODALIDAD: modalidad || 'PRESENCIAL',
         NOMBRE_SEDE: sede?.NOMBRE_SEDE,
         CODIGO_SEDE: sede?.CODIGO_SEDE,
         NOMBRE_CURSO: curso.NOMBRE_CURSO,
@@ -128,38 +153,48 @@ const PlazasGridInput = ({
       }
     ];
     notify(next);
-    setSelectCursoBySede(prev => ({ ...prev, [idSede]: '' }));
+    setSelectCursoBySede(prev => ({ ...prev, [key]: '' }));
   };
 
   // Quitar curso de una sede
-  const handleRemoveCurso = (idSede, idCurso) => {
+  const handleRemoveCurso = (idSede, modalidad, idCurso) => {
     const next = plazas.filter(p =>
-      !(Number(p.ID_SEDE) === Number(idSede) && Number(p.ID_CURSO) === Number(idCurso))
+      !((p.ID_SEDE == null ? null : Number(p.ID_SEDE)) === (idSede == null ? null : Number(idSede))
+        && (p.MODALIDAD || 'PRESENCIAL') === (modalidad || 'PRESENCIAL')
+        && Number(p.ID_CURSO) === Number(idCurso))
     );
     notify(next);
   };
 
   // Cambiar número de plazas
-  const handlePlazasChange = (idSede, idCurso, newValue) => {
+  const handlePlazasChange = (idSede, modalidad, idCurso, newValue) => {
     let n = parseInt(newValue, 10);
     if (isNaN(n)) n = minPlazas;
     if (n < minPlazas) n = minPlazas;
     if (n > maxPlazas) n = maxPlazas;
     const next = plazas.map(p =>
-      (Number(p.ID_SEDE) === Number(idSede) && Number(p.ID_CURSO) === Number(idCurso))
+      ((p.ID_SEDE == null ? null : Number(p.ID_SEDE)) === (idSede == null ? null : Number(idSede))
+        && (p.MODALIDAD || 'PRESENCIAL') === (modalidad || 'PRESENCIAL')
+        && Number(p.ID_CURSO) === Number(idCurso))
         ? { ...p, NUMERO_PLAZAS: n }
         : p
     );
     notify(next);
   };
 
-  const incPlazas = (idSede, idCurso) => {
-    const cur = plazas.find(p => Number(p.ID_SEDE) === Number(idSede) && Number(p.ID_CURSO) === Number(idCurso));
-    handlePlazasChange(idSede, idCurso, (cur?.NUMERO_PLAZAS ?? 0) + 1);
+  const incPlazas = (idSede, modalidad, idCurso) => {
+    const cur = plazas.find(p =>
+      (p.ID_SEDE == null ? null : Number(p.ID_SEDE)) === (idSede == null ? null : Number(idSede))
+      && (p.MODALIDAD || 'PRESENCIAL') === (modalidad || 'PRESENCIAL')
+      && Number(p.ID_CURSO) === Number(idCurso));
+    handlePlazasChange(idSede, modalidad, idCurso, (cur?.NUMERO_PLAZAS ?? 0) + 1);
   };
-  const decPlazas = (idSede, idCurso) => {
-    const cur = plazas.find(p => Number(p.ID_SEDE) === Number(idSede) && Number(p.ID_CURSO) === Number(idCurso));
-    handlePlazasChange(idSede, idCurso, (cur?.NUMERO_PLAZAS ?? 0) - 1);
+  const decPlazas = (idSede, modalidad, idCurso) => {
+    const cur = plazas.find(p =>
+      (p.ID_SEDE == null ? null : Number(p.ID_SEDE)) === (idSede == null ? null : Number(idSede))
+      && (p.MODALIDAD || 'PRESENCIAL') === (modalidad || 'PRESENCIAL')
+      && Number(p.ID_CURSO) === Number(idCurso));
+    handlePlazasChange(idSede, modalidad, idCurso, (cur?.NUMERO_PLAZAS ?? 0) - 1);
   };
 
   // Totales
@@ -172,15 +207,16 @@ const PlazasGridInput = ({
     [plazas]
   );
 
-  // Filtrar sedes por búsqueda
+  // Filtrar sedes por búsqueda (la pseudo-sede Virtual se incluye si matchea "virtual")
   const sedesFiltradas = useMemo(() => {
-    if (!searchTerm.trim()) return sedes;
+    if (!searchTerm.trim()) return sedesConVirtual;
     const t = searchTerm.toLowerCase();
-    return sedes.filter(s =>
+    const matched = sedesConVirtual.filter(s =>
       (s.NOMBRE_SEDE || '').toLowerCase().includes(t) ||
       (s.CODIGO_SEDE || '').toLowerCase().includes(t)
     );
-  }, [sedes, searchTerm]);
+    return matched;
+  }, [sedesConVirtual, searchTerm]);
 
   /* ===== iconos ===== */
   const IconPlus = () => <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4"/></svg>;
@@ -253,21 +289,39 @@ const PlazasGridInput = ({
       <div className="space-y-4">
         {sedesFiltradas.map((sede) => {
           const idSede = sede.ID_SEDE;
-          const added = plazasBySede(idSede);
+          const modalidad = sede.MODALIDAD || 'PRESENCIAL';
+          const isVirtual = !!sede._isVirtual;
+          const added = plazasBySede(idSede, modalidad);
           const sedePlazasTotal = added.reduce((s, p) => s + (Number(p.NUMERO_PLAZAS) || 0), 0);
           const sedeCursosConPlazas = added.filter(p => Number(p.NUMERO_PLAZAS) > 0).length;
+          const sedeKeyStr = sedeKey({ ID_SEDE: idSede, MODALIDAD: modalidad });
 
           return (
-            <div key={idSede} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+            <div key={sedeKeyStr} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
               {/* Header sede */}
-              <div className="bg-gradient-to-r from-slate-50 to-gray-50 px-5 py-3 border-b border-gray-200 flex items-center justify-between">
+              <div className={`px-5 py-3 border-b border-gray-200 flex items-center justify-between ${
+                isVirtual
+                  ? 'bg-gradient-to-r from-purple-50 to-indigo-50'
+                  : 'bg-gradient-to-r from-slate-50 to-gray-50'
+              }`}>
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-slate-700 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
-                    {sede.CODIGO_SEDE || sede.NOMBRE_SEDE?.[0] || '?'}
+                  <div className={`w-9 h-9 rounded-lg text-white flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                    isVirtual ? 'bg-purple-600' : 'bg-slate-700'
+                  }`}>
+                    {isVirtual ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 18l-1 1h10l-1-1-.75-1M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                    ) : (
+                      sede.CODIGO_SEDE || sede.NOMBRE_SEDE?.[0] || '?'
+                    )}
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-gray-900">
+                    <div className="text-sm font-semibold text-gray-900 flex items-center gap-2">
                       {sede.NOMBRE_SEDE}
+                      {isVirtual && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded border border-purple-200">
+                          VIRTUAL
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-gray-500">
                       {added.length} curso{added.length !== 1 ? 's' : ''} · {sedeCursosConPlazas} con plazas
@@ -276,7 +330,9 @@ const PlazasGridInput = ({
                 </div>
                 <div className="flex items-center gap-2">
                   {sedePlazasTotal > 0 && (
-                    <span className="inline-flex items-center px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
+                    <span className={`inline-flex items-center px-2.5 py-1 text-xs font-bold rounded-full ${
+                      isVirtual ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
                       {sedePlazasTotal} plazas
                     </span>
                   )}
@@ -294,10 +350,12 @@ const PlazasGridInput = ({
                       const hasPlazas = Number(p.NUMERO_PLAZAS) > 0;
                       return (
                         <div
-                          key={`${p.ID_SEDE}-${p.ID_CURSO}`}
+                          key={`${sedeKey(p)}-${p.ID_CURSO}`}
                           className={`flex items-center gap-2 p-2.5 rounded-lg border transition-all ${
                             hasPlazas
-                              ? 'border-blue-200 bg-blue-50/40'
+                              ? isVirtual
+                                ? 'border-purple-200 bg-purple-50/40'
+                                : 'border-blue-200 bg-blue-50/40'
                               : 'border-gray-200 bg-gray-50/40'
                           }`}
                         >
@@ -322,7 +380,7 @@ const PlazasGridInput = ({
                           <div className="flex items-center gap-1 flex-shrink-0">
                             <button
                               type="button"
-                              onClick={() => decPlazas(p.ID_SEDE, p.ID_CURSO)}
+                              onClick={() => decPlazas(p.ID_SEDE, p.MODALIDAD, p.ID_CURSO)}
                               disabled={disabled}
                               className="w-7 h-7 flex items-center justify-center text-red-600 rounded-md hover:bg-red-100 disabled:opacity-40 transition-colors"
                               title="Disminuir"
@@ -335,25 +393,29 @@ const PlazasGridInput = ({
                               min={minPlazas}
                               max={maxPlazas}
                               disabled={disabled}
-                              onChange={(e) => handlePlazasChange(p.ID_SEDE, p.ID_CURSO, e.target.value)}
+                              onChange={(e) => handlePlazasChange(p.ID_SEDE, p.MODALIDAD, p.ID_CURSO, e.target.value)}
                               className={`w-12 text-center px-1 py-1 text-sm font-semibold border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
                                 hasPlazas
-                                  ? 'border-blue-300 bg-white text-blue-700'
+                                  ? isVirtual
+                                    ? 'border-purple-300 bg-white text-purple-700'
+                                    : 'border-blue-300 bg-white text-blue-700'
                                   : 'border-gray-200 bg-white text-gray-600'
                               }`}
                             />
                             <button
                               type="button"
-                              onClick={() => incPlazas(p.ID_SEDE, p.ID_CURSO)}
+                              onClick={() => incPlazas(p.ID_SEDE, p.MODALIDAD, p.ID_CURSO)}
                               disabled={disabled}
-                              className="w-7 h-7 flex items-center justify-center text-blue-600 rounded-md hover:bg-blue-100 disabled:opacity-40 transition-colors"
+                              className={`w-7 h-7 flex items-center justify-center rounded-md disabled:opacity-40 transition-colors ${
+                                isVirtual ? 'text-purple-600 hover:bg-purple-100' : 'text-blue-600 hover:bg-blue-100'
+                              }`}
                               title="Aumentar"
                             >
                               <IconPlus />
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleRemoveCurso(p.ID_SEDE, p.ID_CURSO)}
+                              onClick={() => handleRemoveCurso(p.ID_SEDE, p.MODALIDAD, p.ID_CURSO)}
                               disabled={disabled}
                               className="w-7 h-7 flex items-center justify-center text-gray-400 rounded-md hover:bg-red-50 hover:text-red-600 disabled:opacity-40 transition-colors ml-0.5"
                               title="Quitar curso"
@@ -369,14 +431,14 @@ const PlazasGridInput = ({
 
                 {/* Re-añadir curso eliminado */}
                 {(() => {
-                  const available = cursosDisponiblesBySede(idSede);
+                  const available = cursosDisponiblesBySede(idSede, modalidad);
                   if (available.length === 0 || disabled) return null;
-                  const selectValue = selectCursoBySede[idSede] || '';
+                  const selectValue = selectCursoBySede[sedeKeyStr] || '';
                   return (
                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
                       <select
                         value={selectValue}
-                        onChange={(e) => setSelectCursoBySede(prev => ({ ...prev, [idSede]: e.target.value }))}
+                        onChange={(e) => setSelectCursoBySede(prev => ({ ...prev, [sedeKeyStr]: e.target.value }))}
                         className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all"
                       >
                         <option value="">+ Re-añadir curso...</option>
@@ -388,7 +450,7 @@ const PlazasGridInput = ({
                       </select>
                       <button
                         type="button"
-                        onClick={() => handleAddCurso(idSede)}
+                        onClick={() => handleAddCurso(idSede, modalidad)}
                         disabled={!selectValue}
                         className="px-3 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                       >

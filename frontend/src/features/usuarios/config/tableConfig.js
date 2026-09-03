@@ -18,7 +18,9 @@ export const getTableLevelConfigs = ({ usuariosCrud, onResetPassword, onVerPerfi
         label: 'DNI',
         displayValue: (row) => ({
           primary: row.DNI,
-          secondary: row.DNI_ESTADO || 'Sin fecha'
+          secondary: row.DNI_FECHA_VENCIMIENTO
+            ? `${row.DNI_ESTADO || 'Sin fecha'} | ${row.DNI_FECHA_VENCIMIENTO}`
+            : (row.DNI_ESTADO || 'Sin fecha')
         }),
         colorMap: {
           vigente: 'bg-green-100 text-green-700',
