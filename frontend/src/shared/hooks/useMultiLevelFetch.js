@@ -121,15 +121,43 @@ export function useMultiLevelFetch(levelConfigs) {
     });
   }, [fetchLevel1, fetchChildren]);
 
+  // Distribuye datos planos a childrenCache agrupados por parentKey.
+  // Evita N llamadas fetchChildren cuando ya se tienen todos los datos.
+  const populateChildrenFromFlatData = useCallback((levelIndex, flatData, groupByKey) => {
+    if (levelIndex <= 0 || levelIndex >= levelConfigs.length) return;
+
+    // Agrupar datos por la clave del padre (ej: CODIGO_SEDE)
+    const grouped = {};
+    (flatData || []).forEach(row => {
+      const key = row[groupByKey];
+      if (key == null) return;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(row);
+    });
+
+    // Poblar childrenCache y fetchedEntriesRef
+    setChildrenCache(prev => {
+      const next = { ...prev };
+      Object.entries(grouped).forEach(([parentValue, data]) => {
+        const cacheKey = `${levelIndex}-${parentValue}`;
+        fetchedEntriesRef.current.set(cacheKey, { levelIndex, parentValue });
+        next[cacheKey] = { data, loading: false, loaded: true };
+      });
+      return next;
+    });
+  }, [levelConfigs]);
+
   return {
     records,
     childrenCache,
     loading,
     error,
     fetchChildren,
+    fetchLevel1,
     refresh,
     refreshChildren,
     refreshKeepingExpansion,
+    populateChildrenFromFlatData,
     updateRecord
   };
 }

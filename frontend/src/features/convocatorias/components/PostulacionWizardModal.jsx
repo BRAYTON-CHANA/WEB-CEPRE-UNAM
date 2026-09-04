@@ -57,7 +57,9 @@ function PostulacionWizardModal({
   idConvocatoriaCursoInicial = null,
   convocatoriaCursos = [],
   convocatoriaLabel = '',
-  onSuccess
+  onSuccess,
+  onRefreshPlazas,
+  refreshingPlazas = false
 }) {
   const wizard = usePostulacionWizard({
     idConvocatoriaCursoInicial,
@@ -419,6 +421,8 @@ function PostulacionWizardModal({
           selectedIds={formData.ID_CONVOCATORIA_CURSOS || []}
           postuladasIds={postulacionesExistentes}
           onChange={(newIds) => setFieldValue('ID_CONVOCATORIA_CURSOS', newIds)}
+          onRefresh={onRefreshPlazas}
+          refreshing={refreshingPlazas}
           error={errors.ID_CONVOCATORIA_CURSOS}
         />
 

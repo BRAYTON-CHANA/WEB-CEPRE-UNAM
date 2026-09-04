@@ -53,7 +53,7 @@ function ManagePostulantesPanel({ initialFilters }) {
     isModalOpen, creating, formError,
     initialValues,
     handleOpenCreate, handleCloseModal, handleSubmit,
-    refresh,
+    refresh, load,
     handleSaveSuccess, handleSaveError,
     handleDeletePostulacion,
     adjuntosModal, handleViewAdjuntos, handleSaveAdjuntos, closeAdjuntosModal,
@@ -68,6 +68,7 @@ function ManagePostulantesPanel({ initialFilters }) {
 
   // Cargar convocatoria_cursos cuando se abre el modal sin sede seleccionada
   const [allConvocatoriaCursos, setAllConvocatoriaCursos] = useState([]);
+  const [refreshingPlazas, setRefreshingPlazas] = useState(false);
   useEffect(() => {
     if (!isModalOpen || !selectedIdConvocatoria || selectedIdSede) {
       setAllConvocatoriaCursos([]);
@@ -93,6 +94,26 @@ function ManagePostulantesPanel({ initialFilters }) {
 
   const convocatoriaCursosForForm = selectedIdSede ? cursos : allConvocatoriaCursos;
 
+  // Refresh unificado de plazas: recarga VW_CONVOCATORIAS_CURSO según si hay sede o no
+  const refreshPlazas = useCallback(async () => {
+    setRefreshingPlazas(true);
+    try {
+      if (selectedIdSede) {
+        await refreshCursos();
+      } else if (selectedIdConvocatoria) {
+        const data = await db.select('VW_CONVOCATORIAS_CURSO', { ID_CONVOCATORIA: selectedIdConvocatoria });
+        setAllConvocatoriaCursos([...(data || [])].sort((a, b) =>
+          String(a.NOMBRE_SEDE || '').localeCompare(String(b.NOMBRE_SEDE || ''), 'es', { sensitivity: 'base' }) ||
+          String(a.NOMBRE_CURSO || '').localeCompare(String(b.NOMBRE_CURSO || ''), 'es', { sensitivity: 'base' })
+        ));
+      }
+    } catch (err) {
+      console.error('Error refrescando plazas:', err);
+    } finally {
+      setRefreshingPlazas(false);
+    }
+  }, [selectedIdSede, selectedIdConvocatoria, refreshCursos]);
+
   const tableActions = useMemo(
     () => getPostulantesTableActions(handleViewAdjuntos, handleDeletePostulacion),
     [handleViewAdjuntos, handleDeletePostulacion]
@@ -102,9 +123,11 @@ function ManagePostulantesPanel({ initialFilters }) {
   // Esto previene que EditableCell y ReferenceSelectInput re-disparen consultas
   const tableHeaders = useMemo(() => getPostulantesTableHeaders(), []);
 
-  // Handler de éxito del wizard: refrescar postulaciones + mostrar toast
+  // Handler de éxito del wizard: refrescar postulaciones + mostrar toast.
+  // Usa load() en vez de refresh() porque el wizard ya llamó cacheService.invalidateAll()
+  // al final de handleFinalizar, así que no es necesario invalidar de nuevo.
   const handleWizardSuccess = useCallback((result) => {
-    refresh();
+    load();
     const count = result?.count ?? 0;
     setToast({
       type: 'success',
@@ -113,7 +136,7 @@ function ManagePostulantesPanel({ initialFilters }) {
         ? `${count} postulación${count > 1 ? 'es' : ''} registrada${count > 1 ? 's' : ''} correctamente.`
         : 'No se registraron postulaciones nuevas (ya estaban postuladas).'
     });
-  }, [refresh]);
+  }, [load]);
 
   const handleCloseToast = useCallback(() => setToast(null), []);
 
@@ -266,6 +289,8 @@ function ManagePostulantesPanel({ initialFilters }) {
         convocatoriaCursos={convocatoriaCursosForForm}
         convocatoriaLabel={convocatoriaLabel}
         onSuccess={handleWizardSuccess}
+        onRefreshPlazas={refreshPlazas}
+        refreshingPlazas={refreshingPlazas}
       />
 
       <AdjuntosModal

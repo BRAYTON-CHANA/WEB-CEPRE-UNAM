@@ -17,6 +17,8 @@ function PlazasSelector({
   selectedIds = [],
   postuladasIds = [],
   onChange,
+  onRefresh,
+  refreshing = false,
   error
 }) {
   const [expandedSedes, setExpandedSedes] = useState({});
@@ -71,19 +73,6 @@ function PlazasSelector({
     onChange(newSelection);
   };
 
-  const expandAll = () => {
-    const all = {};
-    sedesAgrupadas.forEach(s => {
-      const key = `${s.idSede == null ? 'null' : s.idSede}|${s.modalidad}`;
-      all[key] = true;
-    });
-    setExpandedSedes(all);
-  };
-
-  const collapseAll = () => {
-    setExpandedSedes({});
-  };
-
   if (convocatoriaCursos.length === 0) {
     return (
       <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
@@ -99,23 +88,23 @@ function PlazasSelector({
         <label className="block text-sm font-medium text-gray-700">
           Postular a plazas <span className="text-red-500 ml-1">*</span>
         </label>
-        <div className="flex gap-2 text-xs">
+        {onRefresh && (
           <button
             type="button"
-            onClick={expandAll}
-            className="text-blue-600 hover:text-blue-800 font-medium"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Actualizar lista de plazas"
           >
-            Expandir todo
+            <svg
+              className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {refreshing ? 'Actualizando...' : 'Actualizar'}
           </button>
-          <span className="text-gray-300">|</span>
-          <button
-            type="button"
-            onClick={collapseAll}
-            className="text-gray-500 hover:text-gray-700 font-medium"
-          >
-            Colapsar todo
-          </button>
-        </div>
+        )}
       </div>
 
       {/* Contador de seleccionados */}

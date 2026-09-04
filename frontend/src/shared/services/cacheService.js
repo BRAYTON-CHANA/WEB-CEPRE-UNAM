@@ -61,11 +61,18 @@ class CacheService {
   }
 
   /**
-   * Invalidar todos los caches (útil después de cualquier operación CRUD)
+   * Invalidar todos los caches (útil después de cualquier operación CRUD).
+   * Debounce de 50ms para coalescer llamadas rápidas en una sola notificación.
    */
   invalidateAll() {
     console.log('[cacheService] 💥 invalidateAll() llamado');
-    this.invalidate({ all: true });
+    if (this._debounceTimer) {
+      clearTimeout(this._debounceTimer);
+    }
+    this._debounceTimer = setTimeout(() => {
+      this._debounceTimer = null;
+      this.invalidate({ all: true });
+    }, 50);
   }
 
   /**

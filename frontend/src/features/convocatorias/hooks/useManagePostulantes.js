@@ -211,7 +211,7 @@ export function useManagePostulantes({ idConvocatoriaCurso, idConvocatoria, idSe
   return {
     // Data
     postulaciones: filteredPostulaciones, loading, error,
-    refresh,
+    refresh, load,
     // Modal crear/editar
     isModalOpen, creating, formError,
     editingPostulacion, editingAdjuntos, loadingAdjuntos,

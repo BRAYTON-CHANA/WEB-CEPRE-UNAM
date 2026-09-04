@@ -251,7 +251,7 @@ export async function guardarDocenteCompleto(formData, idUsuario, idDocente, tab
     p_experiencia: tablasData.experiencia || []
   });
 
-  cacheService.invalidateAll();
+  // Nota: la invalidación de cache la manejan los callers (wizard, DocenteForm)
   return {
     id_docente: result?.id_docente,
     filas_hijas: result?.filas_hijas

@@ -19,6 +19,7 @@ import {
 import { getDniUrl, getDocenteFileUrl } from '@/features/docentes/services/docentesStorageService';
 import DocenteTablasRelacionadas from '@/features/docentes/components/DocenteTablasRelacionadas';
 import { useDocenteUsuario, buildDocenteArchivo } from '@/features/docentes/hooks/useDocenteUsuario';
+import cacheService from '@/shared/services/cacheService';
 
 /**
  * DocenteForm - Formulario especial de docentes de 2 páginas.
@@ -234,6 +235,9 @@ const DocenteForm = ({
         tablasResult.data,
         archivosMetadata
       );
+      // Invalidar cache aquí (se removió de guardarDocenteCompleto para evitar
+      // invalidaciones redundantes cuando el caller hace su propia invalidación)
+      cacheService.invalidateAll();
       setIdDocenteGuardado(result.id_docente);
       onSuccess?.({ ID_DOCENTE: result.id_docente, ID_USUARIO: idUsuario });
     } catch (err) {

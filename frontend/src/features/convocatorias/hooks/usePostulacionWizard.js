@@ -16,6 +16,7 @@ import {
 import { useDocenteUsuario, buildDocenteArchivo } from '@/features/docentes/hooks/useDocenteUsuario';
 import { db } from '@/shared/api';
 import { createPostulacionConDocente, createPostulacionesBatch } from '@/features/convocatorias/services/postulacionesService';
+import cacheService from '@/shared/services/cacheService';
 
 /**
  * usePostulacionWizard — lógica del wizard de 3 páginas para "Añadir Postulación".
@@ -517,6 +518,9 @@ export function usePostulacionWizard({
         );
         count = result.count;
       }
+
+      // 6. Invalidar cache una sola vez al final del flujo (no durante)
+      cacheService.invalidateAll();
 
       onSuccess?.({ ID_DOCENTE: idDocenteFinal, ID_USUARIO: idUsuario, count });
       // Cerrar tras éxito

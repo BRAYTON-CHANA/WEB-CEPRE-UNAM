@@ -56,8 +56,10 @@ export function useGrupos({ externalPeriodo, onExternalPeriodoChange, onVerCurso
     loading,
     error,
     fetchChildren,
+    fetchLevel1,
     refresh,
     refreshChildren,
+    populateChildrenFromFlatData,
     updateRecord
   } = useMultiLevelFetch(fetchConfigs);
 
@@ -84,14 +86,17 @@ export function useGrupos({ externalPeriodo, onExternalPeriodoChange, onVerCurso
   const [gruposAllError, setGruposAllError] = useState(null);
 
   const fetchGruposAll = useCallback(async () => {
-    if (!selectedPeriodo) { setGruposAll([]); return; }
+    if (!selectedPeriodo) { setGruposAll([]); return []; }
     setGruposAllLoading(true);
     setGruposAllError(null);
     try {
       const data = await db.select('VW_GRUPOS', { ID_PERIODO: selectedPeriodo });
-      setGruposAll(Array.isArray(data) ? data : []);
+      const rows = Array.isArray(data) ? data : [];
+      setGruposAll(rows);
+      return rows;
     } catch (err) {
       setGruposAllError(err.message || 'Error al cargar grupos');
+      return [];
     } finally {
       setGruposAllLoading(false);
     }
@@ -104,10 +109,18 @@ export function useGrupos({ externalPeriodo, onExternalPeriodoChange, onVerCurso
   const refreshGruposAll = useCallback(() => fetchGruposAll(), [fetchGruposAll]);
 
   // ===== Refresh combinado: compacto + plano =====
-  const handleRefreshAll = useCallback(() => {
-    refresh();
-    fetchGruposAll();
-  }, [refresh, fetchGruposAll]);
+  // Optimización: en vez de refresh() (que limpia childrenCache y dispara N fetchChildren),
+  // trae todos los grupos en 1 sola call y los distribuye a childrenCache por CODIGO_SEDE.
+  const handleRefreshAll = useCallback(async () => {
+    // 1. Fetch todos los grupos (1 sola call VW_GRUPOS)
+    const rows = await fetchGruposAll();
+
+    // 2. Distribuir a childrenCache por CODIGO_SEDE (sin N calls extra)
+    populateChildrenFromFlatData(1, rows, 'CODIGO_SEDE');
+
+    // 3. Refresh sedes (1 call VW_SEDES_CON_VIRTUAL)
+    fetchLevel1();
+  }, [fetchGruposAll, populateChildrenFromFlatData, fetchLevel1]);
 
   // ===== CRUD =====
   const gruposCrud = useCrudForms({
