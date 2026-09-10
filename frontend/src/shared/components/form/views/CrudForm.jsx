@@ -23,6 +23,7 @@ const CrudForm = ({
   // Layout y multi-step (nuevo)
   layout = null,
   multiStep = null,
+  initialPage = 1,
   onPageChange = null,
 
   // Callbacks
@@ -227,6 +228,7 @@ const CrudForm = ({
         validation={validation}
         layout={layout}
         multiStep={multiStep}
+        initialPage={initialPage}
         onPageChange={onPageChange}
         submitText={submitText}
         loading={isSubmitting}

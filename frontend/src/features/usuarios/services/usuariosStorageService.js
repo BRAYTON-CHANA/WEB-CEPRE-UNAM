@@ -49,6 +49,24 @@ export async function uploadDniFile(idUsuario, file) {
 }
 
 /**
+ * Sube el certificado CONADIS al bucket usuarios-adjuntos (subcarpeta conadis/).
+ * @param {number} idUsuario - ID del usuario
+ * @param {File} file - Archivo a subir
+ * @returns {Promise<{ path: string, filename: string, contentType: string, size: number }>}
+ */
+export async function uploadConadisFile(idUsuario, file) {
+  const fileBase64 = await fileToBase64(file);
+  return requestStorage('upload', {
+    domain: 'usuarios',
+    id: idUsuario,
+    filename: file.name,
+    contentType: file.type,
+    file: fileBase64,
+    tipo: 'conadis',
+  });
+}
+
+/**
  * Genera una URL firmada temporal para ver el archivo de DNI.
  * @param {string} path - Path del archivo en Storage
  * @param {number} expirySeconds - Segundos de validez (default: 3600 = 1 hora)
@@ -68,6 +86,32 @@ export async function getDniUrl(path, expirySeconds = 3600) {
  * @param {string} path - Path del archivo en Storage
  */
 export async function deleteDniFile(path) {
+  return requestStorage('delete', {
+    bucket: 'usuarios-adjuntos',
+    path,
+  });
+}
+
+/**
+ * Genera una URL firmada temporal para ver el certificado CONADIS.
+ * @param {string} path - Path del archivo en Storage
+ * @param {number} expirySeconds - Segundos de validez (default: 3600 = 1 hora)
+ * @returns {Promise<string>} URL firmada
+ */
+export async function getConadisUrl(path, expirySeconds = 3600) {
+  const data = await requestStorage('url', {
+    bucket: 'usuarios-adjuntos',
+    path,
+    expirySeconds,
+  });
+  return data.url;
+}
+
+/**
+ * Elimina el certificado CONADIS del bucket usuarios-adjuntos.
+ * @param {string} path - Path del archivo en Storage
+ */
+export async function deleteConadisFile(path) {
   return requestStorage('delete', {
     bucket: 'usuarios-adjuntos',
     path,

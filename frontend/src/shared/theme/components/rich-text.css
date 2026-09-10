@@ -1,0 +1,232 @@
+/* Rich Text - Estilos para contenido HTML enriquecido
+   Se usa en el editor TipTap (clase .tiptap) y en cualquier vista que
+   renderice HTML de correos con dangerouslySetInnerHTML. */
+
+.rich-text .ProseMirror,
+.rich-text.ProseMirror {
+  outline: none;
+  min-height: 220px;
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #1e293b;
+}
+
+.rich-text p {
+  margin: 0 0 0.5em;
+}
+
+.rich-text h1 {
+  font-size: 1.5em;
+  font-weight: 700;
+  margin: 0.75em 0 0.5em;
+}
+
+.rich-text h2 {
+  font-size: 1.25em;
+  font-weight: 700;
+  margin: 0.75em 0 0.5em;
+}
+
+.rich-text h3 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 0.75em 0 0.4em;
+}
+
+.rich-text ul,
+.rich-text ol {
+  padding-left: 1.5em;
+  margin: 0 0 0.5em;
+}
+
+.rich-text ul {
+  list-style: disc;
+}
+
+.rich-text ol {
+  list-style: decimal;
+}
+
+.rich-text blockquote {
+  border-left: 3px solid #cbd5e1;
+  padding-left: 0.75em;
+  margin: 0.5em 0;
+  color: #475569;
+}
+
+.rich-text code {
+  background: #f1f5f9;
+  border-radius: 0.25rem;
+  padding: 0.1em 0.3em;
+  font-size: 0.85em;
+}
+
+.rich-text pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.75em 1em;
+  margin: 0.5em 0;
+  overflow-x: auto;
+}
+
+.rich-text pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.rich-text a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.rich-text mark {
+  background: #fef08a;
+  border-radius: 0.15rem;
+  padding: 0 0.1em;
+}
+
+.rich-text hr {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 1em 0;
+}
+
+.rich-text table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.75em 0;
+  table-layout: fixed;
+  overflow: hidden;
+}
+
+.rich-text th,
+.rich-text td {
+  border: 1px solid #cbd5e1;
+  padding: 0.4em 0.6em;
+  vertical-align: top;
+  position: relative;
+}
+
+.rich-text th {
+  background: #f1f5f9;
+  font-weight: 600;
+  text-align: left;
+}
+
+.rich-text .selectedCell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(59, 130, 246, 0.12);
+  pointer-events: none;
+}
+
+.rich-text img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.375rem;
+  margin: 0.5em 0;
+}
+
+/* Alineación de imágenes (atributo data-align).
+   margin:auto funciona tanto para <img> plano como dentro del
+   contenedor flex del ResizableNodeView. */
+.rich-text img[data-align="center"] {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.rich-text img[data-align="right"] {
+  display: block;
+  margin-left: auto;
+}
+
+.rich-text img[data-align="left"] {
+  display: block;
+  margin-right: auto;
+}
+
+.rich-text img.ProseMirror-selectednode,
+.rich-text [data-resize-container].ProseMirror-selectednode img {
+  outline: 2px solid #3b82f6;
+  outline-offset: 1px;
+}
+
+/* Handles de redimensionado de imagen (TipTap ResizableNodeView:
+   crea los handles sin estilos, hay que darles tamaño y posición) */
+/* Handles ocultos salvo que la imagen esté seleccionada */
+.rich-text [data-resize-handle] {
+  display: none;
+}
+
+.rich-text [data-resize-container].ProseMirror-selectednode [data-resize-handle] {
+  display: block;
+}
+
+.rich-text [data-resize-handle] {
+  width: 10px;
+  height: 10px;
+  background: #3b82f6;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  z-index: 20;
+}
+
+.rich-text [data-resize-handle="top-left"],
+.rich-text [data-resize-handle="bottom-right"] {
+  cursor: nwse-resize;
+}
+
+.rich-text [data-resize-handle="top-right"],
+.rich-text [data-resize-handle="bottom-left"] {
+  cursor: nesw-resize;
+}
+
+.rich-text [data-resize-handle="top"],
+.rich-text [data-resize-handle="bottom"] {
+  cursor: ns-resize;
+}
+
+.rich-text [data-resize-handle="left"],
+.rich-text [data-resize-handle="right"] {
+  cursor: ew-resize;
+}
+
+/* Centrar los handles sobre las esquinas/bordes */
+.rich-text [data-resize-handle="top-left"] { transform: translate(-50%, -50%); }
+.rich-text [data-resize-handle="top-right"] { transform: translate(50%, -50%); }
+.rich-text [data-resize-handle="bottom-left"] { transform: translate(-50%, 50%); }
+.rich-text [data-resize-handle="bottom-right"] { transform: translate(50%, 50%); }
+.rich-text [data-resize-handle="top"],
+.rich-text [data-resize-handle="bottom"] { height: 6px; border-radius: 3px; }
+.rich-text [data-resize-handle="left"],
+.rich-text [data-resize-handle="right"] { width: 6px; border-radius: 3px; }
+
+/* Redimensionado de columnas de tabla (TipTap resizable) */
+.rich-text .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background: #3b82f6;
+  pointer-events: none;
+}
+
+.rich-text.resize-cursor {
+  cursor: col-resize;
+}
+
+/* Placeholder del editor TipTap (solo cuando está vacío) */
+.rich-text .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: #94a3b8;
+  pointer-events: none;
+}

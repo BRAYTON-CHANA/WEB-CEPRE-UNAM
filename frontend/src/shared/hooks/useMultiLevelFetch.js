@@ -17,7 +17,13 @@ export function useMultiLevelFetch(levelConfigs) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [childrenCache, setChildrenCache] = useState({});
+  const childrenCacheRef = useRef(childrenCache); // mirror síncrono para guards
   const fetchedEntriesRef = useRef(new Map()); // cacheKey -> { levelIndex, parentValue }
+
+  // Mantener ref sincronizada con childrenCache para lecturas síncronas en guards
+  useEffect(() => {
+    childrenCacheRef.current = childrenCache;
+  }, [childrenCache]);
 
   const fetchLevel1 = useCallback(async () => {
     if (!levelConfigs?.length) return;
@@ -49,12 +55,20 @@ export function useMultiLevelFetch(levelConfigs) {
     fetchLevel1();
   }, [fetchLevel1]);
 
-  const fetchChildren = useCallback(async (levelIndex, parentValue) => {
+  const fetchChildren = useCallback(async (levelIndex, parentValue, { force = false } = {}) => {
     if (levelIndex <= 0 || levelIndex >= levelConfigs.length) return;
 
     const config = levelConfigs[levelIndex];
     const parentConfig = levelConfigs[levelIndex - 1];
     const cacheKey = `${levelIndex}-${parentValue}`;
+
+    // Guard: si ya hay una carga en progreso para esta clave, no disparar otra
+    // (evita duplicación de requests durante re-renders rápidos).
+    // force=true bypassa este guard (usado por refreshChildren).
+    if (!force) {
+      const existing = childrenCacheRef.current[cacheKey];
+      if (existing?.loading) return;
+    }
 
     fetchedEntriesRef.current.set(cacheKey, { levelIndex, parentValue });
 
@@ -89,7 +103,7 @@ export function useMultiLevelFetch(levelConfigs) {
       ...prev,
       [cacheKey]: { data: [], loading: true, loaded: false }
     }));
-    return fetchChildren(levelIndex, parentValue);
+    return fetchChildren(levelIndex, parentValue, { force: true });
   }, [fetchChildren]);
 
   const updateRecord = useCallback((recordId, primaryKey, field, newValue) => {
@@ -117,7 +131,7 @@ export function useMultiLevelFetch(levelConfigs) {
   const refreshKeepingExpansion = useCallback(() => {
     fetchLevel1();
     fetchedEntriesRef.current.forEach(({ levelIndex, parentValue }) => {
-      fetchChildren(levelIndex, parentValue);
+      fetchChildren(levelIndex, parentValue, { force: true });
     });
   }, [fetchLevel1, fetchChildren]);
 

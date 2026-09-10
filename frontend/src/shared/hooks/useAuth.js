@@ -55,7 +55,7 @@ export const useAuth = () => {
           const dbUsers = await db.select('VW_USUARIOS', { ID_USUARIO: userId });
           const dbUser = dbUsers?.[0];
           if (dbUser) {
-            user = { ...payload, ...dbUser, roles: dbUser.ROLES_NOMBRES || payload.roles || [] };
+            user = { ...payload, ...dbUser, roles: (payload.roles?.length > 0 ? payload.roles : (dbUser.ROLES || [])) };
           }
         } catch {
           // conservar el payload si falla la consulta

@@ -1,9 +1,9 @@
 import React from 'react';
-import PasswordResetPanel from '@/features/correos/views/PasswordResetPanel';
+import PasswordResetPanel from '@/features/correos/password-reset/views/PasswordResetPanel';
 
 /**
  * Configuración de PASSWORD_RESET_CODES
- * Punto de entrada que delega al panel en features/correos/views.
+ * Punto de entrada que delega al panel en features/correos/password-reset/views.
  */
 function PasswordResetConfig() {
   return <PasswordResetPanel />;

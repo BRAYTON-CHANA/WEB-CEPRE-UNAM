@@ -29,15 +29,84 @@ export const organizeFields = (fields, layout = null, showWarnings = true) => {
 
 /**
  * Crea estructura de página única (default)
+ * Soporta sections opcionales vía layout.sections para agrupar campos con títulos.
  */
 const createSinglePageStructure = (fields, layout = null, showWarnings = true) => {
   const warnings = [];
-  const assignedFields = [];
   const sectionColumns = layout?.columns || 1;
+  const sectionsConfig = layout?.sections;
 
+  // ── Modo con secciones definidas ──
+  if (sectionsConfig && sectionsConfig.length > 0) {
+    const fieldsBySection = new Map();
+    const unassignedFields = [];
+
+    fields.forEach((field) => {
+      if (field.page) {
+        warnings.push(`[layoutEngine] Field "${field.name}" tiene page pero no hay layout multistep definido. Ignorando page.`);
+      }
+      const sectionNum = field.section;
+      if (sectionNum && sectionNum >= 1 && sectionNum <= sectionsConfig.length) {
+        if (!fieldsBySection.has(sectionNum)) {
+          fieldsBySection.set(sectionNum, []);
+        }
+        fieldsBySection.get(sectionNum).push({
+          ...field,
+          _assignedPage: 1,
+          _assignedSection: sectionNum
+        });
+      } else {
+        unassignedFields.push({
+          ...field,
+          _assignedPage: 1,
+          _assignedSection: null
+        });
+      }
+    });
+
+    if (showWarnings) {
+      warnings.forEach(w => console.warn(w));
+    }
+
+    const sections = sectionsConfig.map((sectionConfig, index) => {
+      const sectionNum = index + 1;
+      const sectionFields = fieldsBySection.get(sectionNum) || [];
+      return {
+        id: sectionConfig.id || `section-${sectionNum}`,
+        number: sectionNum,
+        title: sectionConfig.title || '',
+        description: sectionConfig.description || '',
+        columns: sectionConfig.columns || sectionColumns,
+        fields: sectionFields
+      };
+    });
+
+    // Campos sin sección asignada → última sección
+    if (unassignedFields.length > 0 && sections.length > 0) {
+      sections[sections.length - 1].fields.push(...unassignedFields);
+    }
+
+    return {
+      type: 'single',
+      totalPages: 1,
+      totalFields: fields.length,
+      pages: [
+        {
+          id: 'page-1',
+          number: 1,
+          title: '',
+          description: '',
+          sections
+        }
+      ]
+    };
+  }
+
+  // ── Modo sin secciones (comportamiento original) ──
+  const assignedFields = [];
   fields.forEach((field) => {
     if (field.page || field.section) {
-      warnings.push(`[layoutEngine] Field "${field.name}" tiene page/section pero no hay layout multistep definido. Ignorando page/section.`);
+      warnings.push(`[layoutEngine] Field "${field.name}" tiene page/section pero no hay layout sections definido. Ignorando page/section.`);
     }
     assignedFields.push({
       ...field,

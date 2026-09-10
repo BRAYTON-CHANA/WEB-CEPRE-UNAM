@@ -15,7 +15,15 @@ export const getTableLevelConfigs = (carrerasCrud) => [
       { title: 'CODIGO_CARRERA', type: 'string', label: 'Código' },
       { title: 'NOMBRE_CARRERA', type: 'string', label: 'Carrera' },
       { title: 'NOMBRE_AREA', type: 'string', label: 'Área' },
-      { title: 'SEDES_NOMBRES', type: 'array', label: 'Sedes' },
+      {
+        title: 'SEDES',
+        type: 'tag-list',
+        label: 'Sedes',
+        displayValue: (row) => {
+          const sedes = row.SEDAS || [];
+          return Array.isArray(sedes) ? sedes.map(s => s.nombre || s) : [];
+        }
+      },
       { title: 'ACTIVO', type: 'boolean', label: 'Activo', editable: true, targetTable: 'CARRERAS', targetField: 'ACTIVO' }
     ],
     boundColumn: 'ID_CARRERA',

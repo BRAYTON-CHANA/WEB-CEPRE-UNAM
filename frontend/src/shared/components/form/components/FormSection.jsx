@@ -2,7 +2,10 @@ import React from 'react';
 
 /**
  * FormSection - Wrapper visual para agrupar campos de formulario en secciones
- * Muestra título, descripción y un contenedor estilizado para los campos
+ * Muestra título, descripción y un contenedor estilizado para los campos.
+ *
+ * Cuando la sección tiene título, renderiza un header con acento lateral,
+ * badge numerado y separador superior para jerarquía visual clara entre bloques.
  */
 const FormSection = ({
   // Identificación
@@ -27,7 +30,7 @@ const FormSection = ({
   isCompleted = false
 }) => {
   /**
-   * Variantes de estilo
+   * Variantes de estilo del contenedor
    */
   const variantClasses = {
     default: 'bg-white',
@@ -53,36 +56,53 @@ const FormSection = ({
     ? (gridColsClass[columns] || gridColsClass[6])
     : 'space-y-4';
 
+  const hasHeader = Boolean(title || description);
+
   /**
-   * Renderizar el header de la sección
+   * Renderiza el header de la sección con acento visual
    */
   const renderHeader = () => {
-    if (!title && !description) return null;
+    if (!hasHeader) return null;
 
     return (
-      <div className="mb-4">
-        {title && (
-          <div className="flex items-center gap-2">
-            <h4 className="text-md font-semibold text-gray-800">
+      <div className="mb-6">
+        {/* Header: acento lateral + título + línea divisoria */}
+        <div className="flex items-center gap-3">
+          {/* Acento lateral — barra de color degradada */}
+          <span
+            className="inline-block h-6 w-1.5 rounded-full bg-gradient-to-b from-blue-500 to-indigo-600 shrink-0 shadow-sm shadow-blue-500/30"
+            aria-hidden="true"
+          />
+
+          {title && (
+            <h4 className="text-sm font-bold uppercase tracking-[0.08em] text-gray-800">
               {title}
             </h4>
-            {isCompleted && (
-              <svg 
-                className="w-5 h-5 text-green-500" 
-                fill="currentColor" 
-                viewBox="0 0 20 20"
-              >
-                <path 
-                  fillRule="evenodd" 
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" 
-                  clipRule="evenodd" 
-                />
-              </svg>
-            )}
-          </div>
-        )}
+          )}
+
+          {isCompleted && (
+            <svg
+              className="w-4 h-4 text-green-500 shrink-0"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              />
+            </svg>
+          )}
+
+          {/* Línea divisoria que se extiende a la derecha */}
+          <span
+            className="flex-1 h-px bg-gradient-to-r from-gray-300 via-gray-200 to-transparent"
+            aria-hidden="true"
+          />
+        </div>
+
         {description && (
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 mt-2.5 ml-5">
             {description}
           </p>
         )}
@@ -91,10 +111,10 @@ const FormSection = ({
   };
 
   return (
-    <div 
+    <div
       id={id}
       className={`
-        mb-8
+        mb-10 last:mb-0
         ${variantClasses[variant] || variantClasses.default}
         ${className}
         ${!isActive ? 'opacity-60' : ''}

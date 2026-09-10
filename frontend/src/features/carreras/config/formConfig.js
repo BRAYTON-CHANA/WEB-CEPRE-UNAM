@@ -1,5 +1,7 @@
 /**
  * Configuración de formulario para CARRERAS
+ * Nota: la asignación de sedes a carreras se gestiona via la tabla puente CARRERA_SEDE,
+ * no desde este formulario. Aquí solo se editan los datos de la plantilla de la carrera.
  */
 export const carreraFormFields = [
   {
@@ -8,18 +10,6 @@ export const carreraFormFields = [
     label: 'Código de Carrera',
     required: true,
     placeholder: 'Ej: INGCIV, GPDS'
-  },
-  {
-    name: 'ID_SEDES',
-    type: 'reference-array',
-    label: 'Sedes',
-    required: true,
-    referenceTable: 'SEDES',
-    referenceField: 'ID_SEDE',
-    referenceLabelField: 'NOMBRE_SEDE',
-    searchable: true,
-    placeholder: 'Seleccionar sedes...',
-    showRefreshButton: true
   },
   {
     name: 'ID_AREA',
@@ -43,9 +33,6 @@ export const carreraFormFields = [
 export const carreraValidation = {
   CODIGO_CARRERA: {
     required: { value: true, message: 'El código de la carrera es obligatorio' }
-  },
-  ID_SEDES: {
-    required: { value: true, message: 'Debe seleccionar al menos una sede' }
   },
   ID_AREA: {
     required: { value: true, message: 'El área es obligatoria' }

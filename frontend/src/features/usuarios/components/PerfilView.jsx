@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { formatDateOnly } from '@/shared/utils/formatUtils';
 
 const BooleanBadge = ({ value }) => {
   if (value === null || value === undefined) return '—';
@@ -28,17 +29,9 @@ const PerfilView = ({ user, activeRole }) => {
   const lastName = (user.APELLIDO_PATERNO || '').toString().trim();
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
-  const roles = user.ROLES_NOMBRES || user.roles || [];
+  const rolesRaw = user.ROLES || user.roles || [];
+  const roles = Array.isArray(rolesRaw) ? rolesRaw.map(r => r.nombre || r) : [];
   const displayActiveRole = activeRole || (roles?.[0]);
-
-  const formatDate = (value) => {
-    if (!value) return null;
-    try {
-      return new Date(value).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
-    } catch {
-      return value;
-    }
-  };
 
   const sexoLabel = (s) => {
     if (!s) return null;
@@ -79,7 +72,7 @@ const PerfilView = ({ user, activeRole }) => {
         <section>
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 border-b border-slate-100 pb-2">Nacimiento y género</h2>
           <dl className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            <Field label="Fecha de nacimiento" value={formatDate(user.FECHA_NACIMIENTO)} />
+            <Field label="Fecha de nacimiento" value={formatDateOnly(user.FECHA_NACIMIENTO)} />
             <Field label="Edad" value={user.EDAD !== null && user.EDAD !== undefined ? `${user.EDAD} años` : null} />
             <Field label="Mayoría de edad" value={user.MAYOR_DE_EDAD} isBoolean />
             <Field label="Sexo" value={sexoLabel(user.SEXO)} />
@@ -119,7 +112,7 @@ const PerfilView = ({ user, activeRole }) => {
           <dl className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             <Field label="Estado DNI" value={user.DNI_ESTADO} />
             <Field label="Tiene archivo" value={user.DNI_TIENE_ARCHIVO} isBoolean />
-            <Field label="Vencimiento" value={formatDate(user.DNI_FECHA_VENCIMIENTO)} />
+            <Field label="Vencimiento" value={formatDateOnly(user.DNI_FECHA_VENCIMIENTO)} />
             <Field label="Archivo" value={user.DNI_FILENAME} />
           </dl>
         </section>

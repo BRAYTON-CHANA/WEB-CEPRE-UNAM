@@ -51,7 +51,9 @@ function CrudMultiLevelManager({ crudLevels = [], children }) {
           editModalConfig = {},
           createFunction = null,
           editFunction = null,
-          transformRecord = null
+          transformRecord = null,
+          viewName = null,
+          initialPage = 1
         } = level;
 
         const {
@@ -137,14 +139,16 @@ function CrudMultiLevelManager({ crudLevels = [], children }) {
               <div className="p-6">
                 {crud.selectedRow && (
                   <CrudForm
-                    key={`edit-${tableName}-${crud.selectedRow[primaryKey]}-${editFormKeyOverride}`}
+                    key={`edit-${tableName}-${crud.selectedRow[primaryKey]}-${editFormKeyOverride}-p${initialPage}`}
                     tableName={tableName}
+                    viewName={viewName}
                     mode="edit"
                     recordId={crud.selectedRow[primaryKey]}
                     fields={editFormFields || formFields}
                     primaryKey={primaryKey}
                     layout={formLayout}
                     multiStep={multiStep}
+                    initialPage={initialPage}
                     confirmSubmit={confirmSubmit}
                     validation={editValidation || validation}
                     editFunction={editFunction}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useMultiLevelGrouping } from '../hooks/useMultiLevelGrouping';
 import TableActions from '../components/TableActions';
 import EditableCell from '../components/EditableCell';
@@ -133,8 +133,15 @@ const TableMultiLevel = ({
       const boundValue = boundColumn ? rowData[boundColumn] : null;
       const key = `${boundValue}`;
       newKeys.add(key);
+      // Solo disparar onExpand si no hay datos cargados para esta clave
+      // (evita re-fetches en cada re-render cuando data es referencia estable)
       if (isAsyncMode && onExpand) {
-        onExpand(_levelIndex + 1, boundValue);
+        const cacheKey = `${_levelIndex + 1}-${boundValue}`;
+        const hasData = childrenData?.[cacheKey] != null;
+        const isLoading = childrenLoading?.[cacheKey] === true;
+        if (!hasData && !isLoading) {
+          onExpand(_levelIndex + 1, boundValue);
+        }
       }
     });
     setExpandedKeys(newKeys);
@@ -396,28 +403,22 @@ const TableMultiLevel = ({
                           }
 
                           if (childData && childData.length > 0) {
-                            // Ordenar hijos por IDENTIFICADOR_DOCENTE si existe
-                            const sortedChildData = [...childData].sort((a, b) => {
-                              const aId = String(a.IDENTIFICADOR_DOCENTE ?? '');
-                              const bId = String(b.IDENTIFICADOR_DOCENTE ?? '');
-                              return aId.localeCompare(bId, 'es', { sensitivity: 'base' });
-                            });
                             return (
-                              <TableMultiLevel
-                                data={sortedChildData}
-                                levelConfigs={subConfigs}
+                              <SortedChildTable
+                                childData={childData}
+                                subConfigs={subConfigs}
                                 onExpand={onExpand}
                                 childrenData={childrenData}
                                 childrenLoading={childrenLoading}
-                                levelStyles={styles}
+                                styles={styles}
                                 autoExpand={autoExpand}
-                                _depth={_depth + 1}
-                                _levelIndex={_levelIndex + 1}
+                                _depth={_depth}
+                                _levelIndex={_levelIndex}
                                 editingData={editingData}
                                 onCellChange={onCellChange}
                                 saveMode={saveMode}
-                                onSaveSuccess={(rowId, field, newValue, primaryKey, rowData, header) => onSaveSuccess?.(rowId, field, newValue, primaryKey, rowData, header)}
-                                onSaveError={(rowId, field, error, primaryKey, rowData, header) => onSaveError?.(rowId, field, error, primaryKey, rowData, header)}
+                                onSaveSuccess={onSaveSuccess}
+                                onSaveError={onSaveError}
                                 editFunctions={editFunctions}
                               />
                             );
@@ -462,3 +463,55 @@ const TableMultiLevel = ({
 };
 
 export default TableMultiLevel;
+
+/**
+ * SortedChildTable — wrapper que memoiza el sort de childData antes de pasarlo
+ * al TableMultiLevel recursivo. Evita que cada re-render del padre cree una
+ * nueva referencia de array, lo que dispararía el useEffect de auto-expand
+ * del hijo en bucle.
+ */
+const SortedChildTable = ({
+  childData,
+  subConfigs,
+  onExpand,
+  childrenData,
+  childrenLoading,
+  styles,
+  autoExpand,
+  _depth,
+  _levelIndex,
+  editingData,
+  onCellChange,
+  saveMode,
+  onSaveSuccess,
+  onSaveError,
+  editFunctions
+}) => {
+  const sortedChildData = useMemo(() => {
+    return [...childData].sort((a, b) => {
+      const aId = String(a.IDENTIFICADOR_DOCENTE ?? '');
+      const bId = String(b.IDENTIFICADOR_DOCENTE ?? '');
+      return aId.localeCompare(bId, 'es', { sensitivity: 'base' });
+    });
+  }, [childData]);
+
+  return (
+    <TableMultiLevel
+      data={sortedChildData}
+      levelConfigs={subConfigs}
+      onExpand={onExpand}
+      childrenData={childrenData}
+      childrenLoading={childrenLoading}
+      levelStyles={styles}
+      autoExpand={autoExpand}
+      _depth={_depth + 1}
+      _levelIndex={_levelIndex + 1}
+      editingData={editingData}
+      onCellChange={onCellChange}
+      saveMode={saveMode}
+      onSaveSuccess={(rowId, field, newValue, primaryKey, rowData, header) => onSaveSuccess?.(rowId, field, newValue, primaryKey, rowData, header)}
+      onSaveError={(rowId, field, error, primaryKey, rowData, header) => onSaveError?.(rowId, field, error, primaryKey, rowData, header)}
+      editFunctions={editFunctions}
+    />
+  );
+};

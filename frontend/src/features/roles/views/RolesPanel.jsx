@@ -1,14 +1,15 @@
 import React from 'react';
 import { CrudMultiLevelManager, CrudHeader } from '@/shared/components/crud';
 import { TableMultiLevelEditable } from '@/shared/components/table';
-import { ArrayEditorModal } from '@/shared/components';
+import { PermisosEditorModal } from '@/shared/components';
 import { ConfigLayout } from '@/features/layout';
 import { headerProps, getHeaderActions } from '@/features/roles/config/headerConfig';
 import { useRoles } from '@/features/roles/hooks/useRoles';
 
 /**
  * RolesPanel — página de gestión de roles.
- * CRUD + ACTIVO editable inline + modal de permisos.
+ * CRUD simple (datos del rol) + modal separado de permisos + ACTIVO editable inline.
+ * Al crear un rol, abre automáticamente el modal de permisos.
  */
 function RolesPanel() {
   const {
@@ -69,21 +70,14 @@ function RolesPanel() {
                 </div>
               )}
 
-              <ArrayEditorModal
+              <PermisosEditorModal
                 isOpen={permisosModalOpen}
                 onClose={handleClosePermisos}
-                title={`Permisos del rol: ${permisosEditingRow?.NOMBRE_ROL || ''}`}
-                tableName="PERMISOS"
-                valueField="ID_PERMISO"
-                labelTemplate="{RECURSO}: {ACCION}"
-                searchField="DESCRIPCION"
-                searchPlaceholder="Buscar por descripción..."
-                groupByField="RECURSO"
-                selectedValues={permisosEditingRow?.ID_PERMISOS || []}
+                title={permisosEditingRow?.NOMBRE_ROL ? `Permisos del rol: ${permisosEditingRow.NOMBRE_ROL}` : 'Asignar permisos al nuevo rol'}
+                selectedValues={(permisosEditingRow?.PERMISOS || []).map(p => p.id_permiso).filter(Boolean)}
                 onSave={handleSavePermisos}
                 loading={permisosSaving}
-              />
-            </div>
+              />            </div>
           );
         }}
       </CrudMultiLevelManager>

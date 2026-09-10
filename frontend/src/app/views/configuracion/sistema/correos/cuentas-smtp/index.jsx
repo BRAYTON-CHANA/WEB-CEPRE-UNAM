@@ -1,12 +1,12 @@
 import React from 'react';
-import CuentasSmtpPanel from '@/features/correos/views/CuentasSmtpPanel';
+import SmtpPanel from '@/features/correos/smtp/views/SmtpPanel';
 
 /**
  * Configuración de CUENTAS SMTP
- * Punto de entrada que delega al panel en features/correos/views.
+ * Punto de entrada que delega al panel en features/correos/smtp/views.
  */
 function CuentasSmtpConfig() {
-  return <CuentasSmtpPanel />;
+  return <SmtpPanel />;
 }
 
 export default CuentasSmtpConfig;

@@ -1,12 +1,12 @@
 import React from 'react';
-import CorreosPanel from '@/features/correos/views/CorreosPanel';
+import EmailsPanel from '@/features/correos/emails/views/EmailsPanel';
 
 /**
  * Configuración de CORREOS
- * Punto de entrada que delega al panel en features/correos/views.
+ * Punto de entrada que delega al panel en features/correos/emails/views.
  */
 function CorreosConfig() {
-  return <CorreosPanel />;
+  return <EmailsPanel />;
 }
 
 export default CorreosConfig;

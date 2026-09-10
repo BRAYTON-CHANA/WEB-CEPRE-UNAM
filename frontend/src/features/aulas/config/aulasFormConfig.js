@@ -18,6 +18,15 @@ export const aulaBaseFields = [
     colSpan: 2
   },
   {
+    name: 'CODIGO_AULA',
+    type: 'text',
+    label: 'Código de Aula',
+    required: true,
+    placeholder: 'Ej: A-101',
+    maxLength: 20,
+    colSpan: 1
+  },
+  {
     name: 'NOMBRE_AULA',
     type: 'text',
     label: 'Nombre del Aula',
@@ -40,7 +49,7 @@ export const aulaBaseFields = [
     required: true,
     placeholder: 'Número de estudiantes',
     min: 1,
-    colSpan: 2
+    colSpan: 1
   }
 ];
 
@@ -69,6 +78,9 @@ export const aulaValidation = {
   },
   NOMBRE_AULA: {
     required: { value: true, message: 'Debe ingresar el nombre del aula' }
+  },
+  CODIGO_AULA: {
+    required: { value: true, message: 'Debe ingresar el código del aula' }
   },
   CAPACIDAD: {
     required: { value: true, message: 'Debe ingresar la capacidad del aula' },

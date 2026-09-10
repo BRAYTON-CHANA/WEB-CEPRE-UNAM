@@ -84,6 +84,8 @@ const Form = ({
 
   onPageChange = null,
 
+  initialPage = 1,
+
   onReferenceSelectLoadComplete = null,
 
   
@@ -187,6 +189,8 @@ const Form = ({
   } = useMultiStepForm({
 
     totalPages,
+
+    initialPage,
 
     persistData: multiStep?.persistData || false,
 

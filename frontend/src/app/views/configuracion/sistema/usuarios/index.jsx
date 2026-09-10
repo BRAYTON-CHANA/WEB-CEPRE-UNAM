@@ -102,7 +102,7 @@ function UsuariosConfig() {
         <div className="px-4 pb-4">
           <PerfilView
             user={selectedUser}
-            activeRole={selectedUser?.ROLES_NOMBRES?.[0]}
+            activeRole={selectedUser?.ROLES?.[0]?.nombre}
           />
         </div>
       </Modal>
@@ -124,7 +124,7 @@ function UsuariosConfig() {
         searchField="NOMBRE_ROL"
         searchPlaceholder="Buscar rol..."
         filters={[{ field: 'ES_SISTEMA', op: '=', value: false }]}
-        selectedValues={rolesEditingRow?.ID_ROLES || []}
+        selectedValues={(rolesEditingRow?.ROLES || []).map(r => r.id_rol).filter(Boolean)}
         onSave={handleSaveRoles}
         loading={rolesSaving}
       />

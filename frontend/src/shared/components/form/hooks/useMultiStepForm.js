@@ -13,6 +13,7 @@ import { useState, useCallback, useEffect } from 'react';
 export const useMultiStepForm = ({
   totalPages = 1,
   validatedPages = [],
+  initialPage = 1,
   persistData = false,
   storageKey = 'multistep_form',
   onPageChange = null
@@ -21,9 +22,9 @@ export const useMultiStepForm = ({
   const [currentPage, setCurrentPage] = useState(() => {
     if (persistData) {
       const saved = localStorage.getItem(`${storageKey}_page`);
-      return saved ? parseInt(saved, 10) : 1;
+      return saved ? parseInt(saved, 10) : initialPage;
     }
-    return 1;
+    return initialPage;
   });
 
   // Páginas que han sido completadas/validadas

@@ -2,9 +2,9 @@ import React from 'react';
 import { CrudMultiLevelManager } from '@/shared/components/crud';
 import { ConfigLayout } from '@/features/layout';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
-import CsvImportModal from '@/features/configuracion/postulantes/components/CsvImportModal';
-import { exportPostulantes } from '@/features/configuracion/postulantes/utils/exportPostulantes';
-import { usePostulantes } from '@/features/configuracion/postulantes/hooks/usePostulantes';
+import CsvImportModal from '@/features/postulantes/components/CsvImportModal';
+import { exportPostulantes } from '@/features/postulantes/utils/exportPostulantes';
+import { usePostulantes } from '@/features/postulantes/hooks/usePostulantes';
 
 /**
  * Postulantes — CRUD 3 niveles con selector de período + CSV import.
@@ -44,15 +44,17 @@ function PostulantesConfig() {
               />
             </div>
             <div className="pt-6 flex items-center gap-2">
-              <button
-                onClick={() => setCsvModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                </svg>
-                <span>Importar CSV</span>
-              </button>
+              {selectedPeriodo && (
+                <button
+                  onClick={() => setCsvModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                  </svg>
+                  <span>Importar CSV</span>
+                </button>
+              )}
               {selectedPeriodo && (
                 <button
                   onClick={() => exportPostulantes(records, selectedPeriodo)}
@@ -73,6 +75,7 @@ function PostulantesConfig() {
           isOpen={csvModalOpen}
           onClose={() => setCsvModalOpen(false)}
           onSuccess={handleImportSuccess}
+          idPeriodo={selectedPeriodo}
         />
 
         {/* Tabla o mensaje de selección */}

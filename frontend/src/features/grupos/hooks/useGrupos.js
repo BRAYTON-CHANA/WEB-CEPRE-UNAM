@@ -176,7 +176,10 @@ export function useGrupos({ externalPeriodo, onExternalPeriodoChange, onVerCurso
   }, [selectedPeriodo, selectedSedeId, selectedIsVirtual]);
 
   // ===== Configs =====
-  const tableLevelConfigs = getTableLevelConfigs(gruposCrud, handleAddGrupo, null, onVerCursos, onVerProgramacion);
+  const tableLevelConfigs = useMemo(
+    () => getTableLevelConfigs(gruposCrud, handleAddGrupo, null, onVerCursos, onVerProgramacion),
+    [gruposCrud, handleAddGrupo, onVerCursos, onVerProgramacion]
+  );
 
   // ===== Batch create =====
   const [isBatchOpen, setIsBatchOpen] = useState(false);

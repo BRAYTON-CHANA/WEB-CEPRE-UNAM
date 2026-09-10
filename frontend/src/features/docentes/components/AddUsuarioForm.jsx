@@ -2,7 +2,9 @@ import React, { useCallback, useMemo } from 'react';
 import { CrudForm } from '@/shared/components/form';
 import { authService } from '@/features/login/services/authService';
 import cacheService from '@/shared/services/cacheService';
+import { db } from '@/shared/api';
 import { usuariosFormFields, usuariosFormLayout } from '@/features/usuarios/config/formConfig';
+import { uploadConadisFile } from '@/features/usuarios/services/usuariosStorageService';
 
 const AddUsuarioForm = ({ onSuccess, onError }) => {
   // Filtrar el campo de roles — no aplica al vincular usuario desde docente/wizard
@@ -34,10 +36,30 @@ const AddUsuarioForm = ({ onSuccess, onError }) => {
       discapacidad: formData.DISCAPACIDAD || false,
       tipo_discapacidad: formData.TIPO_DISCAPACIDAD || null,
       nro_conadis: formData.NRO_CONADIS || null,
-      id_roles: []
+      dni_fecha_vencimiento: formData.DNI_FECHA_VENCIMIENTO || null,
+      codigo_ubigeo_nacimiento: formData.CODIGO_UBIGEO_NACIMIENTO || null
     };
 
     const result = await authService.register(payload);
+    const idUsuario = result?.id_usuario ?? result?.ID_USUARIO;
+
+    // Subir certificado CONADIS si existe
+    const conadisArchivo = formData.CONADIS_ARCHIVO;
+    const conadisFile = Array.isArray(conadisArchivo) ? conadisArchivo[0] : conadisArchivo;
+    if (conadisFile instanceof File && idUsuario) {
+      try {
+        const uploadResult = await uploadConadisFile(idUsuario, conadisFile);
+        await db.update('USUARIOS', idUsuario, {
+          CONADIS_STORAGE_PATH: uploadResult.path,
+          CONADIS_FILENAME: uploadResult.filename,
+          CONADIS_CONTENT_TYPE: uploadResult.contentType,
+          CONADIS_TAMAÑO_BYTES: uploadResult.size
+        }, 'ID_USUARIO');
+      } catch (uploadErr) {
+        console.error('[AddUsuarioForm] Error subiendo CONADIS:', uploadErr);
+      }
+    }
+
     cacheService.invalidateAll();
     return result;
   }, []);

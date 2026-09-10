@@ -63,9 +63,13 @@ export const getTableLevelConfigs = ({ usuariosCrud, onResetPassword, onVerPerfi
         subtitle: { field: 'TELEFONO' }
       },
       {
-        title: 'ROLES_NOMBRES',
+        title: 'ROLES',
         type: 'tag-list',
-        label: 'Roles'
+        label: 'Roles',
+        displayValue: (row) => {
+          const roles = row.ROLES || [];
+          return Array.isArray(roles) ? roles.map(r => r.nombre || r) : [];
+        }
       },
       {
         title: 'ACTIVO',

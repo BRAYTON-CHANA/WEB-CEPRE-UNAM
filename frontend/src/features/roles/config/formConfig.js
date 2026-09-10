@@ -1,7 +1,8 @@
 /**
  * Configuración de formulario para ROLES
- * Nota: ID_PERMISOS se edita via ArrayEditorModal (acción "Editar Permisos" en tabla)
- *       ES_SISTEMA no es editable desde el form (se gestiona a nivel BD)
+ * Form simple single-page: solo datos del rol (NOMBRE_ROL, DESCRIPCION, NIVEL_ACCESO)
+ * Los permisos se editan aparte via PermisosEditorModal (acción "Editar Permisos" en tabla)
+ * ES_SISTEMA y ACTIVO no se editan desde el form
  */
 export const rolesFormFields = [
   {
@@ -24,9 +25,15 @@ export const rolesFormFields = [
     label: 'Nivel de Acceso',
     required: false,
     defaultValue: 1,
+    min: 1,
     placeholder: '1'
   }
 ];
+
+export const rolesFormLayout = {
+  type: 'single',
+  columns: 1
+};
 
 export const rolesValidation = {
   NOMBRE_ROL: {
