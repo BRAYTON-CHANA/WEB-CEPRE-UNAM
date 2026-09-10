@@ -3,13 +3,16 @@ import { CrudMultiLevelManager, CrudHeader } from '@/shared/components/crud';
 import { TableMultiLevel } from '@/shared/components/table';
 import { ConfigLayout } from '@/features/layout';
 import ViewCorreoModal from '../components/ViewCorreoModal';
+import RecipientsModal from '../components/RecipientsModal';
 import CorreoComposer from '../components/CorreoComposer';
+import PendientesView from '../components/PendientesView';
+import EditPendienteModal from '../components/EditPendienteModal';
 import { headerProps, getHeaderActions } from '../config/headerConfig';
 import { useEmails } from '../hooks/useEmails';
 
 /**
  * EmailsPanel — página de gestión de correos.
- * Tabla CORREOS + CRUD + composer + view modal + enviar.
+ * Tabla CORREOS + CRUD + composer + pendientes + view modal + enviar.
  */
 function EmailsPanel() {
   const {
@@ -17,7 +20,12 @@ function EmailsPanel() {
     correosCrud, tableLevelConfigs, crudLevels,
     composerOpen, editEmail,
     handleOpenComposer, handleEditComposer, handleCloseComposer,
+    pendingView, handleOpenPendientes, handleOpenPendientesFromTable, handleClosePendientes,
+    editPendienteEmail, editPendienteOpen,
+    handleOpenEditPendiente, handleCloseEditPendiente, handleSuccessEditPendiente,
+    pendientesRefreshKey,
     viewEmail, handleView, handleCloseView,
+    recipientsEmail, handleViewRecipients, handleCloseRecipients,
     handleEnviar
   } = useEmails();
 
@@ -32,7 +40,25 @@ function EmailsPanel() {
                 editMode={!!editEmail}
                 editData={editEmail}
                 onBack={handleCloseComposer}
-                onSuccess={async () => { await refresh(); handleCloseComposer(); }}
+                onSuccess={(result) => {
+                  if (editEmail) {
+                    handleCloseComposer();
+                    refresh();
+                  } else {
+                    handleOpenPendientes(result?.ids || []);
+                  }
+                }}
+              />
+            );
+          }
+
+          if (pendingView) {
+            return (
+              <PendientesView
+                ids={pendingView.ids}
+                onBack={handleClosePendientes}
+                onEdit={handleOpenEditPendiente}
+                refreshTrigger={pendientesRefreshKey}
               />
             );
           }
@@ -41,11 +67,14 @@ function EmailsPanel() {
             ...level,
             actions: level.actions ? {
               ...level.actions,
-              edit: level.actions.edit ? { ...level.actions.edit, onClick: handleEditComposer } : undefined,
+              edit: level.actions.edit ? { ...level.actions.edit, onClick: handleOpenEditPendiente } : undefined,
               observaciones: level.actions.observaciones ? { ...level.actions.observaciones, onClick: handleEditComposer } : undefined,
               delete: level.actions.delete ? { ...level.actions.delete, onClick: h.handleDelete } : undefined,
               enviar: level.actions.enviar ? { ...level.actions.enviar, onClick: handleEnviar } : undefined,
-              ver: level.actions.ver ? level.actions.ver.map(action => ({ ...action, onClick: handleView })) : undefined
+              ver: level.actions.ver ? level.actions.ver.map(action => ({
+                ...action,
+                onClick: action.label === 'Ver destinatarios' ? handleViewRecipients : handleView
+              })) : undefined
             } : undefined
           }));
 
@@ -56,7 +85,7 @@ function EmailsPanel() {
                 headerDescription={headerProps.headerDescription}
                 titleClassName={headerProps.titleClassName}
                 descriptionClassName={headerProps.descriptionClassName}
-                actions={getHeaderActions(correosCrud, handleOpenComposer)}
+                actions={getHeaderActions(correosCrud, handleOpenComposer, handleOpenPendientesFromTable)}
               />
 
               {loading && (
@@ -83,10 +112,19 @@ function EmailsPanel() {
               )}
 
               <ViewCorreoModal email={viewEmail} onClose={handleCloseView} />
+              <RecipientsModal email={recipientsEmail} onClose={handleCloseRecipients} />
             </div>
           );
         }}
       </CrudMultiLevelManager>
+
+      <EditPendienteModal
+        key={editPendienteEmail?.ID_CORREO ?? 'closed'}
+        email={editPendienteEmail}
+        isOpen={editPendienteOpen}
+        onClose={handleCloseEditPendiente}
+        onSuccess={handleSuccessEditPendiente}
+      />
     </ConfigLayout>
   );
 }

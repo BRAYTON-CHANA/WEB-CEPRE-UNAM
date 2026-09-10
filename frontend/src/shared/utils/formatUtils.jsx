@@ -30,7 +30,13 @@ export function formatDateOnly(value, options = {}) {
 
 export function formatDate(value) {
   if (!value) return '-';
-  const d = new Date(value);
+  let str = String(value).trim();
+  const hasTime = /[T ]\d{1,2}:\d{2}/.test(str);
+  const hasTz = /[+-]\d{2}(?::\d{2})?$|Z$/.test(str);
+  if (hasTime && !hasTz) {
+    str = str.replace(' ', 'T') + 'Z';
+  }
+  const d = new Date(str);
   return isNaN(d) ? value : d.toLocaleString('es-PE', { timeZone: 'America/Lima' });
 }
 

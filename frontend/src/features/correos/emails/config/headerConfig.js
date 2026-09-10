@@ -8,7 +8,12 @@ export const headerProps = {
   descriptionClassName: ''
 };
 
-export const getHeaderActions = (correosCrud, onCompose) => [
+export const getHeaderActions = (correosCrud, onCompose, onPendientes) => [
+  {
+    text: 'Ver pendientes',
+    onClick: onPendientes,
+    font: 'bg-[#25346A] hover:bg-[#1c2753] text-white'
+  },
   {
     text: 'Redactar Correo',
     onClick: onCompose || correosCrud.handleCreate,

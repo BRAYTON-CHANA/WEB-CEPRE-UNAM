@@ -289,7 +289,7 @@ export const useReferenceData = (config) => {
         // ← DEBUG: Mostrar respuesta completa
         //console.log(`[useReferenceData] 📦 Respuesta de API:`, response.data);
         
-        const records = response.data?.records || response.data || [];
+        const records = data || [];
         //console.log(`[useReferenceData] 📊 Total registros devueltos: ${records.length}`);
         
         if (records.length > 0) {

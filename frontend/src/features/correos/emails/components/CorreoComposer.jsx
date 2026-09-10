@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthContext } from '@/shared/context/AuthContext';
-import { createDraft, updateEmail, sendAndSave, saveMassDraft, sendEmailById } from '../services/emailsService';
+import { createDraft, updateEmail, saveMassDraft } from '../services/emailsService';
 import { useComposerData } from '@/shared/hooks/correos/useComposerData';
 import { useAdjuntos } from '@/shared/hooks/correos/useAdjuntos';
 import { useRecipients } from '@/shared/hooks/correos/useRecipients';
 import { PRIORITY_OPTIONS, DEFAULT_PRIORITY } from '@/shared/constants/correos/priorities';
 import { MASIVO_VIEWS } from '@/shared/constants/correos/composer';
+import { hasCuerpoContent } from '@/shared/utils/emailUtils';
 import CorreoEditor from '@/shared/components/correos/editor/CorreoEditor';
 import RecipientInput from '@/shared/components/correos/RecipientInput';
 
@@ -112,10 +113,12 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
 
   const handleViewChange = (newView) => {
     if (para.length > 0) {
-      const ok = window.confirm('Al cambiar de view, se eliminarán los destinatarios actuales. ¿Continuar?');
+      const ok = window.confirm('Al cambiar de view, se eliminarán los destinatarios actuales y se limpiará el contenido. ¿Continuar?');
       if (!ok) return;
       clearRecipients();
     }
+    setAsunto('');
+    setCuerpo('');
     setSelectedView(newView);
     setDirty(true);
   };
@@ -139,7 +142,7 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
     if (!userId) return 'Debe iniciar sesión para enviar o guardar correos.';
     if (personalizado && !selectedView && !editMode) return 'Seleccione un view de destinatarios.';
     if (!para.length) return 'Ingrese al menos un destinatario.';
-    if (!cuerpo.replace(/<[^>]*>/g, '').trim()) return 'El cuerpo del correo es obligatorio.';
+    if (!hasCuerpoContent(cuerpo)) return 'El cuerpo del correo es obligatorio.';
     if (!cuenta) return 'Seleccione una cuenta SMTP de envío.';
     if (isUploading()) return 'Espere a que terminen de cargar los adjuntos.';
     return null;
@@ -160,10 +163,11 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
       const adjuntosListos = adjuntos.filter(a => !a.loading);
       const idCuenta = cuenta ? Number(cuenta) : null;
       const creadoPor = user?.DNI || user?.EMAIL || 'sistema';
+      let generatedIds = [];
 
       if (editMode && editData) {
         // Modo edición: actualizar correo existente.
-        await updateEmail(editData.ID_CORREO, {
+        const result = await updateEmail(editData.ID_CORREO, {
           destinatarios: destinatariosEmails(para),
           cc: destinatariosEmails(cc),
           bcc: destinatariosEmails(bcc),
@@ -174,6 +178,7 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
           idCuenta,
           remitente,
         });
+        generatedIds = [result?.[0]?.ID_CORREO].filter(Boolean);
       } else if (crearPorDestinatario) {
         // Generación individual; con merge fields únicamente en modo personalizado.
         const recipients = para.map(p => ({
@@ -182,7 +187,7 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
           label: p.label,
           rowData: p.rowData || {},
         }));
-        await saveMassDraft({
+        const result = await saveMassDraft({
           personalizado,
           viewName: personalizado ? viewConfig?.view : null,
           idField: personalizado ? viewConfig?.idField : null,
@@ -198,8 +203,9 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
           idCreador: userId,
           remitente,
         });
+        generatedIds = (result || []).map(r => r.idCorreo).filter(Boolean);
       } else {
-        await createDraft({
+        const result = await createDraft({
           destinatarios: destinatariosEmails(para),
           cc: destinatariosEmails(cc),
           bcc: destinatariosEmails(bcc),
@@ -213,6 +219,7 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
           personalizado: false,
           remitente,
         });
+        generatedIds = [result?.[0]?.ID_CORREO].filter(Boolean);
       }
 
       setPersonalizado(false);
@@ -225,88 +232,9 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
       clearAdjuntos();
       setPrioridad(DEFAULT_PRIORITY);
       setDirty(false);
-      onSuccess?.();
+      onSuccess?.({ ids: generatedIds });
     } catch (err) {
       setError(err.message || 'Error guardando el correo.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSendNow = async () => {
-    const validationError = validate();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const adjuntosListos = adjuntos.filter(a => !a.loading);
-      const idCuenta = cuenta ? Number(cuenta) : null;
-
-      if (editMode && editData) {
-        // Modo edición: primero actualizar, luego enviar.
-        await updateEmail(editData.ID_CORREO, {
-          destinatarios: destinatariosEmails(para),
-          cc: destinatariosEmails(cc),
-          bcc: destinatariosEmails(bcc),
-          asunto: asunto.trim(),
-          cuerpoHtml: cuerpo,
-          adjuntos: adjuntosListos,
-          prioridad,
-          idCuenta,
-          remitente,
-        });
-        await sendEmailById(editData.ID_CORREO);
-      } else if (crearPorDestinatario) {
-        await saveMassDraft({
-          personalizado,
-          forceSend: true,
-          viewName: personalizado ? viewConfig?.view : null,
-          idField: personalizado ? viewConfig?.idField : null,
-          recipients: para.map(p => ({ id: p.id, email: p.email, label: p.label, rowData: p.rowData || {} })),
-          cc: destinatariosEmails(cc),
-          bcc: destinatariosEmails(bcc),
-          asunto: asunto.trim(),
-          cuerpoHtml: cuerpo,
-          adjuntos: adjuntosListos,
-          prioridad,
-          idCuenta,
-          creadoPor: user?.DNI || user?.EMAIL || 'sistema',
-          idCreador: userId,
-          remitente,
-        });
-      } else {
-        await sendAndSave({
-          destinatarios: destinatariosEmails(para),
-          cc: destinatariosEmails(cc),
-          bcc: destinatariosEmails(bcc),
-          asunto: asunto.trim(),
-          cuerpoHtml: cuerpo,
-          adjuntos: adjuntosListos,
-          prioridad,
-          idCuenta: cuenta ? Number(cuenta) : null,
-          creadoPor: user?.DNI || user?.EMAIL || 'sistema',
-          idCreador: userId,
-          remitente,
-        });
-      }
-
-      setPersonalizado(false);
-      setCrearPorDestinatario(false);
-      setCuenta('');
-      clearRecipients();
-      setAsunto('');
-      setCuerpo('');
-      clearAdjuntos();
-      setPrioridad(DEFAULT_PRIORITY);
-      setDirty(false);
-      onSuccess?.();
-    } catch (err) {
-      setError(err.message || 'Error enviando el correo.');
     } finally {
       setLoading(false);
     }
@@ -315,7 +243,7 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
   return (
     <div className="min-h-full px-8 py-8 pb-12 bg-slate-50/40">
       <div className="max-w-7xl mx-auto space-y-6">
-        <header className="sticky top-0 z-30 -mx-2 flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-slate-50/95 px-5 py-4 shadow-sm backdrop-blur lg:flex-row lg:items-center lg:justify-between">
+        <header className="rounded-2xl border border-slate-200/80 bg-slate-50/95 px-5 py-4 shadow-sm backdrop-blur">
           <div className="flex items-start gap-4">
             <button
               type="button"
@@ -328,26 +256,19 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Centro de mensajes</p>
               <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">
                 {editMode ? 'Editar correo' : 'Redactar correo'}
               </h1>
               <p className="mt-1 text-sm text-slate-500">Configura el envío, selecciona destinatarios y prepara el contenido.</p>
+              {loading && (
+                <div className="mt-3 flex items-center gap-2 text-sm text-[#25346A]">
+                  <span className="inline-block w-4 h-4 border-2 border-[#25346A] border-t-transparent rounded-full animate-spin" />
+                  Generando correos, por favor espera...
+                </div>
+              )}
             </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-            <button type="button" onClick={handleBack} disabled={loading} className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-50 disabled:opacity-50 transition-colors">
-              Cancelar
-            </button>
-            <button type="submit" form="composer-form" disabled={loading} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm">
-              {loading ? 'Guardando...' : (editMode ? 'Guardar cambios' : 'Guardar borrador')}
-            </button>
-            {(!personalizado || crearPorDestinatario) && (!editMode || editData?.ESTADO === 'pendiente') && (
-              <button type="button" onClick={handleSendNow} disabled={loading} className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-sm">
-                {loading ? 'Enviando...' : 'Guardar y enviar ahora'}
-              </button>
-            )}
           </div>
         </header>
 
@@ -559,6 +480,8 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
                   adjuntos={adjuntos}
                   onRemoveAdjunto={(id) => { removeAdjunto(id); setDirty(true); }}
                   fileInputRef={fileInputRef}
+                  mergeFields={esMasivo ? viewConfig?.mergeFields || [] : []}
+                  mergeMenuLabel={esMasivo ? `Campos de ${viewConfig?.label || 'view'}` : null}
                 />
                 </div>
               </fieldset>
@@ -566,6 +489,25 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
             </div>
           </>
         )}
+
+        <footer className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 border-t border-slate-200 bg-slate-50/60 px-6 py-4">
+          <button
+            type="button"
+            onClick={handleBack}
+            disabled={loading}
+            className="w-full sm:w-auto px-5 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-100 disabled:opacity-50 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            form="composer-form"
+            disabled={loading}
+            className="w-full sm:w-auto px-5 py-2.5 bg-[#25346A] text-white rounded-xl text-sm font-medium hover:bg-[#1c2753] disabled:opacity-50 transition-colors shadow-sm"
+          >
+            {loading ? 'Generando...' : 'Generar correos'}
+          </button>
+        </footer>
         </form>
       </div>
     </div>

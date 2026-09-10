@@ -63,6 +63,8 @@ const RecipientInput = ({ value = [], onChange, single = false, emailOnly = fals
     valueField: viewConfig.idField,
     labelTemplate: viewConfig.labelTemplate,
     descriptionField: viewConfig.descriptionField,
+    filters: [],
+    filterFields: viewConfig.filterFields,
     title: `Añadir desde ${viewConfig.label}`,
   } : undefined;
 

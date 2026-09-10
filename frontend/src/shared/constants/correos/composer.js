@@ -4,7 +4,7 @@ export const MASIVO_VIEWS = [
     label: 'Usuarios',
     idField: 'ID_USUARIO',
     emailField: 'EMAIL',
-    labelTemplate: '{NOMBRE_COMPLETO} - {EMAIL}',
+    labelTemplate: '{APELLIDO_PATERNO} {APELLIDO_MATERNO} {NOMBRES} - {EMAIL}',
     descriptionField: 'EMAIL',
     autoMergeFields: true,
     // Fallback: se usa si falla la carga dinámica del schema.
@@ -22,6 +22,18 @@ export const MASIVO_VIEWS = [
       { field: 'DIRECCION', label: 'Dirección' },
       { field: 'UBICACION_COMPLETA', label: 'Ubicación' },
       { field: 'DISCAPACIDAD_DESC', label: 'Discapacidad' },
+    ],
+    filterFields: [
+      { field: 'DNI', label: 'DNI', type: 'text' },
+      { field: 'NOMBRE_COMPLETO', label: 'Nombre completo', type: 'text' },
+      { field: 'FECHA_NACIMIENTO', label: 'Fecha de nacimiento', type: 'date' },
+      { field: 'EDAD', label: 'Edad', type: 'number' },
+      { field: 'SEXO', label: 'Sexo', type: 'text' },
+      { field: 'EMAIL', label: 'Email', type: 'text' },
+      { field: 'TELEFONO', label: 'Teléfono', type: 'text' },
+      { field: 'DIRECCION', label: 'Dirección', type: 'text' },
+      { field: 'UBICACION_COMPLETA', label: 'Ubicación', type: 'text' },
+      { field: 'DISCAPACIDAD_DESC', label: 'Discapacidad', type: 'text' },
     ],
   },
 ];

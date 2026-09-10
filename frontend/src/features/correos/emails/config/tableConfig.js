@@ -3,6 +3,18 @@
  */
 import { formatDate } from '@/shared/utils';
 
+const hasRecipients = (row) => {
+  const value = row?.DESTINATARIOS_USUARIOS;
+  if (!value) return false;
+  if (Array.isArray(value)) return value.length > 0;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) && parsed.length > 0;
+  } catch {
+    return false;
+  }
+};
+
 export const tableConfig = {
   tableName: 'VW_CORREOS'
 };
@@ -15,15 +27,59 @@ export const getTableLevelConfigs = (correosCrud) => [
     level: 1,
     headers: [
       {
+        title: 'TIPO',
+        type: 'string',
+        label: 'Tipo',
+        displayValue: (row) => ({
+          'correo': 'Normal',
+          'automatico': 'Automático',
+          'personalizado': 'Personalizado'
+        }[row.TIPO] || row.TIPO || '-')
+      },
+      {
         title: 'CREADOR_NOMBRE',
         type: 'stacked',
-        label: 'Creado/Enviado por',
-        displayValue: (row) => ({
-          primary: row.CREADOR_NOMBRE || '-',
-          secondary: row.ENVIADOR_NOMBRE ? `Enviado por: ${row.ENVIADOR_NOMBRE}` : 'Sin enviar'
-        })
+        label: 'Creado - Enviado',
+        displayValue: (row) => {
+          const cuenta = row.CUENTA_SMTP_NOMBRE || row.REMITENTE || '-';
+
+          let creador;
+          if (row.TIPO === 'automatico' && !row.CREADOR_NOMBRE) {
+            creador = 'Sistema';
+          } else {
+            creador = row.CREADOR_NOMBRE || row.CREADO_POR || '-';
+          }
+
+          let enviador;
+          if (row.TIPO === 'automatico' && !row.ENVIADOR_NOMBRE) {
+            enviador = 'Sistema';
+          } else if (row.ENVIADOR_NOMBRE) {
+            enviador = row.ENVIADOR_NOMBRE;
+          } else if (row.ESTADO === 'enviado') {
+            enviador = creador;
+          } else {
+            enviador = null;
+          }
+
+          let primary;
+          if (enviador && creador !== enviador) {
+            primary = `Creado: ${creador} — Enviado: ${enviador}`;
+          } else {
+            primary = creador;
+          }
+
+          let secondary;
+          if (row.ESTADO === 'enviado') {
+            secondary = `Desde: ${cuenta}`;
+          } else if (enviador === null) {
+            secondary = `Sin enviar · Desde: ${cuenta}`;
+          } else {
+            secondary = `Desde: ${cuenta}`;
+          }
+
+          return { primary, secondary };
+        }
       },
-      { title: 'CUENTA_SMTP_NOMBRE', type: 'string', label: 'Desde' },
       { title: 'ASUNTO', type: 'string', label: 'Asunto' },
       {
         title: 'ESTADO',
@@ -39,7 +95,7 @@ export const getTableLevelConfigs = (correosCrud) => [
         type: 'stacked',
         label: 'Fechas',
         displayValue: (row) => ({
-          primary: row.ENVIADO_EN ? formatDate(row.ENVIADO_EN) : 'No enviado',
+          primary: row.ENVIADO_EN ? `Enviado: ${formatDate(row.ENVIADO_EN)}` : 'No enviado',
           secondary: row.CREADO_EN ? `Creado: ${formatDate(row.CREADO_EN)}` : null
         })
       },
@@ -84,6 +140,14 @@ export const getTableLevelConfigs = (correosCrud) => [
           label: 'Ver correo',
           className: 'text-gray-700',
           showIf: (row) => !!row.CUERPO_HTML,
+          onClick: (row) => {}
+        },
+        {
+          enabled: true,
+          icon: 'users',
+          label: 'Ver destinatarios',
+          className: 'text-gray-700',
+          showIf: hasRecipients,
           onClick: (row) => {}
         }
       ]

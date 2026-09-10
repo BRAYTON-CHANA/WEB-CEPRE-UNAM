@@ -1,4 +1,5 @@
 import { Node, mergeAttributes } from '@tiptap/core';
+import { formatLabel } from './mergeFieldBuilder';
 
 export default Node.create({
   name: 'mergeField',
@@ -17,6 +18,15 @@ export default Node.create({
           'data-field': attributes.field,
         }),
       },
+      label: {
+        default: null,
+        parseHTML: (element) =>
+          element.getAttribute('data-label') ||
+          formatLabel(element.getAttribute('data-field') || ''),
+        renderHTML: (attributes) => ({
+          'data-label': attributes.label || formatLabel(attributes.field || ''),
+        }),
+      },
     };
   },
 
@@ -26,6 +36,7 @@ export default Node.create({
         tag: 'span.merge-field',
         getAttrs: (element) => ({
           field: element.getAttribute('data-field'),
+          label: element.getAttribute('data-label') || formatLabel(element.getAttribute('data-field') || ''),
         }),
       },
     ];
@@ -49,11 +60,12 @@ export default Node.create({
   addCommands() {
     return {
       insertMergeField:
-        (field) =>
+        (attrs) =>
         ({ chain }) => {
+          const payload = typeof attrs === 'string' ? { field: attrs } : attrs;
           return chain()
             .focus()
-            .insertContent({ type: 'mergeField', attrs: { field } })
+            .insertContent({ type: 'mergeField', attrs: payload })
             .run();
         },
     };

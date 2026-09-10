@@ -67,10 +67,16 @@ export function useEmails() {
   );
 
   const [viewEmail, setViewEmail] = useState(null);
+  const [recipientsEmail, setRecipientsEmail] = useState(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [editEmail, setEditEmail] = useState(null);
+  const [pendingView, setPendingView] = useState(null);
+  const [editPendienteEmail, setEditPendienteEmail] = useState(null);
+  const [editPendienteOpen, setEditPendienteOpen] = useState(false);
+  const [pendientesRefreshKey, setPendientesRefreshKey] = useState(0);
 
   const handleView = (row) => setViewEmail(row);
+  const handleViewRecipients = (row) => setRecipientsEmail(row);
 
   const handleEditComposer = (row) => {
     setEditEmail(row);
@@ -85,6 +91,31 @@ export function useEmails() {
   const handleOpenComposer = () => {
     setEditEmail(null);
     setComposerOpen(true);
+    setPendingView(null);
+  };
+
+  const handleOpenPendientes = (ids) => {
+    setComposerOpen(false);
+    setPendingView({ ids });
+  };
+  const handleOpenPendientesFromTable = () => setPendingView({ ids: null });
+  const handleClosePendientes = () => setPendingView(null);
+
+  const handleOpenEditPendiente = (row) => {
+    setComposerOpen(false);
+    setEditPendienteEmail(row);
+    setEditPendienteOpen(true);
+  };
+
+  const handleCloseEditPendiente = () => {
+    setEditPendienteEmail(null);
+    setEditPendienteOpen(false);
+  };
+
+  const handleSuccessEditPendiente = () => {
+    handleCloseEditPendiente();
+    refresh();
+    setPendientesRefreshKey((k) => k + 1);
   };
 
   const handleEnviar = async (row) => {
@@ -127,10 +158,25 @@ export function useEmails() {
     handleOpenComposer,
     handleEditComposer,
     handleCloseComposer,
+    // Pendientes
+    pendingView,
+    handleOpenPendientes,
+    handleOpenPendientesFromTable,
+    handleClosePendientes,
+    editPendienteEmail,
+    editPendienteOpen,
+    handleOpenEditPendiente,
+    handleCloseEditPendiente,
+    handleSuccessEditPendiente,
+    pendientesRefreshKey,
     // View modal
     viewEmail,
     handleView,
     handleCloseView: () => setViewEmail(null),
+    // Recipients modal
+    recipientsEmail,
+    handleViewRecipients,
+    handleCloseRecipients: () => setRecipientsEmail(null),
     // Enviar
     handleEnviar
   };
