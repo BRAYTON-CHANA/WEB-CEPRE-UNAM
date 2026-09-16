@@ -3,12 +3,13 @@ import { ConfigLayout } from '@/features/layout';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
 import TableMultiLevel from '@/shared/components/table/views/TableMultiLevel';
 import { useTableData } from '@/shared/components/crud/hooks/useTableData';
+import { usePeriodo } from '@/shared/context/PeriodoContext';
 import { exportPlazaToExcel, exportSedeToExcel, exportAllPlazasToExcel } from '@/features/configuracion/reportes/plazas/utils/exportPlazaToExcel';
 import { exportPlazaToPdf, exportSedeToPdf, exportAllPlazasToPdf } from '@/features/configuracion/reportes/plazas/utils/exportPlazaToPdf';
 import ExportOptionsModal from '@/features/configuracion/reportes/shared/ExportOptionsModal';
 
 function ReportesPlazas() {
-  const [selectedPeriodo, setSelectedPeriodo] = useState('');
+  const { periodo: selectedPeriodo, setPeriodo: setSelectedPeriodo } = usePeriodo();
   const [exportProgress, setExportProgress] = useState(null);
   const [exportingIndividual, setExportingIndividual] = useState(null);
   const [exportingAll, setExportingAll] = useState(false);
@@ -153,7 +154,7 @@ function ReportesPlazas() {
   );
 
   const handlePeriodoChange = (_, value) => {
-    setSelectedPeriodo(value);
+    setSelectedPeriodo(value ? Number(value) : null);
   };
 
   const handleExportAll = () => setExportModalPending({ type: 'all' });

@@ -97,6 +97,7 @@ export function useConvocatoriasList({ onManage }) {
     records,
     loading,
     error,
+    refresh,
     updateRecord,
     // CRUD
     convocatoriaCrud,

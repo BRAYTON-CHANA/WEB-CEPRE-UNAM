@@ -1,19 +1,40 @@
 /**
  * Configuración de tabla para Correos (un solo nivel)
  */
+import React from 'react';
 import { formatDate } from '@/shared/utils';
 
-const hasRecipients = (row) => {
-  const value = row?.DESTINATARIOS_USUARIOS;
-  if (!value) return false;
-  if (Array.isArray(value)) return value.length > 0;
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) && parsed.length > 0;
-  } catch {
-    return false;
-  }
-};
+// Columnas del listado de VW_CORREOS: todo menos las pesadas
+// (CUERPO_HTML, CUERPO_TEXTO, ADJUNTOS, DESTINATARIOS_USUARIOS),
+// que se cargan bajo demanda vía getCorreoDetalle para reducir egress.
+export const CORREOS_LIST_FIELDS = [
+  'ID_CORREO',
+  'DESTINATARIOS',
+  'CC',
+  'BCC',
+  'TIPO',
+  'ASUNTO',
+  'ESTADO',
+  'ERROR',
+  'PRIORIDAD',
+  'FECHA_PROGRAMADA',
+  'INTENTOS',
+  'CREADO_EN',
+  'ENVIADO_EN',
+  'CREADO_POR',
+  'ENVIO_AUTOMATICO',
+  'BLOQUEADO',
+  'PERSONALIZADO',
+  'OBSERVACIONES',
+  'REMITENTE',
+  'ID_CREADOR',
+  'ID_ENVIADOR',
+  'ID_CUENTA_SMTP',
+  'FECHA_EDICION',
+  'CREADOR_NOMBRE',
+  'ENVIADOR_NOMBRE',
+  'CUENTA_SMTP_NOMBRE',
+];
 
 export const tableConfig = {
   tableName: 'VW_CORREOS'
@@ -26,6 +47,30 @@ export const getTableLevelConfigs = (correosCrud) => [
   {
     level: 1,
     headers: [
+      {
+        title: 'ESTADO',
+        type: 'stacked',
+        label: 'Estado/Prioridad',
+        displayValue: (row) => {
+          const estado = row.ESTADO || '-';
+          const palette = {
+            enviado: 'bg-green-100 text-green-700',
+            pendiente: 'bg-amber-100 text-amber-700',
+            fallido: 'bg-red-100 text-red-700',
+            cancelado: 'bg-slate-100 text-slate-600',
+          };
+          const classes = palette[estado] || 'bg-slate-100 text-slate-600';
+          const badge = React.createElement(
+            'span',
+            { className: `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${classes}` },
+            estado
+          );
+          return {
+            primary: badge,
+            secondary: row.PRIORIDAD ? `Prioridad: ${row.PRIORIDAD}` : null
+          };
+        }
+      },
       {
         title: 'TIPO',
         type: 'string',
@@ -82,15 +127,6 @@ export const getTableLevelConfigs = (correosCrud) => [
       },
       { title: 'ASUNTO', type: 'string', label: 'Asunto' },
       {
-        title: 'ESTADO',
-        type: 'stacked',
-        label: 'Estado/Prioridad',
-        displayValue: (row) => ({
-          primary: row.ESTADO || '-',
-          secondary: row.PRIORIDAD ? `Prioridad: ${row.PRIORIDAD}` : null
-        })
-      },
-      {
         title: 'ENVIADO_EN',
         type: 'stacked',
         label: 'Fechas',
@@ -139,7 +175,6 @@ export const getTableLevelConfigs = (correosCrud) => [
           icon: 'eye',
           label: 'Ver correo',
           className: 'text-gray-700',
-          showIf: (row) => !!row.CUERPO_HTML,
           onClick: (row) => {}
         },
         {
@@ -147,7 +182,7 @@ export const getTableLevelConfigs = (correosCrud) => [
           icon: 'users',
           label: 'Ver destinatarios',
           className: 'text-gray-700',
-          showIf: hasRecipients,
+          showIf: (row) => row.ESTADO === 'enviado',
           onClick: (row) => {}
         }
       ]

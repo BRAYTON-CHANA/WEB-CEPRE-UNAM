@@ -171,16 +171,13 @@ const CheckboxInput = ({
         </div>
         
         <div className="ml-3 flex-1">
+          {label && (
+            <div className="text-sm font-medium text-gray-700">{label}</div>
+          )}
           {description && (
             <div className="text-sm text-gray-500 mt-1">{description}</div>
           )}
         </div>
-        
-        {selected && !disabled && (
-          <svg className="w-5 h-5 text-blue-600 ml-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 00-1.414 1.414l4 4a1 1 0 001.414 0l8-8a1 1 0 010-1.414z" clipRule="evenodd" />
-          </svg>
-        )}
       </label>
     );
   };
@@ -260,30 +257,6 @@ const CheckboxInput = ({
         </div>
       )}
 
-      {/* Resumen de selección */}
-      {selectedValues.length > 0 && (
-        <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-          <div className="text-sm text-blue-800">
-            <span className="font-medium">Valores seleccionados:</span>
-            <span className="ml-1">
-              {selectedValuesDisplay.join(', ')}
-            </span>
-          </div>
-          <div className="text-xs text-blue-600 mt-1">
-            {selectedValues.length} opción{selectedValues.length !== 1 ? 'es' : ''} seleccionada{selectedValues.length !== 1 ? 's' : ''}
-          </div>
-        </div>
-      )}
-
-      {/* Indicadores de estado */}
-      <div className="flex justify-between text-xs text-gray-500">
-        {baseInputProps.required && (
-          <span>Obligatorio</span>
-        )}
-        {options.length > 1 && !single && (
-          <span>{options.length} opciones disponibles</span>
-        )}
-      </div>
     </div>
   );
 };

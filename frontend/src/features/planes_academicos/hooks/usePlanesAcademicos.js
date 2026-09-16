@@ -145,6 +145,7 @@ export function usePlanesAcademicos() {
     records,
     loading,
     error,
+    refresh,
     planesCrud,
     tableLevelConfigs,
     crudLevels,

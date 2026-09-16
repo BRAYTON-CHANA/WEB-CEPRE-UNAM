@@ -22,7 +22,7 @@ import { useDocenteUsuario, buildDocenteArchivo } from '@/features/docentes/hook
 import cacheService from '@/shared/services/cacheService';
 
 /**
- * DocenteForm - Formulario especial de docentes de 2 páginas.
+ * DocenteForm - Formulario especial de docentes de 3 páginas.
  *
  * Página 1: Datos de usuario (seleccionar existente o crear/editar).
  *   - Al pasar a página 2, guarda el usuario y obtiene ID_USUARIO.
@@ -49,6 +49,14 @@ const DocenteForm = ({
   const [idDocenteGuardado, setIdDocenteGuardado] = useState(mode === 'edit' ? recordId : null);
   const [loadingRecord, setLoadingRecord] = useState(mode === 'edit');
   const tablasRelacionadasRef = useRef(null);
+
+  // ── Scroll al inicio del modal cuando cambia la página o aparece un error ──
+  useEffect(() => {
+    const scrollContainer = document.querySelector('[role="dialog"] .overflow-y-auto');
+    if (scrollContainer) {
+      scrollContainer.scrollTop = 0;
+    }
+  }, [currentPage, submitError]);
 
   // ── Valores iniciales ──
   const initialValues = useMemo(() => {
@@ -152,7 +160,10 @@ const DocenteForm = ({
     const page1FieldNames = getUsuarioFieldsForRender().map(f => f.name);
     setAllTouched(page1FieldNames);
     const isPage1Valid = validatePage(formData, page1FieldNames);
-    if (!isPage1Valid) return;
+    if (!isPage1Valid) {
+      setSubmitError('Faltan datos obligatorios. Complete los campos resaltados.');
+      return;
+    }
 
     // Guardar usuario via service
     setIsSubmitting(true);
@@ -196,7 +207,10 @@ const DocenteForm = ({
     const page2FieldNames = docenteDocenteFields.map(f => f.name);
     setAllTouched(page2FieldNames);
     const isValid = validatePage(formData, page2FieldNames);
-    if (!isValid) return;
+    if (!isValid) {
+      setSubmitError('Faltan datos obligatorios. Complete los campos resaltados.');
+      return;
+    }
 
     // Pasar a página 3 sin guardar (el guardado es al Finalizar)
     setCurrentPage(3);
@@ -445,6 +459,7 @@ const DocenteForm = ({
     nextText: 'Siguiente',
     prevText: 'Atrás',
     submitText: 'Finalizar',
+    showSubmitCheck: false,
     loading: isSubmitting,
     currentPageTitle: currentPage === 1 ? 'Datos de Usuario' : currentPage === 2 ? 'Datos de Docente' : 'Tablas Relacionadas'
   };
@@ -517,7 +532,7 @@ const DocenteForm = ({
         )}
       </div>
 
-      <MultiStepNavigator {...navProps} part="footer" />
+      <MultiStepNavigator {...navProps} part="footer" errorMessage={submitError} />
     </form>
   );
 };

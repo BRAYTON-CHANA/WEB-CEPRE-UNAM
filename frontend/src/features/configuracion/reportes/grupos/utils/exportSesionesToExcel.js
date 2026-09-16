@@ -22,13 +22,36 @@ const parseDate = (fechaStr) => {
 };
 
 const WEEKDAY_NAMES = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
-const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 const MONTH_NAMES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
 
 const formatDateShort = (date) => {
   const day = String(date.getDate()).padStart(2, '0');
   const month = MONTH_NAMES[date.getMonth()];
   return `${day}-${month}`;
+};
+
+// Agrupa fechas en columnas.
+// agruparDias = true  → separa por día de semana + patrón (headers SÁBADO, DOMINGO...)
+// agruparDias = false → separa solo por patrón (headers DÍA 1, DÍA 2...)
+const buildColumns = (dateInfos, agruparDias) => {
+  const grouped = new Map();
+  for (const info of dateInfos) {
+    const groupKey = agruparDias ? `${info.weekday}__${info.sigKey}` : info.sigKey;
+    if (!grouped.has(groupKey)) {
+      grouped.set(groupKey, { signature: info.signature, dates: [], weekday: info.weekday });
+    }
+    grouped.get(groupKey).dates.push(info.date);
+  }
+  const columns = [];
+  for (const g of grouped.values()) {
+    g.dates.sort((a, b) => a - b);
+    columns.push({ weekday: g.weekday, dates: g.dates, signature: g.signature });
+  }
+  columns.sort((a, b) => a.dates[0] - b.dates[0]);
+  columns.forEach((col, i) => {
+    col.weekdayName = agruparDias ? WEEKDAY_NAMES[col.weekday] : `DÍA ${i + 1}`;
+  });
+  return columns;
 };
 
 const buildCellValue = (codigo, curso, nombreCompleto, docente, horario, opts = {}) => {
@@ -67,19 +90,16 @@ export const exportSesionesToExcel = async (idGrupo, grupoNombre, opts = {}) => 
       return;
     }
 
-    const horarioResult = await db.select('HORARIOS', { ID_HORARIO: turno.ID_HORARIO });
-    const horario = (horarioResult?.data?.records || horarioResult)?.[0];
-
-    const bloquesResult = await db.select('HORARIO_BLOQUES', { ID_HORARIO: turno.ID_HORARIO });
+    const bloquesResult = await db.select('TURNO_BLOQUES', { ID_TURNO: turno.ID_TURNO });
     const bloques = (bloquesResult?.data?.records || bloquesResult || [])
       .sort((a, b) => a.ORDEN - b.ORDEN);
 
     if (bloques.length === 0) {
-      alert('No se encontraron bloques de horario para este grupo');
+      alert('No se encontraron bloques del turno para este grupo');
       return;
     }
 
-    const _hInit = (horario?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
+    const _hInit = (turno?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
     let currentMinute = (isNaN(_hInit[0]) ? 7 : _hInit[0]) * 60 + (isNaN(_hInit[1]) ? 0 : _hInit[1]);
 
     const customBlocks = bloques.map((b) => {
@@ -140,31 +160,7 @@ export const exportSesionesToExcel = async (idGrupo, grupoNombre, opts = {}) => 
       dateInfos.push({ date, fechaStr, weekday, signature, sigKey });
     }
 
-    const grouped = new Map();
-    for (const info of dateInfos) {
-      if (!grouped.has(info.weekday)) {
-        grouped.set(info.weekday, new Map());
-      }
-      const byWeekday = grouped.get(info.weekday);
-      if (!byWeekday.has(info.sigKey)) {
-        byWeekday.set(info.sigKey, { signature: info.signature, dates: [] });
-      }
-      byWeekday.get(info.sigKey).dates.push(info.date);
-    }
-
-    const columns = [];
-    for (const [wd, byWeekday] of grouped.entries()) {
-      for (const g of byWeekday.values()) {
-        g.dates.sort((a, b) => a - b);
-        columns.push({
-          weekday: wd,
-          weekdayName: WEEKDAY_NAMES[wd],
-          dates: g.dates,
-          signature: g.signature
-        });
-      }
-    }
-    columns.sort((a, b) => a.dates[0] - b.dates[0]);
+    const columns = buildColumns(dateInfos, opts.agruparDias === true);
 
     if (columns.length === 0) {
       alert('No hay datos para exportar');
@@ -174,7 +170,7 @@ export const exportSesionesToExcel = async (idGrupo, grupoNombre, opts = {}) => 
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Sistema Horarios';
     workbook.created = new Date();
-    const ws = workbook.addWorksheet(`Horario ${grupoNombre || ''}`.slice(0, 30));
+    const ws = workbook.addWorksheet(`Horario ${grupoNombre || ''}`.replace(/[*?:\\/\[\]]/g, '-').slice(0, 31));
 
     const headerFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2D366F' } };
     const headerFont = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -432,20 +428,13 @@ export const exportAllSesionesToExcel = async (grupos, opts = {}) => {
       if (turnoIdsSet.has(r.ID_TURNO)) turnosMap.set(r.ID_TURNO, r);
     }
 
-    // ── 4. HORARIOS + BLOQUES completas → filtrar en memoria ──────────────
-    const horarioIdsSet = new Set([...turnosMap.values()].map(t => t.ID_HORARIO).filter(Boolean));
-    const allHorariosRows = await selectAll('HORARIOS');
-    const horariosMap = new Map();
-    for (const r of allHorariosRows) {
-      if (horarioIdsSet.has(r.ID_HORARIO)) horariosMap.set(r.ID_HORARIO, r);
-    }
-
-    const allBloquesRows = await selectAll('HORARIO_BLOQUES');
+    // ── 4. TURNO_BLOQUES completa → filtrar en memoria por ID_TURNO ────────
+    const allBloquesRows = await selectAll('TURNO_BLOQUES');
     const bloquesMap = new Map();
     for (const r of allBloquesRows) {
-      if (horarioIdsSet.has(r.ID_HORARIO)) {
-        if (!bloquesMap.has(r.ID_HORARIO)) bloquesMap.set(r.ID_HORARIO, []);
-        bloquesMap.get(r.ID_HORARIO).push(r);
+      if (turnoIdsSet.has(r.ID_TURNO)) {
+        if (!bloquesMap.has(r.ID_TURNO)) bloquesMap.set(r.ID_TURNO, []);
+        bloquesMap.get(r.ID_TURNO).push(r);
       }
     }
     for (const [k, v] of bloquesMap) bloquesMap.set(k, v.sort((a, b) => a.ORDEN - b.ORDEN));
@@ -453,12 +442,10 @@ export const exportAllSesionesToExcel = async (grupos, opts = {}) => {
     // ── Construir customBlocks por turno ───────────────────────────────────
     const customBlocksByTurno = new Map();
     for (const [turnoId, turno] of turnosMap) {
-      if (!turno.ID_HORARIO) continue;
-      const horario = horariosMap.get(turno.ID_HORARIO);
-      const bloques = bloquesMap.get(turno.ID_HORARIO) || [];
+      const bloques = bloquesMap.get(turnoId) || [];
       if (bloques.length === 0) continue;
 
-      const _hInit = (horario?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
+      const _hInit = (turno?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
       let currentMinute = (isNaN(_hInit[0]) ? 7 : _hInit[0]) * 60 + (isNaN(_hInit[1]) ? 0 : _hInit[1]);
 
       const customBlocks = bloques.map((b) => {
@@ -491,6 +478,7 @@ export const exportAllSesionesToExcel = async (grupos, opts = {}) => {
 
     let gruposExportados = 0;
     let gruposSinSesiones = 0;
+    const usedSheetNames = new Set();
 
     for (const grupo of grupos) {
       const idGrupo = grupo.ID_GRUPO;
@@ -532,26 +520,19 @@ export const exportAllSesionesToExcel = async (grupos, opts = {}) => {
         dateInfos.push({ date, fechaStr, weekday, signature, sigKey });
       }
 
-      const grouped = new Map();
-      for (const info of dateInfos) {
-        if (!grouped.has(info.weekday)) grouped.set(info.weekday, new Map());
-        const byWeekday = grouped.get(info.weekday);
-        if (!byWeekday.has(info.sigKey)) byWeekday.set(info.sigKey, { signature: info.signature, dates: [] });
-        byWeekday.get(info.sigKey).dates.push(info.date);
-      }
-
-      const columns = [];
-      for (const [wd, byWeekday] of grouped.entries()) {
-        for (const g of byWeekday.values()) {
-          g.dates.sort((a, b) => a - b);
-          columns.push({ weekday: wd, weekdayName: WEEKDAY_NAMES[wd], dates: g.dates, signature: g.signature });
-        }
-      }
-      columns.sort((a, b) => a.dates[0] - b.dates[0]);
+      const columns = buildColumns(dateInfos, opts.agruparDias === true);
 
       if (columns.length === 0) { gruposSinSesiones++; continue; }
 
-      const ws = workbook.addWorksheet(nombreGrupo.slice(0, 30));
+      let sheetName = String(grupo.CODIGO_GRUPO || nombreGrupo).replace(/[*?:\\/\[\]]/g, '-').slice(0, 31);
+      if (usedSheetNames.has(sheetName)) {
+        const base = sheetName.slice(0, 26);
+        let n = 2;
+        while (usedSheetNames.has(`${base}-${n}`)) n++;
+        sheetName = `${base}-${n}`;
+      }
+      usedSheetNames.add(sheetName);
+      const ws = workbook.addWorksheet(sheetName);
 
       const headerFill    = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2D366F' } };
       const headerFont    = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };

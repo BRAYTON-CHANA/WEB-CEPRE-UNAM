@@ -1,6 +1,7 @@
 import React from 'react';
 import { CrudMultiLevelManager, CrudHeader } from '@/shared/components/crud';
 import { TableMultiLevel } from '@/shared/components/table';
+import ErrorAlert from '@/shared/components/ui/ErrorAlert';
 import { ConfigLayout } from '@/features/layout';
 import { headerProps, getHeaderActions } from '../config/headerConfig';
 import { usePasswordReset } from '../hooks/usePasswordReset';
@@ -11,7 +12,7 @@ import { usePasswordReset } from '../hooks/usePasswordReset';
  */
 function PasswordResetPanel() {
   const {
-    records, loading, error,
+    records, loading, error, refresh,
     passwordResetCrud, tableLevelConfigs, crudLevels,
     handleClean, cleanLoading
   } = usePasswordReset();
@@ -36,11 +37,7 @@ function PasswordResetPanel() {
               </div>
             )}
 
-            {error && (
-              <div className="bg-red-50 rounded-xl border border-red-100 p-6">
-                <p className="text-red-700 text-sm"><strong>Error:</strong> {error.message}</p>
-              </div>
-            )}
+            <ErrorAlert error={error} loading={loading} onRetry={refresh} />
 
             {!loading && !error && (
               <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">

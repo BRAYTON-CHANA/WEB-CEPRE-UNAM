@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { db } from '@/shared/api';
+import ErrorAlert from '@/shared/components/ui/ErrorAlert';
 import { formatDate, formatList } from '@/shared/utils';
-import { sendEmailById } from '../services/emailsService';
+import { sendEmailById, sendMultipleById } from '../services/emailsService';
 import ViewCorreoModal from './ViewCorreoModal';
 
+// Sin CUERPO_HTML/CUERPO_TEXTO/ADJUNTOS: se cargan bajo demanda
+// (getCorreoDetalle) al abrir "Ver completo" o "Editar".
 const NEEDED_FIELDS = [
   'ID_CORREO',
   'ASUNTO',
@@ -12,8 +15,6 @@ const NEEDED_FIELDS = [
   'DESTINATARIOS',
   'CC',
   'BCC',
-  'CUERPO_HTML',
-  'ADJUNTOS',
   'ID_CUENTA_SMTP',
   'CUENTA_SMTP_NOMBRE',
   'REMITENTE',
@@ -61,6 +62,7 @@ const PendientesView = ({ ids, onBack, onEdit, refreshTrigger }) => {
   const [search, setSearch] = useState('');
   const [estadoFilter, setEstadoFilter] = useState('');
   const [prioridadFilter, setPrioridadFilter] = useState('');
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   const load = async () => {
     setLoading(true);
@@ -103,6 +105,56 @@ const PendientesView = ({ ids, onBack, onEdit, refreshTrigger }) => {
     if (!ok) return;
     try {
       await sendEmailById(row.ID_CORREO);
+      await load();
+    } catch (err) {
+      alert(`Error al enviar: ${err.message}`);
+    }
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectableIds = useMemo(() =>
+    filtered.filter((row) => row.ESTADO !== 'enviado').map((row) => row.ID_CORREO),
+  [filtered]);
+
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id));
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        selectableIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        selectableIds.forEach((id) => next.add(id));
+        return next;
+      });
+    }
+  };
+
+  const handleSendSelected = async () => {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    const ok = window.confirm(`¿Enviar ${ids.length} correo${ids.length === 1 ? '' : 's'} seleccionado${ids.length === 1 ? '' : 's'}?`);
+    if (!ok) return;
+    try {
+      const result = await sendMultipleById(ids);
+      const mensaje = [
+        `Enviados: ${result?.enviados?.length || 0}`,
+        `Fallidos: ${result?.fallidos?.length || 0}`,
+      ].join('\n');
+      alert(mensaje);
+      setSelectedIds(new Set());
       await load();
     } catch (err) {
       alert(`Error al enviar: ${err.message}`);
@@ -197,9 +249,32 @@ const PendientesView = ({ ids, onBack, onEdit, refreshTrigger }) => {
         </div>
       )}
 
-      {error && (
-        <div className="bg-red-50 rounded-xl border border-red-100 p-6">
-          <p className="text-red-700 text-sm"><strong>Error:</strong> {error}</p>
+      <ErrorAlert error={error} loading={loading} onRetry={load} />
+
+      {!loading && !error && filtered.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <label className="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={toggleSelectAll}
+              className="w-4 h-4 text-[#25346A] border-slate-300 rounded focus:ring-[#43B3C1]"
+            />
+            <span className="font-medium">Seleccionar todos</span>
+            <span className="text-xs text-slate-400">({selectedIds.size} seleccionado{selectedIds.size === 1 ? '' : 's'})</span>
+          </label>
+          <button
+            type="button"
+            onClick={handleSendSelected}
+            disabled={selectedIds.size === 0}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              selectedIds.size === 0
+                ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                : 'bg-[#25346A] text-white hover:bg-[#1c2753]'
+            }`}
+          >
+            Enviar {selectedIds.size > 0 ? selectedIds.size : ''} seleccionado{selectedIds.size === 1 ? '' : 's'}
+          </button>
         </div>
       )}
 
@@ -217,11 +292,22 @@ const PendientesView = ({ ids, onBack, onEdit, refreshTrigger }) => {
           >
             {/* Header de correo */}
             <div className="bg-slate-50/60 border-b border-slate-200 px-5 py-4 flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <h3 className="text-lg font-semibold text-[#25346A] break-words">{row.ASUNTO || '(sin asunto)'}</h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {row.CREADO_EN ? `Creado el ${formatDate(row.CREADO_EN)}` : ''}
-                </p>
+              <div className="min-w-0 flex-1 flex items-start gap-3">
+                {row.ESTADO !== 'enviado' && (
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(row.ID_CORREO)}
+                    onChange={() => toggleSelect(row.ID_CORREO)}
+                    className="mt-1.5 w-4 h-4 text-[#25346A] border-slate-300 rounded focus:ring-[#43B3C1] shrink-0"
+                    aria-label={`Seleccionar ${row.ASUNTO || 'correo'}`}
+                  />
+                )}
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-lg font-semibold text-[#25346A] break-words">{row.ASUNTO || '(sin asunto)'}</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {row.CREADO_EN ? `Creado el ${formatDate(row.CREADO_EN)}` : ''}
+                  </p>
+                </div>
               </div>
               <span className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${statusBadge(row.ESTADO)}`}>
                 {statusLabel(row.ESTADO)}
@@ -240,17 +326,6 @@ const PendientesView = ({ ids, onBack, onEdit, refreshTrigger }) => {
                   <span className="capitalize font-medium text-slate-700">{row.PRIORIDAD || '-'}</span>
                 </FieldRow>
                 <FieldRow label="Creado por:" value={row.CREADOR_NOMBRE || row.CREADO_POR} />
-              </div>
-
-              {/* Cuerpo */}
-              <div className="border border-slate-200 rounded-xl bg-white overflow-hidden">
-                <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  Vista previa del cuerpo
-                </div>
-                <div
-                  className="rich-text p-4 text-sm max-h-72 overflow-y-auto"
-                  dangerouslySetInnerHTML={{ __html: row.CUERPO_HTML || '' }}
-                />
               </div>
 
               {/* Acciones */}

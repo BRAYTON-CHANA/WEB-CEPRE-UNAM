@@ -13,12 +13,12 @@ import DocenteTablasModal from '@/features/docentes/components/DocenteTablasModa
 
 /**
  * DocentesPanel — página de gestión de docentes.
- * Tabla VW_DOCENTES + modal custom DocenteForm (2 páginas).
+ * Tabla VW_DOCENTES + modal custom DocenteForm (3 páginas).
  * Delete y notificaciones via useCrudForms estándar.
  */
 function DocentesPanel() {
   const {
-    records, tableRecords, loading, error,
+    records, tableRecords, loading, error, refresh,
     docentesCrud, tableLevelConfigs,
     handleFormSuccess, handleFormError, handleSaveSuccess,
     updateRecords,
@@ -50,16 +50,12 @@ function DocentesPanel() {
           </div>
         )}
 
-        {error && (
-          <div className="bg-red-50 rounded-xl border border-red-100 p-6">
-            <p className="text-red-700 text-sm"><strong>Error:</strong> {error.message}</p>
-          </div>
-        )}
-
-        {!loading && !error && (
+        {!loading && (
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
             <TableMultiLevelEditable
               data={tableRecords}
+              externalError={error}
+              onRefreshExternal={refresh}
               levelConfigs={tableLevelConfigs.map(level => ({
                 ...level,
                 actions: level.actions ? {

@@ -27,6 +27,38 @@ const RecipientInput = ({ value = [], onChange, single = false, emailOnly = fals
     setEmailInput('');
   }, [value, onChange, single, isViewLocked]);
 
+  const parseEmails = (text) => {
+    if (!text) return [];
+    const normalized = text.replace(/\r\n/g, '\n').replace(/[,;]/g, '\n');
+    const tokens = normalized.split(/\n+|\s+/).filter(Boolean);
+    const emails = tokens.map(t => t.trim()).filter(t => emailRegex.test(t));
+    return [...new Set(emails)];
+  };
+
+  const addMultiple = useCallback((rawText) => {
+    if (isViewLocked) return;
+    const emails = parseEmails(rawText);
+    if (!emails.length) return;
+    if (single) {
+      onChange([{ type: 'email', id: emails[0], label: emails[0], email: emails[0] }]);
+      setEmailInput('');
+      return;
+    }
+    const newItems = emails
+      .filter(email => !value.some(v => v.email === email))
+      .map(email => ({ type: 'email', id: email, label: email, email }));
+    onChange([...value, ...newItems]);
+    setEmailInput('');
+  }, [value, onChange, single, isViewLocked]);
+
+  const handlePaste = (e) => {
+    if (isViewLocked || disabled) return;
+    const pasted = e.clipboardData?.getData('text') || '';
+    if (!pasted) return;
+    e.preventDefault();
+    addMultiple(pasted);
+  };
+
   const addUsers = useCallback((users) => {
     if (!users.length) return;
     const mapped = users.map(u =>
@@ -101,6 +133,7 @@ const RecipientInput = ({ value = [], onChange, single = false, emailOnly = fals
             value={emailInput}
             onChange={(e) => setEmailInput(e.target.value)}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             placeholder={value.length ? '' : placeholder}
             className="flex-1 min-w-[80px] bg-transparent outline-none text-sm py-1 placeholder:text-gray-400"
           />

@@ -90,6 +90,25 @@ export async function sendEmailById(idCorreo) {
 }
 
 /**
+ * Envía varios correos pendientes por IDs vía SMTP.
+ * @param {number[]} ids - IDs de los correos a enviar
+ */
+export async function sendMultipleById(ids) {
+  const token = tokenUtils.getToken();
+  const response = await fetch('/api/correos/enviar-masivo-ids', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ ids }),
+  });
+  const result = await response.json();
+  if (!result.success) throw new Error(result.message || 'Error enviando correos');
+  return result.data;
+}
+
+/**
  * Actualiza un correo existente (modo edición del composer).
  * No actualiza ID_CREADOR ni CREADO_POR (quedan fijos).
  * @param {number} idCorreo - ID del correo a actualizar
@@ -110,6 +129,24 @@ export async function updateEmail(idCorreo, payload) {
   };
 
   return await db.update('CORREOS', idCorreo, data, 'ID_CORREO');
+}
+
+/**
+ * Trae las columnas pesadas de un correo (cuerpo HTML/texto, adjuntos,
+ * snapshot de destinatarios) que no se incluyen en el listado para
+ * reducir el egress. Usar al abrir modales de detalle o edición.
+ * @param {number} idCorreo - ID del correo
+ * @returns {Promise<Object|null>}
+ */
+export async function getCorreoDetalle(idCorreo) {
+  const data = await db.select('VW_CORREOS', { ID_CORREO: idCorreo }, [
+    'ID_CORREO',
+    'CUERPO_HTML',
+    'CUERPO_TEXTO',
+    'ADJUNTOS',
+    'DESTINATARIOS_USUARIOS',
+  ]);
+  return data?.[0] || null;
 }
 
 /**

@@ -9,8 +9,9 @@ export const tableConfig = {
  * Genera el levelConfig para TableMultiLevelRender.
  * @param {Object} rolesCrud - hooks CRUD de roles
  * @param {Function} handleEditPermisos - callback para abrir modal de permisos
+ * @param {Function} handleEditSedes - callback para abrir modal de sedes
  */
-export const getTableLevelConfigs = (rolesCrud, handleEditPermisos) => [
+export const getTableLevelConfigs = (rolesCrud, handleEditPermisos, handleEditSedes) => [
   {
     level: 1,
     headers: [
@@ -23,6 +24,13 @@ export const getTableLevelConfigs = (rolesCrud, handleEditPermisos) => [
           custom: 'bg-gray-100 text-gray-500'
         },
         displayValue: (row) => row.ES_SISTEMA ? 'Sistema' : 'Custom'
+      },
+      { title: 'SEDES', type: 'tag-list', label: 'Sedes',
+        displayValue: (row) => {
+          const sedes = row.SEDES || [];
+          if (sedes.length === 0) return ['Global'];
+          return sedes.map(s => s.nombre_sede || s.codigo_sede || `Sede ${s.id_sede}`);
+        }
       },
       { title: 'ACTIVO', type: 'boolean', label: 'Activo', editable: true, targetTable: 'ROLES', targetField: 'ACTIVO', blocked: { field: 'ES_SISTEMA', op: '==', value: true } }
     ],
@@ -51,6 +59,13 @@ export const getTableLevelConfigs = (rolesCrud, handleEditPermisos) => [
           label: 'Editar Permisos',
           className: 'text-indigo-600 hover:bg-indigo-50',
           onClick: (row) => handleEditPermisos(row)
+        },
+        {
+          enabled: true,
+          icon: 'building',
+          label: 'Editar Sedes',
+          className: 'text-emerald-600 hover:bg-emerald-50',
+          onClick: (row) => handleEditSedes(row)
         }
       ]
     }

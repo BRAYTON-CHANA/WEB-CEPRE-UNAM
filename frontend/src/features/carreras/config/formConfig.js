@@ -28,6 +28,17 @@ export const carreraFormFields = [
     required: true,
     placeholder: 'Ej: Medicina Humana'
   },
+  {
+    name: 'ID_SEDES',
+    type: 'reference-array',
+    label: 'Sedes',
+    referenceTable: 'SEDES',
+    referenceField: 'ID_SEDE',
+    referenceLabelField: 'NOMBRE_SEDE',
+    searchable: true,
+    placeholder: 'Seleccione las sedes',
+    ignoreField: true
+  }
 ];
 
 export const carreraValidation = {
@@ -39,6 +50,9 @@ export const carreraValidation = {
   },
   NOMBRE_CARRERA: {
     required: { value: true, message: 'El nombre de la carrera es obligatorio' }
+  },
+  ID_SEDES: {
+    required: { value: false, message: 'Debe seleccionar al menos una sede' }
   }
 };
 

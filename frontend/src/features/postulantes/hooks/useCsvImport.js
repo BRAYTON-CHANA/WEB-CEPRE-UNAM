@@ -2,32 +2,213 @@ import { useState, useCallback } from 'react';
 import { backend } from '@/shared/api/backend';
 
 // ============================================
-// Parser CSV (sin deps externas) - soporta ; y ,
+// Parser CSV robusto: admite ; , \t y campos con comillas/multilinea
 // ============================================
 function parseCSV(text) {
   const unquote = (s) => {
     if (!s) return '';
-    return s.replace(/^"+/, '').replace(/"+$/, '').trim();
+    s = s.replace(/^\s+/, '').replace(/\s+$/, '');
+    if (s.length >= 2 && s.startsWith('"') && s.endsWith('"')) {
+      s = s.slice(1, -1).replace(/""/g, '"');
+    }
+    return s;
   };
 
-  const lines = text.split('\n').filter(l => l.trim());
-  if (lines.length === 0) return { data: [], meta: { fields: [] }, rawFirstLine: '' };
+  const rawFirstLine = text.split(/\r?\n/).find(l => l.trim()) || '';
+  if (!rawFirstLine) return { data: [], meta: { fields: [] }, rawFirstLine: '' };
 
-  const rawFirstLine = lines[0];
-  const separator = rawFirstLine.includes(';') ? ';' : ',';
-  const headers = lines[0].split(separator).map(h => unquote(h).toUpperCase());
+  // Detectar separador: el más frecuente fuera de comillas en la primera línea
+  const counts = { ';': 0, ',': 0, '\t': 0 };
+  let inQuote = false;
+  for (const ch of rawFirstLine) {
+    if (ch === '"') inQuote = !inQuote;
+    if (!inQuote && counts[ch] !== undefined) counts[ch]++;
+  }
+  const separator = Object.entries(counts).sort((a, b) => b[1] - a[1]).find(([_, c]) => c > 0)?.[0] || ';';
+
+  // Parseo caracter por caracter respetando comillas y saltos de línea
+  const values = [];
+  let current = '';
+  inQuote = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const next = text[i + 1];
+
+    if (ch === '"') {
+      if (inQuote && next === '"') {
+        current += '"';
+        i++; // saltar la siguiente comilla
+      } else {
+        inQuote = !inQuote;
+      }
+      continue;
+    }
+
+    if (ch === separator && !inQuote) {
+      values.push(unquote(current));
+      current = '';
+      continue;
+    }
+
+    if ((ch === '\n' || ch === '\r') && !inQuote) {
+      if (ch === '\r' && next === '\n') i++; // saltar \n de \r\n
+      values.push(unquote(current));
+      current = '';
+      continue;
+    }
+
+    current += ch;
+  }
+  const endsWithNewline = text.length > 0 && /[\r\n]$/.test(text);
+  if (current !== '' || !endsWithNewline) {
+    values.push(unquote(current));
+  }
+
+  // Calcular ancho por la primera línea (headers)
+  const firstLineValues = [];
+  let firstLineEnd = 0;
+  let firstInQuote = false;
+  let firstBuffer = '';
+  for (let i = 0; i < rawFirstLine.length; i++) {
+    const ch = rawFirstLine[i];
+    if (ch === '"') {
+      const next = rawFirstLine[i + 1];
+      if (firstInQuote && next === '"') {
+        firstBuffer += '"';
+        i++;
+      } else {
+        firstInQuote = !firstInQuote;
+      }
+      continue;
+    }
+    if (ch === separator && !firstInQuote) {
+      firstLineValues.push(unquote(firstBuffer));
+      firstBuffer = '';
+      continue;
+    }
+    firstBuffer += ch;
+  }
+  firstLineValues.push(unquote(firstBuffer));
+
+  const headers = firstLineValues.map(h => h.toUpperCase().trim());
+  const headerCount = headers.length;
 
   const data = [];
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(separator);
+  for (let i = headerCount; i < values.length; i += headerCount) {
+    const rowValues = values.slice(i, i + headerCount);
     const row = {};
     headers.forEach((h, idx) => {
-      row[h] = unquote(values[idx]) || '';
+      row[h] = rowValues[idx] !== undefined ? rowValues[idx] : '';
     });
     data.push(row);
   }
 
   return { data, meta: { fields: headers }, rawFirstLine };
+}
+
+// ============================================
+// Construir payload para upsert_postulante_batch
+// ============================================
+function buildBatchPayload(chunk, idPeriodo) {
+  const payload = {
+    p_dni: [],
+    p_nombres: [],
+    p_apellido_paterno: [],
+    p_apellido_materno: [],
+    p_sexo: [],
+    p_fecha_nacimiento: [],
+    p_telefono: [],
+    p_telefono_opcional: [],
+    p_email: [],
+    p_direccion: [],
+    p_departamento: [],
+    p_provincia: [],
+    p_distrito: [],
+    p_codigo_ubigeo_nacimiento: [],
+    p_ref_dom: [],
+    p_discapacidad: [],
+    p_tipo_discapacidad: [],
+    p_nro_conadis: [],
+    p_activo_usuario: [],
+    p_id_periodo: [],
+    p_id_sede: [],
+    p_id_sede_carrera: [],
+    p_id_grupo: [],
+    p_id_carrera: [],
+    p_codigo_estudiante: [],
+    p_codigo_edicion: [],
+    p_fecha_inscripcion: [],
+    p_alumno_libre: [],
+    p_apto: [],
+    p_activo_postulante: [],
+    p_turno: [],
+    p_grado: [],
+    p_anio_egreso: [],
+    p_colegio: [],
+    p_tipo_colegio: [],
+    p_validado_por: [],
+    p_nombre_apoderado: [],
+    p_direccion_apoderado: [],
+    p_telefono_apoderado: [],
+    p_tiene_hermano: [],
+    p_dni_hermano: [],
+    p_iniciativa_postulacion: [],
+    p_razon_eleccion_cepre: [],
+    p_medio_entero_cepre: [],
+    p_red_social_frecuente: []
+  };
+
+  for (const row of chunk) {
+    const { paterno, materno } = splitApellidos(row.APELLIDOS);
+    payload.p_dni.push(row.DNI);
+    payload.p_nombres.push(row.NOMBRES ? row.NOMBRES.trim().toUpperCase() : null);
+    payload.p_apellido_paterno.push(paterno || null);
+    payload.p_apellido_materno.push(materno || null);
+    payload.p_sexo.push(row.SEXO ? row.SEXO.trim().toUpperCase() : null);
+    payload.p_fecha_nacimiento.push(parseDate(row.FECHA_NACIMIENTO));
+    payload.p_telefono.push(row.TELEFONO ? row.TELEFONO.trim() : null);
+    payload.p_telefono_opcional.push(null);
+    payload.p_email.push(row.EMAIL ? row.EMAIL.trim() : null);
+    payload.p_direccion.push(row.DIRECCION ? row.DIRECCION.trim() : null);
+    payload.p_departamento.push(row.DEPARTAMENTO ? row.DEPARTAMENTO.trim() : null);
+    payload.p_provincia.push(row.PROVINCIA ? row.PROVINCIA.trim() : null);
+    payload.p_distrito.push(row.DISTRITO ? row.DISTRITO.trim() : null);
+    payload.p_codigo_ubigeo_nacimiento.push(row.CODIGO_UBIGEO_NACIMIENTO ? row.CODIGO_UBIGEO_NACIMIENTO.trim() : null);
+    payload.p_ref_dom.push(null);
+    payload.p_discapacidad.push(parseSiNo(row.DISCAPACIDAD));
+    payload.p_tipo_discapacidad.push(row.TIPO_DISCAPACIDAD ? row.TIPO_DISCAPACIDAD.trim() : null);
+    payload.p_nro_conadis.push(null);
+    payload.p_activo_usuario.push(true);
+    payload.p_id_periodo.push(idPeriodo);
+    payload.p_id_sede.push(row.idSedeExamen || row.idSede || null);
+    payload.p_id_sede_carrera.push(row.idSede || null);
+    payload.p_id_grupo.push(null);
+    payload.p_id_carrera.push(row.idCarrera || null);
+    payload.p_codigo_estudiante.push(null);
+    payload.p_codigo_edicion.push(row.CODIGO_EDICION ? row.CODIGO_EDICION.trim() : null);
+    payload.p_fecha_inscripcion.push(parseDate(row.FECHA_INSCRIPCION));
+    payload.p_alumno_libre.push(parseSiNo(row.ALUMNO_LIBRE));
+    payload.p_apto.push(true);
+    payload.p_activo_postulante.push(true);
+    payload.p_turno.push(row.TURNO ? row.TURNO.trim() : null);
+    payload.p_grado.push(parseIntOrNull(row.GRADO));
+    payload.p_anio_egreso.push(parseIntOrNull(row.ANIO_EGRESO));
+    payload.p_colegio.push(row.COLEGIO ? row.COLEGIO.trim() : null);
+    payload.p_tipo_colegio.push(row.TIPO_COLEGIO ? row.TIPO_COLEGIO.trim() : null);
+    payload.p_validado_por.push(row.VALIDADO_POR ? row.VALIDADO_POR.trim() : null);
+    payload.p_nombre_apoderado.push(row.NOMBRE_APODERADO ? row.NOMBRE_APODERADO.trim() : null);
+    payload.p_direccion_apoderado.push(row.DIRECCION_APODERADO ? row.DIRECCION_APODERADO.trim() : null);
+    payload.p_telefono_apoderado.push(row.TELEFONO_APODERADO ? row.TELEFONO_APODERADO.trim() : null);
+    payload.p_tiene_hermano.push(parseSiNo(row.TIENE_HERMANO));
+    payload.p_dni_hermano.push(row.DNI_HERMANO ? row.DNI_HERMANO.trim() : null);
+    payload.p_iniciativa_postulacion.push(row.INICIATIVA_POSTULACION ? row.INICIATIVA_POSTULACION.trim() : null);
+    payload.p_razon_eleccion_cepre.push(row.RAZON_ELECCION_CEPRE ? row.RAZON_ELECCION_CEPRE.trim() : null);
+    payload.p_medio_entero_cepre.push(row.MEDIO_ENTERO_CEPRE ? row.MEDIO_ENTERO_CEPRE.trim() : null);
+    payload.p_red_social_frecuente.push(row.RED_SOCIAL_FRECUENTE ? row.RED_SOCIAL_FRECUENTE.trim() : null);
+  }
+
+  return payload;
 }
 
 // ============================================
@@ -215,6 +396,7 @@ function validateValueAgainstSchema(value, schemaCol, fieldName) {
 }
 
 // Validar un campo del CSV contra schema + CHECK constraints
+// Retorna { field, message } o null
 function validateFieldAgainstSchema(fieldName, value, schemas) {
   const mapping = FIELD_TO_TABLE_COLUMN[fieldName];
   if (!mapping) return null; // campo no mapeado (ej: SEDE_VACANTE se resuelve por nombre)
@@ -225,14 +407,14 @@ function validateFieldAgainstSchema(fieldName, value, schemas) {
 
   // Validar tipo
   const typeError = validateValueAgainstSchema(value, schema[column], fieldName);
-  if (typeError) return typeError;
+  if (typeError) return { field: fieldName, message: typeError };
 
   // Validar CHECK constraint
   const checkKey = `${table}.${column}`;
   const checkFn = CHECK_CONSTRAINTS[checkKey];
   if (checkFn) {
     const checkError = checkFn(value);
-    if (checkError) return checkError;
+    if (checkError) return { field: fieldName, message: checkError };
   }
 
   return null;
@@ -322,6 +504,7 @@ export function useCsvPreview(idPeriodo) {
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [result, setResult] = useState(null);
+  const [batchSize, setBatchSize] = useState(100);
 
   const REQUIRED_HEADERS = ['DNI', 'APELLIDOS', 'NOMBRES'];
 
@@ -410,17 +593,21 @@ export function useCsvPreview(idPeriodo) {
         // Validar DNI obligatorio (puede no estar en schema como NOT NULL)
         const dni = (row.DNI || '').trim();
         if (!dni) {
-          fieldErrors.push('DNI es obligatorio');
+          fieldErrors.push({ field: 'DNI', message: 'DNI es obligatorio' });
         }
         previewRow.DNI = dni;
 
         // Validar apellidos y nombres obligatorios
-        if (!row.APELLIDOS?.trim()) fieldErrors.push('APELLIDOS es obligatorio');
-        if (!row.NOMBRES?.trim()) fieldErrors.push('NOMBRES es obligatorio');
+        if (!row.APELLIDOS?.trim()) fieldErrors.push({ field: 'APELLIDOS', message: 'APELLIDOS es obligatorio' });
+        if (!row.NOMBRES?.trim()) fieldErrors.push({ field: 'NOMBRES', message: 'NOMBRES es obligatorio' });
 
-        // Si hay errores de validación de tipos, lanzar con todos concatenados
+        // Si hay errores de validación, guardar y continuar
         if (fieldErrors.length > 0) {
-          throw new Error(fieldErrors.join('; '));
+          previewRow.error = fieldErrors.map(e => e.message).join('; ');
+          previewRow.fieldErrors = fieldErrors;
+          errors.push({ row: i + 2, error: previewRow.error });
+          previewRows.push(previewRow);
+          continue;
         }
 
         // Buscar usuario por DNI
@@ -443,26 +630,35 @@ export function useCsvPreview(idPeriodo) {
         // Buscar sede de vacante por nombre
         if (row.SEDE_VACANTE) {
           const idSede = sedesMap.get(row.SEDE_VACANTE.trim().toUpperCase());
-          if (!idSede) throw new Error(`Sede de vacante no encontrada: ${row.SEDE_VACANTE}`);
-          previewRow.idSede = idSede;
+          if (!idSede) fieldErrors.push({ field: 'SEDE_VACANTE', message: `Sede de vacante no encontrada: ${row.SEDE_VACANTE}` });
+          else previewRow.idSede = idSede;
         }
 
         // Buscar sede de examen por nombre
         if (row.SEDE_EXAMEN) {
           const idSedeExamen = sedesMap.get(row.SEDE_EXAMEN.trim().toUpperCase());
-          if (!idSedeExamen) throw new Error(`Sede de examen no encontrada: ${row.SEDE_EXAMEN}`);
-          previewRow.idSedeExamen = idSedeExamen;
+          if (!idSedeExamen) fieldErrors.push({ field: 'SEDE_EXAMEN', message: `Sede de examen no encontrada: ${row.SEDE_EXAMEN}` });
+          else previewRow.idSedeExamen = idSedeExamen;
         }
 
         // Buscar carrera por nombre
         if (row.CARRERA) {
           const idCarrera = carrerasMap.get(row.CARRERA.trim().toUpperCase());
-          if (!idCarrera) throw new Error(`Carrera no encontrada: ${row.CARRERA}`);
-          previewRow.idCarrera = idCarrera;
+          if (!idCarrera) fieldErrors.push({ field: 'CARRERA', message: `Carrera no encontrada: ${row.CARRERA}` });
+          else previewRow.idCarrera = idCarrera;
+        }
+
+        if (fieldErrors.length > 0) {
+          previewRow.error = fieldErrors.map(e => e.message).join('; ');
+          previewRow.fieldErrors = fieldErrors;
+          errors.push({ row: i + 2, error: previewRow.error });
+          previewRows.push(previewRow);
+          continue;
         }
 
       } catch (err) {
         previewRow.error = err.message;
+        previewRow.fieldErrors = [{ field: 'general', message: err.message }];
         errors.push({ row: i + 2, error: err.message });
       }
 
@@ -502,107 +698,24 @@ export function useCsvPreview(idPeriodo) {
     const errores = [];
 
     try {
-      for (let i = 0; i < filasValidas.length; i++) {
-        const row = filasValidas[i];
-        setProgress({ current: i + 1, total: filasValidas.length, label: `Importando ${row.DNI}...` });
+      const effectiveBatchSize = Math.max(1, Math.min(1000, Number(batchSize) || 100));
+      for (let i = 0; i < filasValidas.length; i += effectiveBatchSize) {
+        const chunk = filasValidas.slice(i, i + effectiveBatchSize);
+        const startRow = i + 1;
+        const endRow = Math.min(i + effectiveBatchSize, filasValidas.length);
+        setProgress({
+          current: i,
+          total: filasValidas.length,
+          label: `Importando filas ${startRow} - ${endRow}...`
+        });
 
         try {
-          // ===== 1. Construir datos de USUARIOS (solo campos presentes) =====
-          const usuarioData = {};
-          const { paterno, materno } = splitApellidos(row.APELLIDOS);
-          if (paterno) usuarioData.APELLIDO_PATERNO = paterno;
-          if (materno) usuarioData.APELLIDO_MATERNO = materno;
-          if (row.NOMBRES) usuarioData.NOMBRES = row.NOMBRES.trim().toUpperCase();
-          if (row.SEXO) usuarioData.SEXO = row.SEXO.trim().toUpperCase();
-          if (row.FECHA_NACIMIENTO) {
-            const d = parseDate(row.FECHA_NACIMIENTO);
-            if (d) usuarioData.FECHA_NACIMIENTO = d;
-          }
-          if (row.TELEFONO) usuarioData.TELEFONO = row.TELEFONO.trim();
-          if (row.EMAIL) usuarioData.EMAIL = row.EMAIL.trim();
-          if (row.DIRECCION) usuarioData.DIRECCION = row.DIRECCION.trim();
-          if (row.DEPARTAMENTO) usuarioData.DEPARTAMENTO = row.DEPARTAMENTO.trim();
-          if (row.PROVINCIA) usuarioData.PROVINCIA = row.PROVINCIA.trim();
-          if (row.DISTRITO) usuarioData.DISTRITO = row.DISTRITO.trim();
-          if (row.CODIGO_UBIGEO_NACIMIENTO) usuarioData.CODIGO_UBIGEO_NACIMIENTO = row.CODIGO_UBIGEO_NACIMIENTO.trim();
-          if (row.DISCAPACIDAD !== undefined && row.DISCAPACIDAD !== '') {
-            const disc = parseSiNo(row.DISCAPACIDAD);
-            if (disc !== null) usuarioData.DISCAPACIDAD = disc;
-          }
-          if (row.TIPO_DISCAPACIDAD) usuarioData.TIPO_DISCAPACIDAD = row.TIPO_DISCAPACIDAD.trim();
-
-          // ===== 2. Upsert USUARIOS por DNI =====
-          usuarioData.DNI = row.DNI;
-
-          let idUsuario = row.idUsuario;
-
-          if (row.isNewUsuario) {
-            // Crear nuevo usuario
-            // Asegurar campos NOT NULL con defaults
-            if (!usuarioData.APELLIDO_PATERNO) usuarioData.APELLIDO_PATERNO = 'SIN_APELLIDO';
-            if (!usuarioData.NOMBRES) usuarioData.NOMBRES = 'SIN_NOMBRE';
-
-            const insertResult = await backend.insert('USUARIOS', usuarioData);
-            idUsuario = insertResult?.ID_USUARIO || insertResult?.[0]?.ID_USUARIO;
-            if (!idUsuario) throw new Error('No se pudo obtener ID_USUARIO después de insert');
-          } else {
-            // Upsert: actualizar solo los campos presentes
-            const upsertResult = await backend.upsert('USUARIOS', usuarioData, ['DNI']);
-            idUsuario = upsertResult?.ID_USUARIO || upsertResult?.[0]?.ID_USUARIO || idUsuario;
-            if (!idUsuario) throw new Error('No se pudo obtener ID_USUARIO después de upsert');
-          }
-
-          // ===== 3. Construir datos de POSTULANTES =====
-          const postulanteData = {
-            ID_USUARIO: idUsuario,
-            ID_PERIODO: idPeriodo,
-            ACTIVO: true
-          };
-
-          if (row.idSede) postulanteData.ID_SEDE_VACANTE = row.idSede;
-          if (row.idSedeExamen) postulanteData.ID_SEDE_EXAMEN = row.idSedeExamen;
-          if (row.idCarrera) postulanteData.ID_CARRERA = row.idCarrera;
-          if (row.FECHA_INSCRIPCION) {
-            const d = parseDate(row.FECHA_INSCRIPCION);
-            if (d) postulanteData.FECHA_INSCRIPCION = d;
-          }
-          if (row.TURNO) postulanteData.TURNO = row.TURNO.trim();
-          if (row.GRADO !== undefined && row.GRADO !== '') {
-            const g = parseIntOrNull(row.GRADO);
-            if (g !== null) postulanteData.GRADO = g;
-          }
-          if (row.ANIO_EGRESO !== undefined && row.ANIO_EGRESO !== '') {
-            const a = parseIntOrNull(row.ANIO_EGRESO);
-            if (a !== null) postulanteData.ANIO_EGRESO = a;
-          }
-          if (row.COLEGIO) postulanteData.COLEGIO = row.COLEGIO.trim();
-          if (row.TIPO_COLEGIO) postulanteData.TIPO_COLEGIO = row.TIPO_COLEGIO.trim();
-          if (row.VALIDADO_POR) postulanteData.VALIDADO_POR = row.VALIDADO_POR.trim();
-          if (row.NOMBRE_APODERADO) postulanteData.NOMBRE_APODERADO = row.NOMBRE_APODERADO.trim();
-          if (row.DIRECCION_APODERADO) postulanteData.DIRECCION_APODERADO = row.DIRECCION_APODERADO.trim();
-          if (row.TELEFONO_APODERADO) postulanteData.TELEFONO_APODERADO = row.TELEFONO_APODERADO.trim();
-          if (row.TIENE_HERMANO !== undefined && row.TIENE_HERMANO !== '') {
-            const th = parseSiNo(row.TIENE_HERMANO);
-            if (th !== null) postulanteData.TIENE_HERMANO = th;
-          }
-          if (row.DNI_HERMANO) postulanteData.DNI_HERMANO = row.DNI_HERMANO.trim();
-          if (row.INICIATIVA_POSTULACION) postulanteData.INICIATIVA_POSTULACION = row.INICIATIVA_POSTULACION.trim();
-          if (row.RAZON_ELECCION_CEPRE) postulanteData.RAZON_ELECCION_CEPRE = row.RAZON_ELECCION_CEPRE.trim();
-          if (row.MEDIO_ENTERO_CEPRE) postulanteData.MEDIO_ENTERO_CEPRE = row.MEDIO_ENTERO_CEPRE.trim();
-          if (row.RED_SOCIAL_FRECUENTE) postulanteData.RED_SOCIAL_FRECUENTE = row.RED_SOCIAL_FRECUENTE.trim();
-          if (row.ALUMNO_LIBRE !== undefined && row.ALUMNO_LIBRE !== '') {
-            const al = parseSiNo(row.ALUMNO_LIBRE);
-            if (al !== null) postulanteData.ALUMNO_LIBRE = al;
-          }
-          if (row.CODIGO_EDICION) postulanteData.CODIGO_EDICION = row.CODIGO_EDICION.trim();
-
-          // ===== 4. Insert POSTULANTES =====
-          await backend.insert('POSTULANTES', postulanteData);
-          imported++;
-
+          const payload = buildBatchPayload(chunk, idPeriodo);
+          await backend.executeFunction('upsert_postulante_batch', payload);
+          imported += chunk.length;
         } catch (err) {
-          console.error(`[CSV IMPORT] Error en fila DNI ${row.DNI}:`, err);
-          errores.push({ dni: row.DNI, error: err.message });
+          console.error(`[CSV IMPORT] Error en batch ${startRow}-${endRow}:`, err);
+          errores.push({ filas: `${startRow}-${endRow}`, error: err.message });
         }
       }
 
@@ -624,9 +737,9 @@ export function useCsvPreview(idPeriodo) {
       setImporting(false);
       setProgress({ current: 0, total: 0 });
     }
-  }, [idPeriodo]);
+  }, [idPeriodo, batchSize]);
 
-  return { preview, importRows, importing, progress, result };
+  return { preview, importRows, importing, progress, result, batchSize, setBatchSize };
 }
 
 // ============================================

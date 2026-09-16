@@ -221,6 +221,30 @@ export function useManageConvocatoria({ convocatoria, onViewPostulantes }) {
   const [plazasAllLoading, setPlazasAllLoading] = useState(false);
   const [plazasAllError, setPlazasAllError] = useState(null);
   const [plazasAllVersion, setPlazasAllVersion] = useState(0);
+  const [distribucionOpen, setDistribucionOpen] = useState(false);
+  const [distribucion, setDistribucion] = useState([]);
+  const [distribucionLoading, setDistribucionLoading] = useState(false);
+  const [distribucionError, setDistribucionError] = useState(null);
+
+  const openDistribucion = useCallback(async () => {
+    if (!convocatoriaId) return;
+    setDistribucionOpen(true);
+    setDistribucionLoading(true);
+    setDistribucionError(null);
+    try {
+      const data = await db.select('VW_DISTRIBUCION_PLAZAS_GRUPOS', {
+        ID_CONVOCATORIA: convocatoriaId
+      });
+      setDistribucion(data || []);
+    } catch (err) {
+      setDistribucionError(err);
+      setDistribucion([]);
+    } finally {
+      setDistribucionLoading(false);
+    }
+  }, [convocatoriaId]);
+
+  const closeDistribucion = useCallback(() => setDistribucionOpen(false), []);
 
   const fetchPlazasAll = useCallback(async () => {
     if (!convocatoriaId) {
@@ -323,6 +347,12 @@ export function useManageConvocatoria({ convocatoria, onViewPostulantes }) {
     refreshPlazasAll,
     updateRecordFlat,
     // Header
-    manageHeaderActions
+    manageHeaderActions,
+    distribucionOpen,
+    distribucion,
+    distribucionLoading,
+    distribucionError,
+    openDistribucion,
+    closeDistribucion
   };
 }

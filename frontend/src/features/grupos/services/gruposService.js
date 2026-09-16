@@ -12,7 +12,7 @@ import cacheService from '@/shared/services/cacheService';
  *   ID_PERIODO,
  *   COMBOS: [{
  *     ID_SEDE, ID_AREA, MODALIDAD, selected,
- *     ID_HORARIO, FECHA_INICIO, FECHA_TERMINO, ID_PLAN,
+ *     FECHA_INICIO, FECHA_TERMINO, ID_PLAN,
  *     grupos: [{ CODIGO_GRUPO, NOMBRE_GRUPO, CAPACIDAD_MAXIMA, ID_AULA }]
  *   }]
  * }
@@ -33,7 +33,7 @@ export async function createGruposBatch(data) {
         ID_SEDE: idSede,
         ID_AREA: Number(c.ID_AREA),
         MODALIDAD: modalidad,
-        ID_HORARIO: g.ID_HORARIO ? Number(g.ID_HORARIO) : null,
+        ID_TURNO: g.ID_TURNO ? Number(g.ID_TURNO) : null,
         FECHA_INICIO: c.FECHA_INICIO,
         FECHA_TERMINO: c.FECHA_TERMINO,
         ID_PLAN: idPlan,

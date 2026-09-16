@@ -9,7 +9,7 @@ import { tableConfig, getTableLevelConfigs } from '@/features/permisos/config/ta
  * La asignación rol→permiso se hace en la página de roles.
  */
 export function usePermisos() {
-  const { records, loading, error } = useTableData(tableConfig.tableName);
+  const { records, loading, error, refresh } = useTableData(tableConfig.tableName);
 
   const tableLevelConfigs = useMemo(() => getTableLevelConfigs(), []);
 
@@ -17,6 +17,7 @@ export function usePermisos() {
     records,
     loading,
     error,
+    refresh,
     tableLevelConfigs
   };
 }

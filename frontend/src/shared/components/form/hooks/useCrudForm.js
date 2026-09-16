@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useReducer } from 'react';
+import { useState, useEffect, useCallback, useReducer, useRef } from 'react';
 import { db } from '@/shared/api';
 import cacheService from '@/shared/services/cacheService';
 
@@ -44,19 +44,31 @@ export const useCrudForm = (tableName, mode = 'create', recordId = null, primary
   // Usar viewName para lectura de registro, tabla base para schema y mutaciones
   const readTable = viewName || tableName;
 
+  // Promesa del schema compartida: evita doble fetch y permite await en submit
+  const schemaRef = useRef({ table: null, promise: null });
+  if (schemaRef.current.table !== tableName) {
+    schemaRef.current = { table: tableName, promise: null };
+  }
+
   /**
-   * Cargar el schema de la tabla base
+   * Cargar el schema de la tabla base.
+   * Devuelve la promesa compartida: si ya está en curso/resuelta no duplica el fetch.
    */
-  const loadSchema = useCallback(async () => {
-    try {
+  const loadSchema = useCallback(() => {
+    if (!schemaRef.current.promise) {
       dispatch({ type: 'SET_ERROR', payload: null });
-      const tableSchema = await db.getTableSchema(tableName);
-      dispatch({ type: 'SET_SCHEMA', payload: tableSchema });
-      return tableSchema;
-    } catch (err) {
-      dispatch({ type: 'SET_ERROR', payload: `Error cargando schema: ${err.message}` });
-      throw err;
+      schemaRef.current.promise = db.getTableSchema(tableName)
+        .then(tableSchema => {
+          dispatch({ type: 'SET_SCHEMA', payload: tableSchema });
+          return tableSchema;
+        })
+        .catch(err => {
+          schemaRef.current.promise = null;
+          dispatch({ type: 'SET_ERROR', payload: `Error cargando schema: ${err.message}` });
+          throw err;
+        });
     }
+    return schemaRef.current.promise;
   }, [tableName]);
 
   /**
@@ -165,6 +177,7 @@ export const useCrudForm = (tableName, mode = 'create', recordId = null, primary
    */
   const reload = useCallback(async () => {
     dispatch({ type: 'SET_INITIALIZED', payload: false });
+    schemaRef.current.promise = null;
     await loadSchema();
     if (mode === 'edit' && recordId) {
       await loadRecord(recordId);

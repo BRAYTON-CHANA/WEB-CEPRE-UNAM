@@ -1,21 +1,23 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import ScheduleTemplate from '@/shared/components/schedule/components/ScheduleTemplate';
-import useHorarioBloques, { swapBloquesOrden } from '@/features/horarios/hooks/useHorarioBloques';
+import useBloquesEditor, { swapBloquesOrden } from '@/shared/components/schedule/hooks/useBloquesEditor';
 
 /**
- * Vista alternativa para editar los bloques de un horario.
+ * Vista alternativa para editar los bloques de una entidad (horario o turno).
  * Muestra:
- *  - Header con botón "Atrás" + título del horario + botón "Añadir Bloque"
- *  - ScheduleTemplate (días × bloques) si hay al menos un bloque
- *  - Lista compacta de bloques con acciones editar/eliminar
+ *  - Header con botón "Atrás" + título de la entidad + botón "Añadir Bloque"
+ *  - ScheduleTemplate (día × bloques) si hay al menos un bloque
+ *  - Lista compacta de bloques con acciones mover/editar/eliminar
  *
- * @param {Object} horario - Row del horario (VW_HORARIOS)
- * @param {Object} bloquesCrud - Resultado de useCrudForms para HORARIO_BLOQUES
- * @param {Function} onBack - Volver a la tabla de horarios
- * @param {Function} [onNextOrdenChange] - Callback para reportar el próximo ORDEN disponible
+ * @param {Object}   row              - Fila de la entidad (VW_HORARIOS | VW_TURNOS)
+ * @param {Object}   bloquesCrud      - Resultado de useCrudForms para la tabla de bloques
+ * @param {Function} onBack           - Volver a la tabla principal
+ * @param {Function} [onNextOrdenChange] - Callback con el próximo ORDEN disponible
+ * @param {Object}   config           - { viewName, tableName, pkField, fkField, parentPkField, nombreField }
  */
-const EditarBloquesView = ({ horario, bloquesCrud, onBack, onNextOrdenChange }) => {
-  const { bloques, scheduleBlocks, matrix, loading, reload } = useHorarioBloques(horario);
+const EditarBloquesView = ({ row, bloquesCrud, onBack, onNextOrdenChange, config }) => {
+  const { viewName, tableName, pkField, fkField, parentPkField, nombreField } = config;
+  const { bloques, scheduleBlocks, matrix, loading, reload } = useBloquesEditor(row, { viewName, pkField, fkField, parentPkField });
   const [swapError, setSwapError] = useState(null);
   const [swapping, setSwapping] = useState(false);
 
@@ -53,14 +55,14 @@ const EditarBloquesView = ({ horario, bloquesCrud, onBack, onNextOrdenChange }) 
     setSwapError(null);
     setSwapping(true);
     try {
-      const ok = await swapBloquesOrden(bloqueA, bloqueB, (err) => {
+      const ok = await swapBloquesOrden(tableName, pkField, bloqueA, bloqueB, (err) => {
         setSwapError(err?.message || 'Error al reordenar bloques');
       });
       if (ok) await reload();
     } finally {
       setSwapping(false);
     }
-  }, [reload, swapping]);
+  }, [reload, swapping, tableName, pkField]);
 
   // Handlers para las flechas del ScheduleTemplate (reciben el block con .orden)
   const handleMoveUp = useCallback((block) => {
@@ -90,18 +92,18 @@ const EditarBloquesView = ({ horario, bloquesCrud, onBack, onNextOrdenChange }) 
 
   // Handlers para la lista compacta (reciben el bloque raw)
   const handleMoveUpRow = useCallback((bloque) => {
-    const idx = sortedBloques.findIndex((b) => b.ID_BLOQUE === bloque.ID_BLOQUE);
+    const idx = sortedBloques.findIndex((b) => b[pkField] === bloque[pkField]);
     const prev = sortedBloques[idx - 1];
     if (prev) handleSwap(bloque, prev);
-  }, [sortedBloques, handleSwap]);
+  }, [sortedBloques, handleSwap, pkField]);
 
   const handleMoveDownRow = useCallback((bloque) => {
-    const idx = sortedBloques.findIndex((b) => b.ID_BLOQUE === bloque.ID_BLOQUE);
+    const idx = sortedBloques.findIndex((b) => b[pkField] === bloque[pkField]);
     const next = sortedBloques[idx + 1];
     if (next) handleSwap(bloque, next);
-  }, [sortedBloques, handleSwap]);
+  }, [sortedBloques, handleSwap, pkField]);
 
-  if (!horario) return null;
+  if (!row) return null;
 
   const hasBloques = bloques.length > 0;
   const hasMatrix = matrix.length > 0 && Array.isArray(matrix[0]) && matrix[0].length > 0;
@@ -137,10 +139,10 @@ const EditarBloquesView = ({ horario, bloquesCrud, onBack, onNextOrdenChange }) 
               Editar Bloques
             </h1>
             <p className="text-sm text-gray-600 mt-0.5">
-              {horario.NOMBRE_HORARIO}
-              {horario.NOMBRE_SEDE ? ` · ${horario.NOMBRE_SEDE}` : ''}
-              {horario.HORA_INICIO_JORNADA && horario.HORA_FIN_JORNADA
-                ? ` · ${horario.HORA_INICIO_JORNADA} - ${horario.HORA_FIN_JORNADA}`
+              {row[nombreField]}
+              {row.NOMBRE_SEDE ? ` · ${row.NOMBRE_SEDE}` : ''}
+              {row.HORA_INICIO_JORNADA && row.HORA_FIN_JORNADA
+                ? ` · ${row.HORA_INICIO_JORNADA} - ${row.HORA_FIN_JORNADA}`
                 : ''}
             </p>
           </div>
@@ -239,7 +241,7 @@ const EditarBloquesView = ({ horario, bloquesCrud, onBack, onNextOrdenChange }) 
                 <tbody className="divide-y divide-gray-100">
                   {sortedBloques.map((b, idx) => (
                     <tr
-                      key={b.ID_BLOQUE}
+                      key={b[pkField]}
                       className={b.TIPO_BLOQUE === 'break' ? 'bg-gray-50/60' : 'bg-white'}
                     >
                       <td className="px-4 py-3 text-gray-700 font-mono">{b.ORDEN}</td>

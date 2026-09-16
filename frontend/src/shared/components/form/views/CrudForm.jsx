@@ -69,6 +69,7 @@ const CrudForm = ({
     error: crudError,
     isInitialized,
     submit,
+    loadSchema,
     reload
   } = useCrudForm(tableName, mode, recordId, primaryKey, viewName, createFunction, editFunction);
 
@@ -109,8 +110,16 @@ const CrudForm = ({
     setFieldErrors([]);
     setIsSubmitting(true);
 
-    // Validar que tenemos schema
-    if (!schema) {
+    // Validar que tenemos schema (espera si aún carga en background)
+    let resolvedSchema = schema;
+    if (!resolvedSchema) {
+      try {
+        resolvedSchema = await loadSchema();
+      } catch {
+        resolvedSchema = null;
+      }
+    }
+    if (!resolvedSchema) {
       const error = 'No se pudo cargar el schema de la tabla';
       console.error('[CrudForm.jsx]', error);
       setFieldErrors([{ field: '*', error }]);
@@ -120,7 +129,7 @@ const CrudForm = ({
     }
 
     // Validar campos del form contra el schema
-    const mismatches = validateFieldsAgainstSchema(submitData, schema, fields, tableName);
+    const mismatches = validateFieldsAgainstSchema(submitData, resolvedSchema, fields, tableName);
 
     if (mismatches.length > 0) {
       setFieldErrors(mismatches);
@@ -130,7 +139,7 @@ const CrudForm = ({
     }
 
     // Construir payload (filtrar campos que no están en schema, excluir PK y campos ignoreField)
-    const payload = buildPayload(submitData, schema, primaryKey, fields, mode === 'edit' ? record : null);
+    const payload = buildPayload(submitData, resolvedSchema, primaryKey, fields, mode === 'edit' ? record : null);
 
     try {
       // Enviar al backend (formData se pasa para funciones custom con ignoreField)
@@ -171,21 +180,11 @@ const CrudForm = ({
     );
   };
 
-  // Renderizar estado de carga
-  if (!isInitialized && loading) {
-    return (
-      <div className="p-8 text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="mt-2 text-sm text-gray-600">Cargando información...</p>
-      </div>
-    );
-  }
+  // El formulario se renderiza de inmediato: los campos vienen del config,
+  // no del schema. En modo edit el remount por `key` rellena valores al llegar el record.
 
-  // Renderizar carga de reference-selects (solo en modo create)
-  // Eliminado: ya no esperamos a que carguen los reference-selects
-
-  // Renderizar error de inicialización
-  if (!isInitialized && crudError) {
+  // En modo edit sin registro y con error no hay nada que mostrar
+  if (mode === 'edit' && !record && !loading && crudError) {
     return (
       <div className="p-4 bg-red-50 border border-red-200 rounded-md">
         <p className="text-sm text-red-600">Error: {crudError}</p>
@@ -195,6 +194,16 @@ const CrudForm = ({
         >
           Reintentar
         </button>
+      </div>
+    );
+  }
+
+  // En modo editar esperar a que el registro se cargue antes de mostrar el formulario
+  if (mode === 'edit' && (loading || !record)) {
+    return (
+      <div className="p-8 flex flex-col items-center justify-center text-slate-500">
+        <div className="w-6 h-6 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-3" />
+        <p className="text-sm">Cargando datos...</p>
       </div>
     );
   }

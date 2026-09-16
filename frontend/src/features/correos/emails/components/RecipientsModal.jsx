@@ -41,7 +41,27 @@ const getInitials = (name, email) => {
  * y permite abrir el perfil actual si el usuario aún existe.
  */
 const RecipientsModal = ({ email, onClose }) => {
-  const destinatarios = useMemo(() => parseDestinatarios(email?.DESTINATARIOS_USUARIOS), [email?.DESTINATARIOS_USUARIOS]);
+  const [detalle, setDetalle] = useState(null);
+  const [loadingDetalle, setLoadingDetalle] = useState(false);
+
+  // El listado no trae DESTINATARIOS_USUARIOS (egress); se carga al abrir el modal.
+  // undefined = no traído; [] = traído pero vacío.
+  useEffect(() => {
+    setDetalle(null);
+    if (!email?.ID_CORREO || email.DESTINATARIOS_USUARIOS !== undefined) return;
+    let cancelled = false;
+    setLoadingDetalle(true);
+    db.select('VW_CORREOS', { ID_CORREO: email.ID_CORREO }, ['ID_CORREO', 'DESTINATARIOS_USUARIOS'])
+      .then((data) => { if (!cancelled) setDetalle(data?.[0] || null); })
+      .catch((err) => {
+        console.error('[RecipientsModal] Error cargando destinatarios:', err);
+      })
+      .finally(() => { if (!cancelled) setLoadingDetalle(false); });
+    return () => { cancelled = true; };
+  }, [email?.ID_CORREO]);
+
+  const destinatariosRaw = detalle?.DESTINATARIOS_USUARIOS ?? email?.DESTINATARIOS_USUARIOS;
+  const destinatarios = useMemo(() => parseDestinatarios(destinatariosRaw), [destinatariosRaw]);
   const [currentUsers, setCurrentUsers] = useState([]);
   const [loadingCurrent, setLoadingCurrent] = useState(false);
 
@@ -138,7 +158,12 @@ const RecipientsModal = ({ email, onClose }) => {
             )}
           </div>
 
-          {destinatarios.length === 0 ? (
+          {loadingDetalle ? (
+            <div className="text-center py-8">
+              <span className="inline-block w-5 h-5 border-2 border-slate-200 border-t-indigo-600 rounded-full animate-spin mb-2" />
+              <p className="text-sm text-slate-500">Cargando destinatarios...</p>
+            </div>
+          ) : destinatarios.length === 0 ? (
             <div className="text-center py-8 text-slate-500 text-sm">
               No hay destinatarios registrados para este correo.
             </div>

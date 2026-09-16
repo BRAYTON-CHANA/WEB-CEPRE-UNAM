@@ -2,10 +2,20 @@
  * Configuración de tabla multinivel para Horarios y Bloques
  */
 
+export const HORARIO_BLOQUES_CONFIG = {
+  viewName: 'VW_HORARIO_BLOQUES',
+  tableName: 'HORARIO_BLOQUES',
+  pkField: 'ID_BLOQUE',
+  fkField: 'ID_HORARIO',
+  parentPkField: 'ID_HORARIO',
+  nombreField: 'NOMBRE_HORARIO'
+};
+
 export const getHorariosLevelConfig = (horariosCrud, handleEditarBloques) => ({
   level: 1,
   headers: [
     { title: 'NOMBRE_HORARIO', type: 'string', groupBy: true, label: 'Horario' },
+    { title: 'NOMBRE_SEDE', type: 'string', label: 'Sede' },
     { title: 'HORA_INICIO_JORNADA', type: 'string', label: 'Inicio' },
     { title: 'HORA_FIN_JORNADA', type: 'string', label: 'Fin' }
   ],

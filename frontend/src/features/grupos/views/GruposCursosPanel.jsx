@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import DatabaseTableEditable from '@/shared/components/table/views/DatabaseTableEditable';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
+import ErrorAlert from '@/shared/components/ui/ErrorAlert';
 import { db } from '@/shared/api';
 import cacheService from '@/shared/services/cacheService';
 
@@ -428,15 +429,7 @@ function GruposCursosPanel({ sharedPeriodo, onSharedPeriodoChange, sharedModalid
 
           {/* Error */}
           {error && !loading && (
-            <div className="rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-red-50/50 p-5 flex items-start gap-3">
-              <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div>
-                <p className="text-red-800 text-sm font-semibold">Error al cargar</p>
-                <p className="text-red-600 text-sm mt-0.5">{error}</p>
-              </div>
-            </div>
+            <ErrorAlert error={error} loading={loading} onRetry={fetchCursos} />
           )}
 
           {/* Tabla editable (guardado manual) */}

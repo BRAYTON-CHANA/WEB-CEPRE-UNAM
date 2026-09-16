@@ -7,9 +7,9 @@ export const bloqueBaseFields = [
     type: 'reference-select',
     label: 'Horario (Plantilla)',
     required: true,
-    referenceTable: 'HORARIOS',
+    referenceTable: 'VW_HORARIOS',
     referenceField: 'ID_HORARIO',
-    referenceQuery: '{NOMBRE_HORARIO}',
+    referenceQuery: '{NOMBRE_HORARIO} · {NOMBRE_SEDE}',
     referenceFilters: [
       { field: 'ACTIVO', op: '=', value: 1 }
     ],

@@ -1,24 +1,20 @@
 /**
- * Configuración de tabla para Feriados (un solo nivel)
- * Usa VW_FERIADOS que incluye CODIGO_PERIODO y NOMBRE_PERIODO.
- * La escritura se realiza sobre la tabla FERIADOS.
+ * Configuración de tabla para Fechas Bloqueadas
  */
 export const tableConfig = {
-  tableName: 'VW_FERIADOS'
+  tableName: 'VW_FECHAS_BLOQUEADAS'
 };
 
-/**
- * Genera el levelConfig para TableMultiLevelRender.
- */
 export const getTableLevelConfigs = ({ handleEdit, handleDelete }) => [
   {
     level: 1,
     headers: [
-      { title: 'NOMBRE_PERIODO', type: 'string', label: 'Periodo' },
+      { title: 'CODIGO_PERIODO', type: 'string', label: 'Periodo' },
+      { title: 'NOMBRE_PERIODO', type: 'string', label: 'Nombre Periodo' },
       { title: 'FECHA', type: 'date', label: 'Fecha' },
       { title: 'DESCRIPCION', type: 'string', label: 'Descripción' }
     ],
-    boundColumn: 'ID_FERIADO',
+    boundColumn: 'ID_FECHA_BLOQUEADA',
     actions: {
       edit: {
         enabled: true,

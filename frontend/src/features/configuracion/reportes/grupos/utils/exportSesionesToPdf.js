@@ -68,7 +68,7 @@ const centeredText = (doc, text, x, y, w, h, fontSize, rgb, bold = false) => {
 
 // ─── Preparar datos de un grupo ──────────────────────────────────────────────
 
-const prepareGrupoData = (sesiones, customBlocks) => {
+const prepareGrupoData = (sesiones, customBlocks, agruparDias) => {
   const sesionesPorFecha = new Map();
   for (const s of sesiones) {
     let fechaStr = s.FECHA;
@@ -93,20 +93,20 @@ const prepareGrupoData = (sesiones, customBlocks) => {
 
   const grouped = new Map();
   for (const info of dateInfos) {
-    if (!grouped.has(info.weekday)) grouped.set(info.weekday, new Map());
-    const byWeekday = grouped.get(info.weekday);
-    if (!byWeekday.has(info.sigKey)) byWeekday.set(info.sigKey, { signature: info.signature, dates: [] });
-    byWeekday.get(info.sigKey).dates.push(info.date);
+    const groupKey = agruparDias ? `${info.weekday}__${info.sigKey}` : info.sigKey;
+    if (!grouped.has(groupKey)) grouped.set(groupKey, { signature: info.signature, dates: [], weekday: info.weekday });
+    grouped.get(groupKey).dates.push(info.date);
   }
 
   const columns = [];
-  for (const [wd, byWeekday] of grouped.entries()) {
-    for (const g of byWeekday.values()) {
-      g.dates.sort((a, b) => a - b);
-      columns.push({ weekday: wd, weekdayName: WEEKDAY_NAMES[wd], dates: g.dates, signature: g.signature });
-    }
+  for (const g of grouped.values()) {
+    g.dates.sort((a, b) => a - b);
+    columns.push({ weekday: g.weekday, dates: g.dates, signature: g.signature });
   }
   columns.sort((a, b) => a.dates[0] - b.dates[0]);
+  columns.forEach((col, i) => {
+    col.weekdayName = agruparDias ? WEEKDAY_NAMES[col.weekday] : `DÍA ${i + 1}`;
+  });
   return columns;
 };
 
@@ -252,14 +252,11 @@ const fetchGrupoData = async (idGrupo) => {
   const turno = (turnoResult?.data?.records || turnoResult)?.[0];
   if (!turno) return null;
 
-  const horarioResult = await db.select('HORARIOS', { ID_HORARIO: turno.ID_HORARIO });
-  const horario = (horarioResult?.data?.records || horarioResult)?.[0];
-
-  const bloquesResult = await db.select('HORARIO_BLOQUES', { ID_HORARIO: turno.ID_HORARIO });
+  const bloquesResult = await db.select('TURNO_BLOQUES', { ID_TURNO: turno.ID_TURNO });
   const bloques = (bloquesResult?.data?.records || bloquesResult || []).sort((a, b) => a.ORDEN - b.ORDEN);
   if (bloques.length === 0) return null;
 
-  const _hInit = (horario?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
+  const _hInit = (turno?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
   let currentMinute = (isNaN(_hInit[0]) ? 7 : _hInit[0]) * 60 + (isNaN(_hInit[1]) ? 0 : _hInit[1]);
   const fmt = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 
@@ -290,7 +287,7 @@ const fetchGrupoData = async (idGrupo) => {
 // EXPORTS PÚBLICOS
 // ════════════════════════════════════════════════════════════════════════════
 
-export const exportSesionesToPdf = async (idGrupo, grupoNombre) => {
+export const exportSesionesToPdf = async (idGrupo, grupoNombre, opts = {}) => {
   try {
     const data = await fetchGrupoData(idGrupo);
     if (!data) {
@@ -298,7 +295,7 @@ export const exportSesionesToPdf = async (idGrupo, grupoNombre) => {
       return;
     }
     const { sesiones, customBlocks, nombrePeriodo } = data;
-    const columns = prepareGrupoData(sesiones, customBlocks);
+    const columns = prepareGrupoData(sesiones, customBlocks, opts.agruparDias === true);
     if (columns.length === 0) {
       alert('No hay datos para exportar');
       return;
@@ -315,7 +312,7 @@ export const exportSesionesToPdf = async (idGrupo, grupoNombre) => {
   }
 };
 
-export const exportAllSesionesToPdf = async (grupos) => {
+export const exportAllSesionesToPdf = async (grupos, opts = {}) => {
   try {
     if (!grupos || grupos.length === 0) {
       alert('No hay grupos para exportar');
@@ -356,31 +353,22 @@ export const exportAllSesionesToPdf = async (grupos) => {
       if (turnoIdsSet.has(r.ID_TURNO)) turnosMap.set(r.ID_TURNO, r);
     }
 
-    // ── 4. HORARIOS + BLOQUES completas → filtrar en memoria ──────────────
-    const horarioIdsSet = new Set([...turnosMap.values()].map(t => t.ID_HORARIO).filter(Boolean));
-    const allHorariosRows = await selectAll('HORARIOS');
-    const horariosMap = new Map();
-    for (const r of allHorariosRows) {
-      if (horarioIdsSet.has(r.ID_HORARIO)) horariosMap.set(r.ID_HORARIO, r);
-    }
-
-    const allBloquesRows = await selectAll('HORARIO_BLOQUES');
+    // ── 4. TURNO_BLOQUES completa → filtrar en memoria por ID_TURNO ────────
+    const allBloquesRows = await selectAll('TURNO_BLOQUES');
     const bloquesMap = new Map();
     for (const r of allBloquesRows) {
-      if (horarioIdsSet.has(r.ID_HORARIO)) {
-        if (!bloquesMap.has(r.ID_HORARIO)) bloquesMap.set(r.ID_HORARIO, []);
-        bloquesMap.get(r.ID_HORARIO).push(r);
+      if (turnoIdsSet.has(r.ID_TURNO)) {
+        if (!bloquesMap.has(r.ID_TURNO)) bloquesMap.set(r.ID_TURNO, []);
+        bloquesMap.get(r.ID_TURNO).push(r);
       }
     }
     for (const [k, v] of bloquesMap) bloquesMap.set(k, v.sort((a, b) => a.ORDEN - b.ORDEN));
 
     const customBlocksByTurno = new Map();
     for (const [turnoId, turno] of turnosMap) {
-      if (!turno.ID_HORARIO) continue;
-      const horario = horariosMap.get(turno.ID_HORARIO);
-      const bloques = bloquesMap.get(turno.ID_HORARIO) || [];
+      const bloques = bloquesMap.get(turnoId) || [];
       if (bloques.length === 0) continue;
-      const _hInit = (horario?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
+      const _hInit = (turno?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
       let currentMinute = (isNaN(_hInit[0]) ? 7 : _hInit[0]) * 60 + (isNaN(_hInit[1]) ? 0 : _hInit[1]);
       const fmt = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
       const customBlocks = bloques.map(b => {
@@ -419,7 +407,7 @@ export const exportAllSesionesToPdf = async (grupos) => {
       const customBlocks = customBlocksByTurno.get(turno.ID_TURNO);
       if (!customBlocks) continue;
 
-      const columns = prepareGrupoData(sesiones, customBlocks);
+      const columns = prepareGrupoData(sesiones, customBlocks, opts.agruparDias === true);
       if (columns.length === 0) continue;
 
       const nombrePeriodo = sesiones[0]?.NOMBRE_PERIODO || '';

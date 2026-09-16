@@ -59,6 +59,7 @@ export function useAreas() {
     tableRecords,
     loading,
     error,
+    refresh,
     areasCrud,
     tableLevelConfigs,
     crudLevels,

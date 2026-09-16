@@ -36,7 +36,9 @@ const LayoutWithSidebar = ({
   const sidebarKey = Sidebar?.displayName || Sidebar?.name || 'default';
   const PIN_STORAGE_KEY = `sidebar_pin_${sidebarKey}`;
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(defaultOpen);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => (
+    window.matchMedia('(min-width: 1024px)').matches ? defaultOpen : false
+  ));
   const [isPinned, setIsPinned] = useState(() => {
     try {
       const saved = localStorage.getItem(PIN_STORAGE_KEY);
@@ -101,10 +103,25 @@ const LayoutWithSidebar = ({
     };
   }, []);
 
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 1024px)');
+    const handleBreakpointChange = (event) => {
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+      setIsHovering(false);
+      setIsSidebarOpen(event.matches && isPinned);
+    };
+    media.addEventListener('change', handleBreakpointChange);
+    return () => media.removeEventListener('change', handleBreakpointChange);
+  }, [isPinned]);
+
   // Cerrar sidebar al hacer click fuera del área (solo desktop, respeta pin)
   useEffect(() => {
     if (!hoverEnabled) return;
     const handleClickOutside = (e) => {
+      if (!window.matchMedia('(min-width: 1024px)').matches) return;
       // Si no está abierto o está pineado, no hacer nada
       if (!isSidebarOpen || isPinned) return;
       // Si el click fue dentro del sidebar, no cerrar
@@ -135,7 +152,7 @@ const LayoutWithSidebar = ({
             />
 
             <aside
-              className={`lg:hidden fixed top-16 bottom-0 left-0 z-50 h-[calc(100vh-4rem)] w-[280px] transition-transform duration-500 ease-out ${
+              className={`lg:hidden fixed top-16 bottom-0 left-0 z-50 h-[calc(100vh-4rem)] w-[min(280px,calc(100vw-52px))] transition-transform duration-500 ease-out ${
                 isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
               }`}
             >
@@ -144,9 +161,8 @@ const LayoutWithSidebar = ({
 
             <button
               onClick={handleMobileToggle}
-              className={`lg:hidden fixed top-20 z-[60] p-1.5 bg-white border border-gray-200 rounded-md shadow-sm hover:bg-gray-100 hover:shadow-md active:scale-95 transition-all duration-500 ease-out items-center justify-center flex ${
-                isSidebarOpen ? 'left-[290px]' : 'left-4'
-              }`}
+              className="lg:hidden fixed top-20 z-[60] p-1.5 bg-white border border-gray-200 rounded-md shadow-sm hover:bg-gray-100 hover:shadow-md active:scale-95 transition-all duration-500 ease-out items-center justify-center flex"
+              style={{ left: isSidebarOpen ? 'min(290px, calc(100vw - 44px))' : '16px' }}
               title={isSidebarOpen ? 'Ocultar menú' : 'Mostrar menú'}
               aria-label={isSidebarOpen ? 'Ocultar menú' : 'Mostrar menú'}
             >

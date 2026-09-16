@@ -21,13 +21,13 @@ import TestMultiLevelTable from '@/app/views/modules/test-multilevelTable';
 
 import InfraestructuraConfig from '@/app/views/configuracion/academico/infraestructura';
 import PeriodosConfig from '@/app/views/configuracion/gestion_periodo/periodos';
+import TurnosConfig from '@/app/views/configuracion/gestion_periodo/turnos';
 import CursosConfig from '@/app/views/configuracion/academico/cursos';
 import AreasConfig from '@/app/views/configuracion/academico/areas';
 import DocentesConfig from '@/app/views/configuracion/academico/docentes';
 import HorariosConfig from '@/app/views/configuracion/academico/horarios';
 import PlanesAcademicosConfig from '@/app/views/configuracion/academico/planes_academicos';
 import ConvocatoriasConfig from '@/app/views/configuracion/gestion_periodo/contratacion_docente/convocatorias';
-import FeriadosConfig from '@/app/views/configuracion/gestion_periodo/feriados';
 import GruposConfig from '@/app/views/configuracion/gestion_periodo/grupos';
 import PostulantesConfig from '@/app/views/configuracion/gestion_periodo/postulantes';
 import CarrerasConfig from '@/app/views/configuracion/academico/carreras';
@@ -40,7 +40,7 @@ import ReportesGrupos from '@/app/views/configuracion/gestion_periodo/reportes/g
 import ReportesPlazas from '@/app/views/configuracion/gestion_periodo/reportes/plazas';
 import ReportesDocentes from '@/app/views/configuracion/gestion_periodo/reportes/docentes';
 import UsuariosConfig from '@/app/views/configuracion/sistema/usuarios';
-import PermisosConfig from '@/app/views/configuracion/sistema/permisos';
+// import PermisosConfig from '@/app/views/configuracion/sistema/permisos';
 import RolesConfig from '@/app/views/configuracion/sistema/roles';
 import DocumentosPreguntasDocentesConfig from '@/app/views/configuracion/gestion_periodo/contratacion_docente/requisitos';
 
@@ -118,14 +118,14 @@ function App() {
       <Route path="/configuracion/gestion_periodo/contratacion_docente/requisitos" element={<DocumentosPreguntasDocentesConfig />} />
 
       <Route path="/configuracion/gestion_periodo/periodos" element={<PeriodosConfig />} />
+      <Route path="/configuracion/gestion_periodo/turnos" element={<TurnosConfig />} />
       <Route path="/configuracion/gestion_periodo/contratacion_docente/convocatorias" element={<ConvocatoriasConfig />} />
-      <Route path="/configuracion/gestion_periodo/feriados" element={<FeriadosConfig />} />
       <Route path="/configuracion/gestion_periodo/grupos" element={<GruposConfig />} />
       <Route path="/configuracion/gestion_periodo/postulantes" element={<PostulantesConfig />} />
       {/* <Route path="/configuracion/gestion_periodo/programacion_plazas_docentes" element={<ProgramacionPlazasDocentes />} /> TEMP: En mantenimiento */}
 
       <Route path="/configuracion/sistema/usuarios" element={<UsuariosConfig />} />
-      <Route path="/configuracion/sistema/permisos" element={<PermisosConfig />} />
+      {/* <Route path="/configuracion/sistema/permisos" element={<PermisosConfig />} /> */}
       <Route path="/configuracion/sistema/roles" element={<RolesConfig />} />
 
       <Route path="/configuracion/sistema/correos/correos" element={<CorreosConfig />} />

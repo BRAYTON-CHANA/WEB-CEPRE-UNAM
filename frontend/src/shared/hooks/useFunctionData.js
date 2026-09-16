@@ -240,8 +240,8 @@ export const useFunctionData = (config) => {
     cache.delete(cacheKey);
     pendingRequests.delete(cacheKey);
     setRefreshTrigger(prev => prev + 1);
-    cacheService.invalidate({ functionName });
-  }, [cacheKey, functionName]);
+    // Solo recarga este select; no invalida cache global para evitar recargar todos los selects de la misma funcion
+  }, [cacheKey]);
 
   return { options, loading, error, processedParams: activeParams, refresh };
 };

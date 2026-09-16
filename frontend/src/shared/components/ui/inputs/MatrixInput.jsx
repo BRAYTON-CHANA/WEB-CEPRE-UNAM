@@ -7,7 +7,8 @@ import React, { useState, useEffect, useCallback } from 'react';
  */
 const MatrixInput = ({
   name, value, onChange, label, disabled = false, required = false,
-  rows = 1, cols = 1, cellType = 'text', cellOptions = [], allowNull = true
+  rows = 1, cols = 1, cellType = 'text', cellOptions = [], allowNull = true,
+  rowLabels = null
 }) => {
   const initMatrix = (r, c) => Array.from({ length: r }, () =>
     Array.from({ length: c }, () => (allowNull ? null : '')));
@@ -82,6 +83,31 @@ const MatrixInput = ({
         onChange={e => updateCell(r, c, e.target.value === '' ? (allowNull ? null : '') : Number(e.target.value))}
         className="w-full px-1 py-1 text-sm border rounded focus:ring-1 focus:ring-blue-500" />);
 
+    if (cellType === 'date') {
+      const isNull = cell === null || cell === undefined || cell === '';
+      return (
+        <div className="relative">
+          <input
+            type="date"
+            value={isNull ? '' : String(cell)}
+            disabled={disabled}
+            onChange={e => updateCell(r, c, e.target.value === '' ? (allowNull ? null : '') : e.target.value)}
+            className={`w-full px-1 py-1 text-sm border rounded focus:ring-1 focus:ring-blue-500 ${isNull ? 'text-gray-300 bg-gray-50' : ''}`}
+          />
+          {!isNull && allowNull && !disabled && (
+            <button
+              type="button"
+              onClick={() => updateCell(r, c, null)}
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-red-500 rounded transition-colors bg-white/80"
+              title="Vaciar"
+            >
+              <IconX />
+            </button>
+          )}
+        </div>
+      );
+    }
+
     return <input type="text" value={v} disabled={disabled} onChange={e => updateCell(r, c, e.target.value)}
       className="w-full px-1 py-1 text-sm border rounded focus:ring-1 focus:ring-blue-500" />;
   };
@@ -94,6 +120,11 @@ const MatrixInput = ({
         <table className="w-full border-collapse"><tbody>
           {matrix.map((row, ri) => (
             <tr key={ri} className="border-b border-gray-200 last:border-b-0">
+              {Array.isArray(rowLabels) && (
+                <td className="p-1 border-r border-gray-200 bg-gray-50 text-xs font-medium text-gray-600 whitespace-nowrap">
+                  {rowLabels[ri] ?? `Fila ${ri + 1}`}
+                </td>
+              )}
               {row.map((cell, ci) => (
                 <td key={ci} className="p-1 border-r border-gray-200 last:border-r-0 min-w-[80px]">{renderCell(cell, ri, ci)}</td>
               ))}

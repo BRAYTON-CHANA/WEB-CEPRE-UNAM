@@ -41,7 +41,7 @@ export function useRoles() {
       const idRol = permisosEditingRow.ID_ROL;
       const permisosArr = '{' + newIds.map(Number).filter(Boolean).join(',') + '}';
       await db.query(
-        `SELECT upsert_rol($1, NULL, NULL, NULL, $2)`,
+        `SELECT upsert_rol($1, NULL, NULL, NULL, $2, NULL)`,
         idRol,
         permisosArr
       );
@@ -56,10 +56,47 @@ export function useRoles() {
     }
   }, [permisosEditingRow, refresh]);
 
-  // ===== Create: upsert_rol(NULL, ..., NULL) — sin permisos al crear =====
+  // ===== Modal de sedes =====
+  const [sedesModalOpen, setSedesModalOpen] = useState(false);
+  const [sedesEditingRow, setSedesEditingRow] = useState(null);
+  const [sedesSaving, setSedesSaving] = useState(false);
+
+  const handleEditSedes = useCallback((row) => {
+    setSedesEditingRow(row);
+    setSedesModalOpen(true);
+  }, []);
+
+  const handleCloseSedes = useCallback(() => {
+    setSedesModalOpen(false);
+    setSedesEditingRow(null);
+  }, []);
+
+  const handleSaveSedes = useCallback(async (newIds) => {
+    if (!sedesEditingRow) return;
+    setSedesSaving(true);
+    try {
+      const idRol = sedesEditingRow.ID_ROL;
+      const sedesArr = '{' + newIds.map(Number).filter(Boolean).join(',') + '}';
+      await db.query(
+        `SELECT upsert_rol($1, NULL, NULL, NULL, NULL, $2)`,
+        idRol,
+        sedesArr
+      );
+      cacheService.invalidateAll();
+      await refresh();
+      setSedesModalOpen(false);
+      setSedesEditingRow(null);
+    } catch (err) {
+      console.error('Error guardando sedes:', err);
+    } finally {
+      setSedesSaving(false);
+    }
+  }, [sedesEditingRow, refresh]);
+
+  // ===== Create: upsert_rol(NULL, ..., NULL, NULL) — sin permisos ni sedes al crear =====
   const createFunction = useCallback(async (data, id, formData) => {
     const result = await db.query(
-      `SELECT upsert_rol(NULL, $1, $2, $3, NULL)`,
+      `SELECT upsert_rol(NULL, $1, $2, $3, NULL, NULL)`,
       data.NOMBRE_ROL,
       data.DESCRIPCION || null,
       data.NIVEL_ACCESO || null
@@ -68,10 +105,10 @@ export function useRoles() {
     return result;
   }, []);
 
-  // ===== Edit: upsert_rol(id, ..., NULL) — no toca permisos =====
+  // ===== Edit: upsert_rol(id, ..., NULL, NULL) — no toca permisos ni sedes =====
   const editFunction = useCallback(async (data, id, formData) => {
     const result = await db.query(
-      `SELECT upsert_rol($1, $2, $3, $4, NULL)`,
+      `SELECT upsert_rol($1, $2, $3, $4, NULL, NULL)`,
       id,
       data.NOMBRE_ROL || null,
       data.DESCRIPCION || null,
@@ -94,7 +131,10 @@ export function useRoles() {
     }
   }, []);
 
-  const tableLevelConfigs = useMemo(() => getTableLevelConfigs(rolesCrud, handleEditPermisos), [rolesCrud, handleEditPermisos]);
+  const tableLevelConfigs = useMemo(
+    () => getTableLevelConfigs(rolesCrud, handleEditPermisos, handleEditSedes),
+    [rolesCrud, handleEditPermisos, handleEditSedes]
+  );
 
   const crudLevels = useMemo(() => [
     {
@@ -117,6 +157,7 @@ export function useRoles() {
     records,
     loading,
     error,
+    refresh,
     rolesCrud,
     tableLevelConfigs,
     crudLevels,
@@ -126,6 +167,13 @@ export function useRoles() {
     permisosSaving,
     handleEditPermisos,
     handleSavePermisos,
-    handleClosePermisos
+    handleClosePermisos,
+    // Sedes modal
+    sedesModalOpen,
+    sedesEditingRow,
+    sedesSaving,
+    handleEditSedes,
+    handleSaveSedes,
+    handleCloseSedes
   };
 }

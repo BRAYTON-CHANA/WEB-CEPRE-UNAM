@@ -13,7 +13,7 @@ import React from 'react';
  * Nivel 2: Área (syncGrouping, agrupa los grupos por área)
  * Nivel 3: Grupo (CRUD completo: editar, eliminar, ACTIVO editable)
  */
-export const getTableLevelConfigs = (gruposCrud, handleAddGrupo, handleAsignarPlazas, handleVerCursos, handleVerProgramacion) => [
+export const getTableLevelConfigs = (gruposCrud, handleAddGrupo, handleAsignarPlazas, handleVerCursos, handleVerProgramacion, handleRegenerarAsistencias) => [
   {
     level: 1,
     headers: [
@@ -46,11 +46,11 @@ export const getTableLevelConfigs = (gruposCrud, handleAddGrupo, handleAsignarPl
     headers: [
       { title: 'CODIGO_GRUPO', type: 'string', label: 'Código' },
       { title: 'NOMBRE_GRUPO', type: 'string', label: 'Grupo' },
-      { title: 'NOMBRE_HORARIO', type: 'string', label: 'Horario' },
+      { title: 'NOMBRE_TURNO', type: 'string', label: 'Turno' },
       { title: 'CAPACIDAD_MAXIMA', type: 'number', label: 'Cap.' },
       { title: 'FECHA_INICIO', type: 'string', label: 'Inicio' },
       { title: 'FECHA_TERMINO', type: 'string', label: 'Término' },
-      { title: 'GRUPO_ACTIVO', type: 'boolean', label: 'Activo', editable: (row) => !row.GRUPO_ACTIVO, targetTable: 'GRUPOS', targetField: 'ACTIVO', confirmBeforeSave: {
+      { title: 'GRUPO_ACTIVO', type: 'boolean', label: 'Activo', editable: (row) => !row.GRUPO_ACTIVO, validate: (v) => v === true ? null : 'La desactivación se hace por SQL (modo pruebas)', saveFunction: 'fn_activar_grupo', saveParamName: 'p_id_grupo', confirmBeforeSave: {
         title: '¿Activar Grupo?',
         message: 'Al activar este grupo se crearán las sesiones agrupadas a partir de la programación y se cambiará al modo manual. Esta acción no se puede deshacer.',
         confirmText: 'Activar',
@@ -86,6 +86,13 @@ export const getTableLevelConfigs = (gruposCrud, handleAddGrupo, handleAsignarPl
           icon: 'calendar',
           className: 'text-gray-700 hover:bg-gray-100',
           onClick: (row) => handleVerProgramacion(row)
+        }] : []),
+        ...(handleRegenerarAsistencias ? [{
+          label: 'Regenerar asistencias',
+          icon: 'users',
+          className: 'text-gray-700 hover:bg-gray-100',
+          showIf: (row) => row.GRUPO_ACTIVO === true,
+          onClick: (row) => handleRegenerarAsistencias([row.ID_GRUPO])
         }] : [])
       ]
     }
@@ -96,7 +103,7 @@ export const getTableLevelConfigs = (gruposCrud, handleAddGrupo, handleAsignarPl
  * Config del modo plano — todos los grupos del periodo en una sola tabla.
  * Reusa VW_GRUPOS con columnas de sede/área para contexto.
  */
-export const getGruposFlatConfig = (gruposCrud, handleVerCursos, handleVerProgramacion) => ({
+export const getGruposFlatConfig = (gruposCrud, handleVerCursos, handleVerProgramacion, handleRegenerarAsistencias) => ({
   headers: [
     {
       field: 'CONTEXTO',
@@ -115,11 +122,11 @@ export const getGruposFlatConfig = (gruposCrud, handleVerCursos, handleVerProgra
     },
     { field: 'CODIGO_GRUPO', title: 'Código', type: 'string' },
     { field: 'NOMBRE_GRUPO', title: 'Grupo', type: 'string' },
-    { field: 'NOMBRE_HORARIO', title: 'Horario', type: 'string' },
+    { field: 'NOMBRE_TURNO', title: 'Turno', type: 'string' },
     { field: 'CAPACIDAD_MAXIMA', title: 'Cap.', type: 'number' },
     { field: 'FECHA_INICIO', title: 'Inicio', type: 'string' },
     { field: 'FECHA_TERMINO', title: 'Término', type: 'string' },
-    { field: 'GRUPO_ACTIVO', title: 'Activo', type: 'boolean', editable: (row) => !row.GRUPO_ACTIVO, targetTable: 'GRUPOS', targetField: 'ACTIVO', confirmBeforeSave: {
+    { field: 'GRUPO_ACTIVO', title: 'Activo', type: 'boolean', editable: (row) => !row.GRUPO_ACTIVO, validate: (v) => v === true ? null : 'La desactivación se hace por SQL (modo pruebas)', saveFunction: 'fn_activar_grupo', saveParamName: 'p_id_grupo', confirmBeforeSave: {
       title: '¿Activar Grupo?',
       message: 'Al activar este grupo se crearán las sesiones agrupadas a partir de la programación y se cambiará al modo manual. Esta acción no se puede deshacer.',
       confirmText: 'Activar',
@@ -155,6 +162,13 @@ export const getGruposFlatConfig = (gruposCrud, handleVerCursos, handleVerProgra
         icon: 'calendar',
         className: 'text-gray-700 hover:bg-gray-100',
         onClick: (row) => handleVerProgramacion(row)
+      }] : []),
+      ...(handleRegenerarAsistencias ? [{
+        label: 'Regenerar asistencias',
+        icon: 'users',
+        className: 'text-gray-700 hover:bg-gray-100',
+        showIf: (row) => row.GRUPO_ACTIVO === true,
+        onClick: (row) => handleRegenerarAsistencias([row.ID_GRUPO])
       }] : [])
     ]
   }

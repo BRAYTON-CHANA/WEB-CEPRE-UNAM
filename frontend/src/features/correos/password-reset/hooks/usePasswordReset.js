@@ -75,6 +75,7 @@ export function usePasswordReset() {
     records,
     loading,
     error,
+    refresh,
     passwordResetCrud,
     tableLevelConfigs,
     crudLevels,

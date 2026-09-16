@@ -20,7 +20,7 @@ export const getTableLevelConfigs = (carrerasCrud) => [
         type: 'tag-list',
         label: 'Sedes',
         displayValue: (row) => {
-          const sedes = row.SEDAS || [];
+          const sedes = row.SEDES || [];
           return Array.isArray(sedes) ? sedes.map(s => s.nombre || s) : [];
         }
       },

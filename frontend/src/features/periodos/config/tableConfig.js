@@ -16,7 +16,34 @@ export const getTableLevelConfigs = ({ handleEdit, handleDelete }) => [
       { title: 'NOMBRE_PERIODO', type: 'string', label: 'Nombre' },
       { title: 'FECHA_INICIO', type: 'date', label: 'Fecha Inicio' },
       { title: 'FECHA_FIN', type: 'date', label: 'Fecha Fin' },
-      { title: 'ACTIVO', type: 'boolean', label: 'Activo', editable: true, targetTable: 'PERIODOS', targetField: 'ACTIVO' }
+      {
+        title: 'ACTIVO',
+        type: 'boolean',
+        label: 'Activo',
+        editable: true,
+        targetTable: 'PERIODOS',
+        targetField: 'ACTIVO',
+        validate: (newValue, rowData) => {
+          if (!newValue && rowData.ES_DEFAULT) {
+            return 'No se puede desactivar un periodo que es default. Quita el default primero.';
+          }
+          return null;
+        }
+      },
+      {
+        title: 'ES_DEFAULT',
+        type: 'boolean',
+        label: 'Default',
+        editable: true,
+        targetTable: 'PERIODOS',
+        targetField: 'ES_DEFAULT',
+        validate: (newValue, rowData) => {
+          if (newValue && !rowData.ACTIVO) {
+            return 'No se puede marcar como default un periodo inactivo. Activa el periodo primero.';
+          }
+          return null;
+        }
+      }
     ],
     boundColumn: 'ID_PERIODO',
     actions: {

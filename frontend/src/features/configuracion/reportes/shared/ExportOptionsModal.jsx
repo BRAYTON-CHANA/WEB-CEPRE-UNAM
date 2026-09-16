@@ -5,12 +5,17 @@ const DEFAULT_OPTIONS = {
   showDocente: true,
   showHorario: true,
   showNombreDocente: true,
+  agruparDias: false,
 };
 
 export { DEFAULT_OPTIONS };
 
 export default function ExportOptionsModal({ isOpen, onConfirm, onCancel, title = 'Opciones de exportación', mode = 'general' }) {
   const [options, setOptions] = React.useState(DEFAULT_OPTIONS);
+
+  React.useEffect(() => {
+    if (isOpen) setOptions(prev => ({ ...prev, agruparDias: DEFAULT_OPTIONS.agruparDias }));
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -21,6 +26,7 @@ export default function ExportOptionsModal({ isOpen, onConfirm, onCancel, title 
     { key: 'showDocente', label: 'Plaza docente',         desc: 'Plaza descriptiva del docente' },
     { key: 'showHorario', label: 'Rango horario',        desc: 'Ej: 07:00 - 07:50' },
     ...(mode === 'plazas' || mode === 'docentes' ? [{ key: 'showNombreDocente', label: 'Nombre docente', desc: 'Mostrar nombre completo del docente en celdas' }] : []),
+    ...(mode === 'grupos' ? [{ key: 'agruparDias', label: 'Agrupar por día de la semana', desc: 'Activo: columnas SÁBADO/DOMINGO. Inactivo: DÍA 1, DÍA 2...' }] : []),
   ];
 
   return (

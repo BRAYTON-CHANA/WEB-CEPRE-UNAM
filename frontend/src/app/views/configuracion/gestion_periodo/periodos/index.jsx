@@ -60,6 +60,7 @@ function PeriodosConfig() {
                     data={tableRecords}
                     levelConfigs={enrichedLevelConfigs}
                     saveMode="auto"
+                    tableProps={{ pagination: true, itemsPerPage: 100 }}
                     externalLoading={loading}
                     onSaveSuccess={handleSaveSuccess}
                     formatToastMessage={(recordId, field, newValue, primaryKey, rowData, header) =>

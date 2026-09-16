@@ -2,9 +2,11 @@ import React from 'react';
 import { CrudMultiLevelManager } from '@/shared/components/crud';
 import CrudHeader from '@/shared/components/crud/views/CrudHeader';
 import TableMultiLevel from '@/shared/components/table/views/TableMultiLevel';
+import ErrorAlert from '@/shared/components/ui/ErrorAlert';
 import { ConfigLayout } from '@/features/layout';
 import { headerProps, getHeaderActions } from '@/features/horarios/config/headerConfig';
-import EditarBloquesView from '@/features/horarios/components/EditarBloquesView';
+import EditarBloquesView from '@/shared/components/schedule/components/EditarBloquesView';
+import { HORARIO_BLOQUES_CONFIG } from '@/features/horarios/config/tableConfig';
 import { useHorarios } from '@/features/horarios/hooks/useHorarios';
 
 /**
@@ -13,7 +15,7 @@ import { useHorarios } from '@/features/horarios/hooks/useHorarios';
  */
 function HorariosPanel() {
   const {
-    records, loading, error,
+    records, loading, error, refresh,
     horariosCrud, bloquesCrud,
     tableLevelConfigs, crudLevels,
     childrenData, childrenLoading, handleExpand,
@@ -27,10 +29,11 @@ function HorariosPanel() {
           <>
             {editingBloquesHorario ? (
               <EditarBloquesView
-                horario={editingBloquesHorario}
+                row={editingBloquesHorario}
                 bloquesCrud={bloquesCrud}
                 onBack={handleBackToHorarios}
                 onNextOrdenChange={setNextBloqueOrden}
+                config={HORARIO_BLOQUES_CONFIG}
               />
             ) : (
               <div className="px-8 py-8 space-y-8 pb-12">
@@ -49,11 +52,7 @@ function HorariosPanel() {
                   </div>
                 )}
 
-                {error && (
-                  <div className="bg-red-50 rounded-xl border border-red-100 p-6">
-                    <p className="text-red-700 text-sm"><strong>Error:</strong> {error.message}</p>
-                  </div>
-                )}
+                <ErrorAlert error={error} loading={loading} onRetry={refresh} />
 
                 {!loading && !error && (
                   <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">

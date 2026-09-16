@@ -6,6 +6,8 @@ import { UNAM_MANAGE_LEVEL_STYLES } from '@/features/convocatorias/config/levelS
 import { useManageConvocatoria } from '@/features/convocatorias/hooks/useManageConvocatoria';
 import { usePlazasFilters } from '@/features/convocatorias/hooks/usePlazasFilters';
 import FilterSelect from '@/shared/components/ui/inputs/FilterSelect';
+import ErrorAlert from '@/shared/components/ui/ErrorAlert';
+import PlazasDistribucionModal from '@/features/convocatorias/components/PlazasDistribucionModal';
 
 const PLAZAS_VIEW_MODE_KEY = 'plazas-view-mode';
 
@@ -31,7 +33,9 @@ function ManageConvocatoriaPanel({ initialConvocatoriaId, onViewPostulantes }) {
     tableLevelConfigs, crudLevels, childrenData, childrenLoading,
     manageHeaderActions, handleExpand,
     plazasAll, plazasAllLoading, plazasAllError,
-    flatTableConfig, refreshPlazasAll, updateRecordFlat
+    flatTableConfig, refreshPlazasAll, updateRecordFlat,
+    distribucionOpen, distribucion, distribucionLoading, distribucionError,
+    openDistribucion, closeDistribucion
   } = useManageConvocatoria({
     convocatoria: selectedConvocatoriaRow || { ID_CONVOCATORIA: selectedIdConvocatoria },
     onViewPostulantes
@@ -136,7 +140,8 @@ function ManageConvocatoriaPanel({ initialConvocatoriaId, onViewPostulantes }) {
               />
 
               {/* Toggle de modo de vista */}
-              <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg w-fit">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg w-fit">
                 <button
                   type="button"
                   onClick={() => setViewMode('compact')}
@@ -171,6 +176,17 @@ function ManageConvocatoriaPanel({ initialConvocatoriaId, onViewPostulantes }) {
                     Plano
                   </span>
                 </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={openDistribucion}
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#25346A] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#344888] hover:shadow-md"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                  Ver distribución
+                </button>
               </div>
 
               {loading && viewMode === 'compact' && (
@@ -188,37 +204,11 @@ function ManageConvocatoriaPanel({ initialConvocatoriaId, onViewPostulantes }) {
               )}
 
               {error && viewMode === 'compact' && (
-                <div className="bg-red-50 rounded-xl border border-red-100 p-6">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-red-700 text-sm"><strong>Error:</strong> {error.message}</p>
-                    <button
-                      onClick={() => { refreshConvocatorias(); }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-white border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      Reintentar
-                    </button>
-                  </div>
-                </div>
+                <ErrorAlert error={error} loading={loading} onRetry={refreshConvocatorias} />
               )}
 
               {plazasAllError && viewMode === 'flat' && (
-                <div className="bg-red-50 rounded-xl border border-red-100 p-6">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-red-700 text-sm"><strong>Error:</strong> {plazasAllError.message}</p>
-                    <button
-                      onClick={() => { refreshPlazasAll(); }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-white border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      Reintentar
-                    </button>
-                  </div>
-                </div>
+                <ErrorAlert error={plazasAllError} loading={plazasAllLoading} onRetry={refreshPlazasAll} />
               )}
 
               {!loading && !error && viewMode === 'compact' && (
@@ -344,6 +334,14 @@ function ManageConvocatoriaPanel({ initialConvocatoriaId, onViewPostulantes }) {
               )}
             </>
           )}
+
+          <PlazasDistribucionModal
+            open={distribucionOpen}
+            data={distribucion}
+            loading={distribucionLoading}
+            error={distribucionError}
+            onClose={closeDistribucion}
+          />
 
           {!hasConvocatoriaSelected && (
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">

@@ -55,7 +55,7 @@ export function useAsistenciasPorDia(fecha, idGrupo) {
         
         // Para cada sesión, cargar sus asistencias
         for (const idSesion of idsSesiones) {
-          const asistenciasData = await db.select('ASISTENCIAS_POSTULANTE', { ID_SESION: idSesion });
+          const asistenciasData = await db.select('ASISTENCIAS_POSTULANTE', { ID_SESION: idSesion, ACTIVO: true });
           (asistenciasData || []).forEach(a => {
             const key = `${a.ID_POSTULANTE}_${a.ID_SESION}`;
             asistenciasMap[key] = {

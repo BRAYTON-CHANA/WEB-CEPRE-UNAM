@@ -6,6 +6,7 @@ import { useConvocatoriaPreguntas } from '@/features/convocatorias/requisitos/pr
 import PreguntaCard from '@/features/convocatorias/requisitos/preguntas/components/PreguntaCard';
 import PreguntaCreateForm from '@/features/convocatorias/requisitos/preguntas/components/PreguntaCreateForm';
 import SectionAccordion from '@/features/convocatorias/components/SectionAccordion';
+import ErrorAlert from '@/shared/components/ui/ErrorAlert';
 
 const CONDICIONES_LABORALES = [
   { value: 'CONTRATADO', label: 'Contratado' },
@@ -18,7 +19,7 @@ const CONDICIONES_LABORALES = [
  */
 function PreguntasSection({ activeCondicion }) {
   const {
-    tableRecords, loading, error,
+    tableRecords, loading, error, refresh,
     isCreateFormOpen, condicionesPreseleccionadas,
     handleCreate, handleCreateSuccess, handleCreateCancel,
     isDeleteOpen, rowToDelete, deleteLoading, handleCancelDelete, handleConfirmDelete,
@@ -64,11 +65,7 @@ function PreguntasSection({ activeCondicion }) {
             </div>
           )}
 
-          {error && (
-            <div className="bg-red-50 rounded-xl border border-red-100 p-6">
-              <p className="text-red-700 text-sm"><strong>Error:</strong> {error.message}</p>
-            </div>
-          )}
+          <ErrorAlert error={error} loading={loading} onRetry={refresh} />
 
           {/* Form inline de crear pregunta (estilo Google Forms) */}
           {isCreateFormOpen && (

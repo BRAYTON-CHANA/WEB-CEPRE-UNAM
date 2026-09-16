@@ -1,6 +1,48 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { db } from '@/shared/api';
 import { transformRecords } from '../config/transformers';
+
+const parseConflict = (message) => {
+  const text = message || '';
+  const docenteMatch = text.match(/\[SOLAPAMIENTO_DOCENTE\]\s*([^\r\n]+)/);
+  const plazaMatch = text.match(/\[SOLAPAMIENTO_PLAZA\]\s*([^\r\n]+)/);
+  const parts = (docenteMatch?.[1] || plazaMatch?.[1] || '').split('|');
+
+  if (docenteMatch && parts.length >= 9) {
+    return {
+      tipo: 'SOLAPAMIENTO_DOCENTE',
+      titulo: 'Docente ya asignado',
+      docente: { id: parts[0], nombre: parts[1] },
+      cursoIntentado: parts[2],
+      cursoExistente: parts[3],
+      grupo: { nombre: parts[4], codigo: parts[5] },
+      diaIdx: parts[6],
+      bloqueOrden: parts[7],
+      fechas: parts[8]?.split(', ') || [],
+      identificador: parts[9] || '',
+      horaActual: parts[10] || '',
+      horaConflicto: parts[11] || ''
+    };
+  }
+
+  if (plazaMatch && parts.length >= 8) {
+    return {
+      tipo: 'SOLAPAMIENTO_PLAZA',
+      titulo: 'Plaza ya asignada',
+      cursoIntentado: parts[0],
+      cursoExistente: parts[1],
+      grupo: { nombre: parts[2], codigo: parts[3] },
+      docente: { nombres: parts[4], apellidos: parts[5] },
+      diaIdx: parts[6],
+      bloqueOrden: parts[7],
+      fechas: parts[8]?.split(', ') || [],
+      horaActual: parts[9] || '',
+      horaConflicto: parts[10] || ''
+    };
+  }
+
+  return null;
+};
 
 /**
  * useProgramacionGrupo — adaptado para recibir filtros externos compartidos.
@@ -23,12 +65,21 @@ export function useProgramacionGrupo({ sharedGrupo } = {}) {
   const [advertenciaHoras, setAdvertenciaHoras] = useState(null);
   const [deleteMode, setDeleteMode]       = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedCells, setSelectedCells] = useState(new Set());
+  const [draftAssignments, setDraftAssignments] = useState({});
   const [selectedCurso, setSelectedCurso] = useState('');
+  const [batchConflict, setBatchConflict] = useState(null);
+  const [batchResult, setBatchResult] = useState(null);
+  const [coursesVersion, setCoursesVersion] = useState(0);
   const [estadisticasOpen, setEstadisticasOpen] = useState(false);
+  const selectedCells = useMemo(() => new Set(Object.keys(draftAssignments)), [draftAssignments]);
 
   // ===== Estado de activación de grupo (solo lectura, para display) =====
   const [grupoActivo, setGrupoActivo] = useState(null);
+
+  // ===== Estado del turno del grupo =====
+  const [turnoNoConfigurado, setTurnoNoConfigurado] = useState(false);
+  const [turnoInactivo, setTurnoInactivo] = useState(false);
+  const [turnoNombre, setTurnoNombre] = useState(null);
 
   const resetPlantilla = useCallback(() => {
     setCustomBlocks(null);
@@ -39,11 +90,16 @@ export function useProgramacionGrupo({ sharedGrupo } = {}) {
     setColumnDates([]);
     setDeleteMode(false);
     setSelectionMode(false);
-    setSelectedCells(new Set());
+    setDraftAssignments({});
     setSelectedCurso('');
     setConflictError(null);
     setAdvertenciaHoras(null);
+    setBatchConflict(null);
+    setBatchResult(null);
     setGrupoActivo(null);
+    setTurnoNoConfigurado(false);
+    setTurnoInactivo(false);
+    setTurnoNombre(null);
   }, []);
 
   const loadPlantilla = useCallback(async (idGrupo) => {
@@ -53,46 +109,59 @@ export function useProgramacionGrupo({ sharedGrupo } = {}) {
     }
     setLoading(true);
     try {
-      const [records, fechasRaw] = await Promise.all([
-        db.executeFunction('fn_obtener_programacion_grupo', { p_id_grupo: Number(idGrupo) }).catch(() => []),
-        db.executeFunction('fn_calcular_fechas_matriz', { ID_GRUPO: idGrupo }).catch(() => [])
-      ]);
+      // 1. Metadata del grupo (VW_GRUPOS incluye ID_TURNO y TURNO_ACTIVO, null-safe)
+      const grupoRows = await db.select('VW_GRUPOS', { ID_GRUPO: Number(idGrupo) }).catch(() => []);
+      const grupo = Array.isArray(grupoRows) ? grupoRows[0] : null;
 
-      if (!records || records.length === 0) {
+      if (!grupo) {
         resetPlantilla();
         return;
       }
 
-      const { blocks, matrix: mat, grupoNombre: nombre, cellEvents: ce } = transformRecords(records);
+      resetPlantilla();
+      setGrupoNombre(`${grupo.CODIGO_GRUPO} - ${grupo.NOMBRE_GRUPO}`);
+      setGrupoActivo(grupo.GRUPO_ACTIVO === true || grupo.GRUPO_ACTIVO === 'true' || grupo.GRUPO_ACTIVO === 't');
+
+      // 2. Grupo sin turno → estado dedicado, no cargar programación
+      if (grupo.ID_TURNO == null) {
+        setTurnoNoConfigurado(true);
+        return;
+      }
+
+      setTurnoNombre(grupo.NOMBRE_TURNO || null);
+      setTurnoInactivo(grupo.TURNO_ACTIVO === false || grupo.TURNO_ACTIVO === 'false' || grupo.TURNO_ACTIVO === 'f');
+
+      // 3. Plantilla (SEMANA=fila, DIA=columna de MATRIZ_DIAS). Las fechas por
+      // columna se derivan de MATRIZ_DIAS dentro de transformRecords.
+      const records = await db.executeFunction('fn_obtener_programacion_grupo', { p_id_grupo: Number(idGrupo) }).catch(() => []);
+
+      if (!records || records.length === 0) {
+        return;
+      }
+
+      const { blocks, matrix: mat, grupoNombre: nombre, cellEvents: ce, columnDates: colDates } = transformRecords(records);
+
+      const rawMatrizDbg = records[0]?.MATRIZ_DIAS;
+      let matDbg = rawMatrizDbg;
+      if (typeof matDbg === 'string') { try { matDbg = JSON.parse(matDbg); } catch { matDbg = null; } }
+      console.groupCollapsed('[ProgramacionGrupo]', idGrupo);
+      console.log('grupo:', { ID_TURNO: grupo.ID_TURNO, NOMBRE_TURNO: grupo.NOMBRE_TURNO, TURNO_ACTIVO: grupo.TURNO_ACTIVO });
+      console.log('records.length:', records.length);
+      console.log('MATRIZ_DIAS raw:', rawMatrizDbg);
+      console.log('MATRIZ_DIAS dims:', Array.isArray(matDbg) ? `${matDbg.length} x ${Array.isArray(matDbg[0]) ? matDbg[0].length : 0}` : 'no es array');
+      console.log('columnDates:', colDates);
+      console.log('cellEvents keys:', Object.keys(ce));
+      console.groupEnd();
+
       setCustomBlocks(blocks);
       setMatrix(mat);
       setGrupoNombre(nombre);
       setCellEvents(ce);
-
-      // Obtener estado ACTIVO del grupo desde el primer record (GRUPO_ACTIVO, no ACTIVO de programacion)
-      const grupoActivoVal = records[0]?.GRUPO_ACTIVO;
-      setGrupoActivo(grupoActivoVal === true || grupoActivoVal === 'true' || grupoActivoVal === 't');
+      setColumnDates(colDates);
 
       const bMap = {};
       records.forEach(r => { bMap[r.BLOQUE_ORDEN] = r.ID_BLOQUE; });
       setBloqueMap(bMap);
-
-      // Construir columnDates
-      const colMap = {};
-      const rawArr = Array.isArray(fechasRaw) ? fechasRaw : (fechasRaw ? [fechasRaw] : []);
-      rawArr.forEach(r => {
-        const colIdx = (r.col ?? r.COL) - 1;
-        if (colIdx < 0) return;
-        if (!colMap[colIdx]) colMap[colIdx] = [];
-        const rawFecha = r.fecha ?? r.FECHA;
-        const [y, m, d] = String(rawFecha).split('-').map(Number);
-        const fechaLocal = new Date(y, m - 1, d);
-        const fechaStr = fechaLocal.toLocaleDateString('es-PE', { day: 'numeric', month: 'short' });
-        colMap[colIdx].push(fechaStr);
-      });
-      const maxCol = Math.max(...Object.keys(colMap).map(Number), -1);
-      const colDates = Array.from({ length: maxCol + 1 }, (_, i) => colMap[i] || []);
-      setColumnDates(colDates);
     } catch (err) {
       console.error('Error al cargar programación del grupo:', err);
       resetPlantilla();
@@ -113,13 +182,13 @@ export function useProgramacionGrupo({ sharedGrupo } = {}) {
   const handleStartAdd = () => {
     setDeleteMode(false);
     setSelectionMode(true);
-    setSelectedCells(new Set());
+    setDraftAssignments({});
     setSelectedCurso('');
   };
 
   const handleCancelAdd = () => {
     setSelectionMode(false);
-    setSelectedCells(new Set());
+    setDraftAssignments({});
     setSelectedCurso('');
   };
 
@@ -136,131 +205,73 @@ export function useProgramacionGrupo({ sharedGrupo } = {}) {
   const handleCloseEstadisticas = () => setEstadisticasOpen(false);
 
   const handleCellToggle = useCallback((colIdx, bloqueOrden) => {
+    if (!selectedCurso) return;
     const key = `${colIdx}-${bloqueOrden}`;
-    setSelectedCells(prev => {
-      const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+    setDraftAssignments(prev => {
+      const next = { ...prev };
+      if (String(next[key]) === String(selectedCurso)) delete next[key];
+      else next[key] = Number(selectedCurso);
       return next;
     });
-  }, []);
+  }, [selectedCurso]);
 
-  const handleConfirmAdd = useCallback(async () => {
-    if (!selectedCurso || selectedCells.size === 0 || !sharedGrupo) return;
+  const buildBatchPayload = useCallback(() => Object.entries(draftAssignments).map(([key, idGrupoCurso]) => {
+    const [colIdx, bloqueOrden] = key.split('-').map(Number);
+    return { dia: colIdx + 1, bloque_orden: bloqueOrden, id_grupo_curso: Number(idGrupoCurso) };
+  }).sort((a, b) =>
+    a.id_grupo_curso - b.id_grupo_curso || a.dia - b.dia || a.bloque_orden - b.bloque_orden
+  ), [draftAssignments]);
+
+  const saveBatch = useCallback(async (omitirConflictos) => {
+    const payload = buildBatchPayload();
+    if (!payload.length || !sharedGrupo) return;
     setSaving(true);
     try {
-      const sortedCells = Array.from(selectedCells).map(key => {
-        const [colIdxStr, bloqueOrdenStr] = key.split('-');
-        return {
-          key,
-          diaIdx: parseInt(colIdxStr) + 1,
-          bloqueOrden: parseInt(bloqueOrdenStr)
-        };
-      }).sort((a, b) => {
-        if (a.diaIdx !== b.diaIdx) return a.diaIdx - b.diaIdx;
-        return a.bloqueOrden - b.bloqueOrden;
+      const result = await db.executeFunction('fn_asignar_cursos_grupo_batch', {
+        p_id_grupo: Number(sharedGrupo),
+        p_asignaciones: payload,
+        p_omitir_conflictos: omitirConflictos
       });
-
-      const inserts = sortedCells.map(cell =>
-        db.executeFunction('fn_asignar_curso_grupo', {
-          p_id_grupo: Number(sharedGrupo),
-          p_dia_idx: cell.diaIdx,
-          p_bloque_orden: cell.bloqueOrden,
-          p_id_grupo_curso: Number(selectedCurso)
-        })
-      );
-
-      const results = [];
-      for (const insertPromise of inserts) {
-        const result = await insertPromise;
-        results.push(result);
-      }
-
-      // Verificar advertencias del último resultado
-      const lastResult = results[results.length - 1];
-      const adv = lastResult?.advertencias;
-      if (adv && (adv.excede_ciclo || adv.excede_totales)) {
-        setAdvertenciaHoras(adv);
-      }
-
+      setBatchConflict(null);
+      setBatchResult(omitirConflictos ? {
+        ...result,
+        errores: (result?.errores || []).map(error => ({
+          ...error,
+          detalle: parseConflict(error.mensaje)
+        }))
+      } : null);
       setSelectionMode(false);
-      setSelectedCells(new Set());
+      setDraftAssignments({});
       setSelectedCurso('');
+      setCoursesVersion(v => v + 1);
       await loadPlantilla(sharedGrupo);
     } catch (err) {
-      console.error('Error al asignar curso:', err);
-      const errorMsg = err?.message || '';
-
-      const isSolapamientoDocente = errorMsg?.includes('[SOLAPAMIENTO_DOCENTE]');
-      const isSolapamientoPlaza = errorMsg?.includes('[SOLAPAMIENTO_PLAZA]');
-      const isConflicto = isSolapamientoDocente || isSolapamientoPlaza ||
-                          errorMsg?.includes('[SOLAPAMIENTO]') ||
-                          errorMsg?.includes('[CONFLICTO_DOCENTE]') ||
-                          errorMsg?.includes('[CONFLICTO_PLAZA]');
-
-      if (isConflicto) {
-        try {
-          if (isSolapamientoDocente || isSolapamientoPlaza) {
-            const dataMatch = errorMsg.match(/\[SOLAPAMIENTO_\w+\]\s*(.+)/);
-            if (dataMatch) {
-              const parts = dataMatch[1].split('|');
-              let errorData;
-              if (isSolapamientoDocente && parts.length >= 9) {
-                errorData = {
-                  tipo: 'SOLAPAMIENTO_DOCENTE',
-                  titulo: 'Docente ya asignado',
-                  docente: { id: parts[0], nombre: parts[1] },
-                  cursoIntentado: parts[2],
-                  cursoExistente: parts[3],
-                  grupo: { nombre: parts[4], codigo: parts[5] },
-                  diaIdx: parts[6],
-                  bloqueOrden: parts[7],
-                  fechas: parts[8]?.split(', ') || [],
-                  identificador: parts[9] || '',
-                  horaActual: parts[10] || '',
-                  horaConflicto: parts[11] || ''
-                };
-              } else if (isSolapamientoPlaza && parts.length >= 8) {
-                errorData = {
-                  tipo: 'SOLAPAMIENTO_PLAZA',
-                  titulo: 'Plaza ya asignada',
-                  cursoIntentado: parts[0],
-                  cursoExistente: parts[1],
-                  grupo: { nombre: parts[2], codigo: parts[3] },
-                  docente: { nombres: parts[4], apellidos: parts[5] },
-                  diaIdx: parts[6],
-                  bloqueOrden: parts[7],
-                  fechas: parts[8]?.split(', ') || [],
-                  horaActual: parts[9] || '',
-                  horaConflicto: parts[10] || ''
-                };
-              }
-              if (errorData) {
-                setConflictError(errorData);
-                setSaving(false);
-                return;
-              }
-            }
-          }
-          setConflictError(errorMsg);
-        } catch {
-          setConflictError(errorMsg);
-        }
-      } else {
-        setConflictError(errorMsg);
+      if (omitirConflictos) setConflictError(err?.message || 'No se pudo guardar el lote');
+      else {
+        const message = err?.message || 'Se detectó un conflicto';
+        setBatchConflict({ message, detail: parseConflict(message), total: payload.length });
       }
     } finally {
       setSaving(false);
     }
-  }, [selectedCurso, selectedCells, sharedGrupo, loadPlantilla]);
+  }, [buildBatchPayload, sharedGrupo, loadPlantilla]);
+
+  const handleConfirmAdd = useCallback(() => saveBatch(false), [saveBatch]);
+  const handleRetryBatch = useCallback(() => saveBatch(true), [saveBatch]);
+  const handleCloseBatchConflict = useCallback(() => setBatchConflict(null), []);
+  const handleClearBatchResult = useCallback(() => setBatchResult(null), []);
+  const handleClearDraft = useCallback(() => setDraftAssignments({}), []);
 
   const handleCellDelete = useCallback(async (event) => {
-    if (!event?.idProgramacion) return;
+    if (!sharedGrupo || !event?.dia || !event?.idBloque) return;
     setSaving(true);
     try {
       await db.executeFunction('fn_desasignar_curso_grupo', {
-        p_id_programacion: Number(event.idProgramacion)
+        p_id_grupo: Number(sharedGrupo),
+        p_dia: Number(event.dia),
+        p_id_bloque: Number(event.idBloque)
       });
-      if (sharedGrupo) await loadPlantilla(sharedGrupo);
+      await loadPlantilla(sharedGrupo);
     } catch (err) {
       console.error('Error al eliminar asignación:', err);
     } finally {
@@ -284,8 +295,12 @@ export function useProgramacionGrupo({ sharedGrupo } = {}) {
     deleteMode,
     selectedCells,
     selectedCurso,
+    draftAssignments,
     showTemplate,
     conflictError,
+    batchConflict,
+    batchResult,
+    coursesVersion,
     advertenciaHoras,
     estadisticasOpen,
     setSelectedCurso,
@@ -295,12 +310,20 @@ export function useProgramacionGrupo({ sharedGrupo } = {}) {
     handleCancelDelete,
     handleCellToggle,
     handleConfirmAdd,
+    handleRetryBatch,
+    handleCloseBatchConflict,
+    handleClearBatchResult,
+    handleClearDraft,
     handleCellDelete,
     handleClearConflict,
     handleClearAdvertencia,
     handleOpenEstadisticas,
     handleCloseEstadisticas,
     // Estado de activación (solo lectura)
-    grupoActivo
+    grupoActivo,
+    // Estado del turno del grupo
+    turnoNoConfigurado,
+    turnoInactivo,
+    turnoNombre
   };
 }

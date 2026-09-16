@@ -1,11 +1,11 @@
 export const headerProps = {
-  headerTitle: 'Gestión de Feriados',
-  headerDescription: 'Administra los días feriados por período académico'
+  headerTitle: 'Fechas Bloqueadas',
+  headerDescription: 'Administra las fechas no lectivas por período'
 };
 
 export const getHeaderActions = ({ handleCreate }) => [
   {
-    text: 'Crear Feriado',
+    text: 'Crear Fecha Bloqueada',
     onClick: handleCreate,
     font: 'bg-green-600 hover:bg-green-700 text-white'
   }

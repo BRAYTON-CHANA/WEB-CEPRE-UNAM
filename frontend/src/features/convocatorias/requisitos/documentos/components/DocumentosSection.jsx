@@ -19,7 +19,7 @@ const CONDICIONES_LABORALES = [
  */
 function DocumentosSection({ activeCondicion }) {
   const {
-    clasificacionesData, clasificacionesRecords, loading, error, handleSaveSuccess, tableLevelConfigs,
+    clasificacionesData, clasificacionesRecords, loading, error, refreshClasificaciones, handleSaveSuccess, tableLevelConfigs,
     childrenData, childrenLoading, onExpand,
     isCreateFormOpen, condicionesPreseleccionadas,
     handleCreate, handleCreateSuccess, handleCreateCancel,
@@ -88,12 +88,6 @@ function DocumentosSection({ activeCondicion }) {
             </div>
           )}
 
-          {error && (
-            <div className="bg-red-50 rounded-xl border border-red-100 p-6">
-              <p className="text-red-700 text-sm"><strong>Error:</strong> {error.message}</p>
-            </div>
-          )}
-
           {!loading && !error && clasificacionesData.length === 0 && !isCreateFormOpen && !isClasificacionFormOpen && (
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
               <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
@@ -106,13 +100,15 @@ function DocumentosSection({ activeCondicion }) {
             </div>
           )}
 
-          {!loading && !error && clasificacionesData.length > 0 && (
+          {!loading && (error || clasificacionesData.length > 0) && (
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
               <TableMultiLevelEditable
                 data={clasificacionesData}
                 levelConfigs={tableLevelConfigs}
                 saveMode="auto"
                 externalLoading={loading}
+                externalError={error}
+                onRefreshExternal={refreshClasificaciones}
                 onSaveSuccess={handleSaveSuccess}
                 tableProps={{
                   onExpand,

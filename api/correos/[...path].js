@@ -1,5 +1,6 @@
 import enviar from '../../lib/handlers/correos/enviar.js';
 import enviarMasivo from '../../lib/handlers/correos/enviar-masivo.js';
+import enviarMasivoIds from '../../lib/handlers/correos/enviar-masivo-ids.js';
 import enviarId from '../../lib/handlers/correos/enviar-id.js';
 import cuentasSmtp from '../../lib/handlers/correos/cuentas-smtp.js';
 import cronEnviar from '../../lib/handlers/correos/cron-enviar.js';
@@ -7,6 +8,7 @@ import cronEnviar from '../../lib/handlers/correos/cron-enviar.js';
 const handlers = {
   enviar,
   'enviar-masivo': enviarMasivo,
+  'enviar-masivo-ids': enviarMasivoIds,
   'enviar-id': enviarId,
   'cuentas-smtp': cuentasSmtp,
   'cron-enviar': cronEnviar,

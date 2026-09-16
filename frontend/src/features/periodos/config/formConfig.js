@@ -27,6 +27,14 @@ export const periodosFormFields = [
     type: 'native-date',
     label: 'Fecha de Fin',
     required: true
+  },
+  {
+    name: 'ES_DEFAULT',
+    type: 'boolean',
+    label: 'Periodo por defecto',
+    required: false,
+    defaultValue: false,
+    colSpan: 2
   }
 ];
 

@@ -6,7 +6,7 @@ import { getTableLevelConfigs } from '@/features/docentes/config/tableConfig';
  * useDocentes — lógica de la página de docentes.
  * State + handlers + CRUD wiring para la tabla VW_DOCENTES.
  *
- * El modal de crear/editar usa DocenteForm (custom 2 páginas),
+ * El modal de crear/editar usa DocenteForm (custom 3 páginas),
  * no CrudForm del framework. El delete y las notificaciones
  * se manejan con useCrudForms estándar.
  *

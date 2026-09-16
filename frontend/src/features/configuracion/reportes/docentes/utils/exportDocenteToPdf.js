@@ -163,7 +163,6 @@ const resolveLookupsIndividual = async (sesiones) => {
   // 3. Query batch: TURNOS por múltiples IDs
   const turnoIdsArray = [...turnoIds];
   const turnosMap = new Map();
-  const horarioIds = new Set();
 
   if (turnoIdsArray.length > 0) {
     const placeholders = turnoIdsArray.map((_, i) => `$${i + 1}`).join(',');
@@ -172,50 +171,31 @@ const resolveLookupsIndividual = async (sesiones) => {
       ...turnoIdsArray
     );
     for (const turno of rows) {
-      if (turno.ID_HORARIO) {
-        turnosMap.set(turno.ID_TURNO, turno);
-        horarioIds.add(turno.ID_HORARIO);
-      }
+      turnosMap.set(turno.ID_TURNO, turno);
     }
   }
 
-  // 4. Query batch: HORARIOS por múltiples IDs
-  const horarioIdsArray = [...horarioIds];
-  const horariosMap = new Map();
-
-  if (horarioIdsArray.length > 0) {
-    const placeholders = horarioIdsArray.map((_, i) => `$${i + 1}`).join(',');
+  // 4. Query batch: TURNO_BLOQUES por múltiples turnos
+  const turnoBloquesMap = new Map();
+  if (turnoIdsArray.length > 0) {
+    const placeholders = turnoIdsArray.map((_, i) => `$${i + 1}`).join(',');
     const rows = await db.rawSelect(
-      `SELECT * FROM "HORARIOS" WHERE "ID_HORARIO" IN (${placeholders})`,
-      ...horarioIdsArray
-    );
-    for (const h of rows) {
-      horariosMap.set(h.ID_HORARIO, h);
-    }
-  }
-
-  // 5. Query batch: HORARIO_BLOQUES por múltiples horarios
-  const horarioBloquesMap = new Map();
-  if (horarioIdsArray.length > 0) {
-    const placeholders = horarioIdsArray.map((_, i) => `$${i + 1}`).join(',');
-    const rows = await db.rawSelect(
-      `SELECT * FROM "HORARIO_BLOQUES" WHERE "ID_HORARIO" IN (${placeholders}) ORDER BY "ORDEN"`,
-      ...horarioIdsArray
+      `SELECT * FROM "TURNO_BLOQUES" WHERE "ID_TURNO" IN (${placeholders}) ORDER BY "ORDEN"`,
+      ...turnoIdsArray
     );
     for (const b of rows) {
-      if (!horarioBloquesMap.has(b.ID_HORARIO)) horarioBloquesMap.set(b.ID_HORARIO, []);
-      horarioBloquesMap.get(b.ID_HORARIO).push(b);
+      if (!turnoBloquesMap.has(b.ID_TURNO)) turnoBloquesMap.set(b.ID_TURNO, []);
+      turnoBloquesMap.get(b.ID_TURNO).push(b);
     }
   }
 
   // 6. Construir turnosConBloques
   const turnosConBloques = [];
   for (const [turnoId, turno] of turnosMap) {
-    const horario = horariosMap.get(turno.ID_HORARIO);
-    const bloques = horarioBloquesMap.get(turno.ID_HORARIO) || [];
+    const bloques = turnoBloquesMap.get(turnoId) || [];
     if (bloques.length === 0) continue;
 
-    const _hInit = (horario?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
+    const _hInit = (turno?.HORA_INICIO_JORNADA || '07:00').split(':').map(Number);
     let currentMinute = (isNaN(_hInit[0]) ? 7 : _hInit[0]) * 60 + (isNaN(_hInit[1]) ? 0 : _hInit[1]);
     const fmt = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 
@@ -232,10 +212,10 @@ const resolveLookupsIndividual = async (sesiones) => {
         label: b.ETIQUETA || `Bloque ${b.ORDEN}`,
         orden: b.ORDEN, time: fmt(hour, minute), endTime: fmt(endHour, endMinute),
         timeRange: `${fmt(hour, minute)} - ${fmt(endHour, endMinute)}`,
-        turnoNombre: turno.NOMBRE_TURNO, turnoId: turno.ID_TURNO, horarioId: turno.ID_HORARIO
+        turnoNombre: turno.NOMBRE_TURNO, turnoId: turno.ID_TURNO
       };
     });
-    turnosConBloques.push({ turnoId, turnoNombre: turno.NOMBRE_TURNO, horarioId: turno.ID_HORARIO, bloques: customBlocks });
+    turnosConBloques.push({ turnoId, turnoNombre: turno.NOMBRE_TURNO, bloques: customBlocks });
   }
 
   return { programacionToGrupo, gpcToGrupo, grupoToTurno, turnosConBloques };

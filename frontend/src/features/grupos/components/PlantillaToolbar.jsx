@@ -1,21 +1,22 @@
 import React, { useMemo } from 'react';
-import FunctionSelectInput from '@/shared/components/ui/inputs/FunctionSelectInput';
+import SelectInput from '@/shared/components/ui/inputs/SelectInput';
 
 export default function PlantillaToolbar({
   grupoNombre,
   selectionMode,
   deleteMode,
-  selectedCells,
   selectedCurso,
   saving,
   idGrupo,
   stableFormData,
   cellEvents,
+  draftAssignments,
   grupoCursosData,
   onSetSelectedCurso,
   onStartAdd,
   onCancelAdd,
   onConfirmAdd,
+  onClearDraft,
   onStartDelete,
   onCancelDelete,
   onShowEstadisticas
@@ -39,17 +40,25 @@ export default function PlantillaToolbar({
     return grupoCursosData.find(c => String(c.ID_GRUPO_CURSO) === String(selectedCurso)) || null;
   }, [selectedCurso, grupoCursosData]);
 
+  const cursoOptions = useMemo(() => (grupoCursosData || []).map(curso => ({
+    value: curso.ID_GRUPO_CURSO,
+    label: curso.NOMBRE_CURSO,
+    description: `${curso.IDENTIFICADOR_DOCENTE} · ${curso.HORAS_CICLO_ASIGNADAS || 0}/${curso.HORAS_CICLO_REQUERIDAS || curso.HORAS_ACADEMICAS_CICLO || 0} horas · Faltan ${Math.max(0, curso.HORAS_CICLO_PENDIENTES ?? curso.HORAS_ACADEMICAS_CICLO ?? 0)}`
+  })), [grupoCursosData]);
+
+  const totalDraft = Object.keys(draftAssignments || {}).length;
+
   // Cálculos del contador
   const contador = useMemo(() => {
     if (!cursoSeleccionadoData) return null;
-    const horasRequeridas = cursoSeleccionadoData.HORAS_ACADEMICAS_CICLO || 0;
-    const bloquesActuales = bloquesActualesPorCurso[cursoSeleccionadoData.ID_GRUPO_CURSO] || 0;
-    const bloquesNuevos = selectionMode ? selectedCells.size : 0;
+    const horasRequeridas = cursoSeleccionadoData.HORAS_CICLO_REQUERIDAS || cursoSeleccionadoData.HORAS_ACADEMICAS_CICLO || 0;
+    const bloquesActuales = cursoSeleccionadoData.HORAS_CICLO_ASIGNADAS ?? bloquesActualesPorCurso[cursoSeleccionadoData.ID_GRUPO_CURSO] ?? 0;
+    const bloquesNuevos = Object.values(draftAssignments || {}).filter(id => String(id) === String(selectedCurso)).length;
     const proyeccion = bloquesActuales + bloquesNuevos;
     const pendientes = horasRequeridas - proyeccion;
     const estado = pendientes > 0 ? 'pendiente' : pendientes === 0 ? 'completo' : 'excede';
     return { horasRequeridas, bloquesActuales, bloquesNuevos, proyeccion, pendientes, estado };
-  }, [cursoSeleccionadoData, bloquesActualesPorCurso, selectionMode, selectedCells]);
+  }, [cursoSeleccionadoData, bloquesActualesPorCurso, draftAssignments, selectedCurso]);
 
   return (
     <div className="space-y-4">
@@ -108,25 +117,20 @@ export default function PlantillaToolbar({
         <div className="space-y-3">
           <div className="flex flex-wrap items-end gap-3">
             <div className="w-72">
-              <FunctionSelectInput
+              <SelectInput
                 name="curso_asignar"
                 label=""
                 hideLabel={true}
-                functionName="fn_grupo_cursos"
-                functionParams={{ ID_GRUPO: idGrupo }}
-                valueField="ID_GRUPO_CURSO"
-                labelField="{NOMBRE_CURSO}"
-                descriptionField="{IDENTIFICADOR_DOCENTE}"
+                options={cursoOptions}
                 placeholder="Seleccionar curso..."
                 searchable={true}
                 value={selectedCurso}
                 onChange={(_, val) => onSetSelectedCurso(val)}
-                formData={stableFormData}
               />
             </div>
             <button
               onClick={onConfirmAdd}
-              disabled={!selectedCurso || selectedCells.size === 0 || saving}
+              disabled={totalDraft === 0 || saving}
               className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-gray-900 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors"
             >
               {saving ? (
@@ -136,7 +140,14 @@ export default function PlantillaToolbar({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               )}
-              Guardar ({selectedCells.size})
+              Guardar todo ({totalDraft})
+            </button>
+            <button
+              onClick={onClearDraft}
+              disabled={totalDraft === 0}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium rounded-lg border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 disabled:opacity-40 transition-colors"
+            >
+              Limpiar borrador
             </button>
             <button
               onClick={onCancelAdd}

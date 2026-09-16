@@ -11,7 +11,7 @@ import { useSedesYAulas } from '@/features/sedes/hooks/useSedesYAulas';
  */
 function SedesYAulasPanel() {
   const {
-    records, loading, error, updateRecord,
+    records, loading, error, refresh, updateRecord,
     sedesCrud, tableLevelConfigs, crudLevels,
     childrenData, childrenLoading, handleExpand,
     headerProps, getHeaderActions
@@ -35,17 +35,13 @@ function SedesYAulasPanel() {
               </div>
             )}
 
-            {error && (
-              <div className="bg-red-50 rounded-xl border border-red-100 p-6">
-                <p className="text-red-700 text-sm"><strong>Error:</strong> {error.message}</p>
-              </div>
-            )}
-
-            {!loading && !error && (
+            {!loading && (
               <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
                 <TableMultiLevelEditable
                   data={records}
                   levelConfigs={tableLevelConfigs}
+                  externalError={error}
+                  onRefreshExternal={refresh}
                   saveMode="auto"
                   onSaveSuccess={(recordId, field, newValue, primaryKey) => updateRecord(recordId, primaryKey, field, newValue)}
                   formatToastMessage={(recordId, field, newValue, primaryKey, rowData, header) =>

@@ -57,9 +57,6 @@ const TablaEditableDocente = forwardRef(function TablaEditableDocente({
     const row = rows[index];
     if (!row) return;
     if (!window.confirm('¿Eliminar esta fila?')) return;
-    if (!isCreateMode && row[primaryKey] && !row._isNew) {
-      setDeletedIds(prev => [...prev, row[primaryKey]]);
-    }
     setRows(prev => prev.filter((_, i) => i !== index));
   };
 

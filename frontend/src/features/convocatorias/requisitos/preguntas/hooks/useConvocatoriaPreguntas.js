@@ -157,6 +157,7 @@ export function useConvocatoriaPreguntas() {
     tableRecords,
     loading,
     error,
+    refresh,
     handleSaveSuccess,
     tableLevelConfigs,
     // Create

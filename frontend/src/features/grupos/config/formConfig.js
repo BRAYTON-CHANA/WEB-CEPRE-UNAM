@@ -69,14 +69,18 @@ export const grupoFormFields = [
     colSpan: 1
   },
   {
-    name: 'ID_HORARIO',
+    name: 'ID_TURNO',
     type: 'reference-select',
-    label: 'Horario',
-    required: true,
-    referenceTable: 'HORARIOS',
-    referenceField: 'ID_HORARIO',
-    referenceQuery: '{NOMBRE_HORARIO}',
-    placeholder: 'Seleccione un horario',
+    label: 'Turno',
+    required: false,
+    referenceTable: 'VW_TURNOS',
+    referenceField: 'ID_TURNO',
+    referenceQuery: '{NOMBRE_TURNO} · {NOMBRE_SEDE}',
+    referenceFilters: [
+      { field: 'ID_PERIODO', op: '=', value: '{ID_PERIODO}' },
+      { field: 'ID_SEDE', op: '=', value: '{ID_SEDE}', emptyAsNull: true }
+    ],
+    placeholder: 'Seleccione un turno (opcional)',
     showRefreshButton: true,
     colSpan: 1
   },
@@ -163,15 +167,46 @@ export const grupoFormFields = [
  * ACTIVO se maneja directamente en la tabla con auto-save.
  */
 export const grupoEditFormFields = [
+  // Campos de contexto (ocultos, ignoreField → no se envían en el payload):
+  // pueblan formData desde el record para resolver los templates
+  // {ID_PERIODO}, {ID_SEDE}, {ID_AREA}, {MODALIDAD} de los filtros/condiciones.
   {
-    name: 'ID_HORARIO',
+    name: 'ID_PERIODO',
+    type: 'hidden',
+    hidden: true,
+    ignoreField: true
+  },
+  {
+    name: 'MODALIDAD',
+    type: 'hidden',
+    hidden: true,
+    ignoreField: true
+  },
+  {
+    name: 'ID_SEDE',
+    type: 'hidden',
+    hidden: true,
+    ignoreField: true
+  },
+  {
+    name: 'ID_AREA',
+    type: 'hidden',
+    hidden: true,
+    ignoreField: true
+  },
+  {
+    name: 'ID_TURNO',
     type: 'reference-select',
-    label: 'Horario',
-    required: true,
-    referenceTable: 'HORARIOS',
-    referenceField: 'ID_HORARIO',
-    referenceQuery: '{NOMBRE_HORARIO}',
-    placeholder: 'Seleccione un horario',
+    label: 'Turno',
+    required: false,
+    referenceTable: 'VW_TURNOS',
+    referenceField: 'ID_TURNO',
+    referenceQuery: '{NOMBRE_TURNO} · {NOMBRE_SEDE}',
+    referenceFilters: [
+      { field: 'ID_PERIODO', op: '=', value: '{ID_PERIODO}' },
+      { field: 'ID_SEDE', op: '=', value: '{ID_SEDE}', emptyAsNull: true }
+    ],
+    placeholder: 'Seleccione un turno (opcional)',
     showRefreshButton: true,
     colSpan: 2
   },
@@ -278,18 +313,12 @@ export const grupoValidation = {
   ID_AREA: {
     required: { value: true, message: 'El área es obligatoria' }
   },
-  ID_HORARIO: {
-    required: { value: true, message: 'El horario es obligatorio' }
-  },
   NOMBRE_GRUPO: {
     required: { value: true, message: 'El nombre de grupo es obligatorio' }
   }
 };
 
 export const grupoEditValidation = {
-  ID_HORARIO: {
-    required: { value: true, message: 'El horario es obligatorio' }
-  },
   FECHA_INICIO: {
     required: { value: true, message: 'La fecha de inicio es obligatoria' }
   },

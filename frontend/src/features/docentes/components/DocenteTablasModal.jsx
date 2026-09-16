@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback } from 'react';
 import { Modal } from '@/shared/components/modal';
 import DocenteTablasRelacionadas from '@/features/docentes/components/DocenteTablasRelacionadas';
-import { actualizarTablasDocente } from '@/features/docentes/services/docenteService';
+import { upsertTablasHijasDocente } from '@/features/docentes/services/docenteService';
 
 /**
  * DocenteTablasModal — modal standalone para editar las 4 tablas hijas de un docente.
@@ -30,7 +30,7 @@ function DocenteTablasModal({ open, docente, onClose, onSuccess }) {
 
     setSaving(true);
     try {
-      const result = await actualizarTablasDocente(docente.ID_DOCENTE, validation.data);
+      const result = await upsertTablasHijasDocente(docente.ID_DOCENTE, validation.data);
       onSuccess?.(result);
       onClose();
     } catch (err) {

@@ -1,9 +1,49 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useMultiLevelGrouping } from '../hooks/useMultiLevelGrouping';
+import { useTablePagination } from '../hooks/useTablePagination';
+import { useTableSort } from '../hooks/useTableSort';
 import TableActions from '../components/TableActions';
+import TablePagination from '../components/TablePagination';
+import TableControls from '../components/TableControls';
 import EditableCell from '../components/EditableCell';
 import FileEditableCell from '../components/FileEditableCell';
 import { renderCell } from '@/shared/utils/cellRenderer';
+import { sortData } from '@/shared/utils/dataUtils';
+
+/**
+ * Mapea el type de header al dataType esperado por SortMenu
+ */
+const getSortDataType = (type) => {
+  switch (type) {
+    case 'number':
+    case 'integer':
+    case 'float':
+    case 'numeric':
+      return 'number';
+    case 'date':
+    case 'native-date':
+    case 'datetime':
+    case 'native-datetime':
+    case 'time':
+    case 'native-time':
+      return 'date';
+    case 'boolean':
+      return 'boolean';
+    default:
+      return 'string';
+  }
+};
+
+/**
+ * Indica si una columna admite ordenamiento
+ * (mismo criterio que Table.jsx: sin render custom ni columnas compuestas)
+ */
+const isColumnSortable = (header, sortable) =>
+  sortable &&
+  header.sortable !== false &&
+  !header.render &&
+  !(header.fields && header.fields.length > 1) &&
+  header.type !== 'file-editable';
 
 /**
  * DEFAULT_LEVEL_STYLES — estilos neutros para todas las tablas.
@@ -101,10 +141,18 @@ const TableMultiLevel = ({
   saveMode = 'auto',
   onSaveSuccess,
   onSaveError,
-  editFunctions = {}
+  editFunctions = {},
+  sortable = true,
+  onSort = null,
+  pagination = false,
+  itemsPerPage = 100,
+  currentPage = 1,
+  onPageChange = null,
+  paginationClassName = ''
 }) => {
   const groupedData = useMultiLevelGrouping(data, levelConfigs);
   const [expandedKeys, setExpandedKeys] = useState(new Set());
+  const { sortConfig, handleSort } = useTableSort(sortable, onSort);
 
   const toggle = (key) => setExpandedKeys(prev => {
     const next = new Set(prev);
@@ -160,6 +208,50 @@ const TableMultiLevel = ({
 
   // En modo async, los datos ya son filas planas del nivel actual
   const rows = isAsyncMode ? data : groupedData;
+
+  // Ordenamiento por columna (client-side, estado propio por nivel)
+  const sortedRows = useMemo(() => {
+    if (!sortable || !sortConfig.key || !sortConfig.type || !Array.isArray(rows)) return rows;
+    if (isAsyncMode) {
+      return sortData(rows, sortConfig.key, sortConfig.type);
+    }
+    // Modo sync: cada item es un grupo — si la columna ordenada es la de
+    // agrupación se usa su valor; si no, el valor de la primera fila del grupo
+    const projected = rows.map(item => ({
+      ...item,
+      __sortValue: item.field === sortConfig.key ? item.value : item.rows?.[0]?.[sortConfig.key]
+    }));
+    return sortData(projected, '__sortValue', sortConfig.type);
+  }, [rows, sortable, sortConfig, isAsyncMode]);
+
+  const shouldPaginate = pagination && _depth === 0 && Array.isArray(sortedRows) && sortedRows.length > 0;
+
+  const {
+    localItemsPerPage,
+    localCurrentPage,
+    paginatedData,
+    handlePageChange,
+    handleItemsPerPageChange
+  } = useTablePagination({
+    itemsPerPage,
+    currentPage,
+    onPageChange,
+    pagination: shouldPaginate
+  });
+
+  const displayRows = useMemo(() => {
+    if (!shouldPaginate) return sortedRows;
+    return paginatedData(sortedRows) || sortedRows;
+  }, [shouldPaginate, paginatedData, sortedRows]);
+
+  // Si cambia el total de datos y la página queda fuera de rango, volver a 1
+  useEffect(() => {
+    if (!shouldPaginate || !Array.isArray(sortedRows)) return;
+    const totalPages = Math.max(1, Math.ceil(sortedRows.length / localItemsPerPage));
+    if (localCurrentPage > totalPages) {
+      handlePageChange(1);
+    }
+  }, [sortedRows?.length, localItemsPerPage, localCurrentPage, shouldPaginate, handlePageChange]);
 
   if (!rows || (Array.isArray(rows) && rows.length === 0)) {
     if (_depth > 0) {
@@ -224,14 +316,26 @@ const TableMultiLevel = ({
             {!isLastLevel && (
               <th className="w-10 px-3 py-3" />
             )}
-            {headers.map(header => (
-              <th
-                key={header.title}
-                className={`${levelStyle.cellPadding} text-left ${levelStyle.headerFont} ${levelStyle.headerText}`}
-              >
-                {header.label || header.title}
-              </th>
-            ))}
+            {headers.map(header => {
+              const sortField = header.field || header.title;
+              return (
+                <th
+                  key={header.title}
+                  className={`${levelStyle.cellPadding} text-left ${levelStyle.headerFont} ${levelStyle.headerText}`}
+                >
+                  <div className="flex items-center">
+                    {header.label || header.title}
+                    <TableControls
+                      sortable={isColumnSortable(header, sortable)}
+                      header={sortField}
+                      dataType={getSortDataType(header.type)}
+                      sortConfig={sortConfig}
+                      onSortSelect={handleSort}
+                    />
+                  </div>
+                </th>
+              );
+            })}
             {hasActions && (
               <th className={`${levelStyle.cellPadding} text-left ${levelStyle.headerFont} ${levelStyle.headerText}`}>
                 Acciones
@@ -242,7 +346,7 @@ const TableMultiLevel = ({
 
         {/* ── Body ── */}
         <tbody className="bg-white divide-y divide-gray-100">
-          {(isAsyncMode ? rows : groupedData).map((item, idx) => {
+          {displayRows.map((item, idx) => {
             // Modo async: item es una fila plana
             // Modo síncrono: item es un grupo de useMultiLevelGrouping
             const rowData    = isAsyncMode ? item : (item.rows[0] || {});
@@ -420,6 +524,8 @@ const TableMultiLevel = ({
                                 onSaveSuccess={onSaveSuccess}
                                 onSaveError={onSaveError}
                                 editFunctions={editFunctions}
+                                sortable={sortable}
+                                onSort={onSort}
                               />
                             );
                           }
@@ -445,6 +551,8 @@ const TableMultiLevel = ({
                           editingData={editingData}
                           onCellChange={onCellChange}
                           saveMode={saveMode}
+                          sortable={sortable}
+                          onSort={onSort}
                           onSaveSuccess={(rowId, field, newValue, primaryKey, rowData, header) => onSaveSuccess?.(rowId, field, newValue, primaryKey, rowData, header)}
                           onSaveError={(rowId, field, error, primaryKey, rowData, header) => onSaveError?.(rowId, field, error, primaryKey, rowData, header)}
                           editFunctions={editFunctions}
@@ -458,6 +566,18 @@ const TableMultiLevel = ({
           })}
         </tbody>
       </table>
+
+      {shouldPaginate && (
+        <TablePagination
+          pagination={pagination}
+          processedData={rows}
+          itemsPerPage={localItemsPerPage}
+          currentPage={localCurrentPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+          paginationClassName={paginationClassName}
+        />
+      )}
     </div>
   );
 };
@@ -485,7 +605,9 @@ const SortedChildTable = ({
   saveMode,
   onSaveSuccess,
   onSaveError,
-  editFunctions
+  editFunctions,
+  sortable,
+  onSort
 }) => {
   const sortedChildData = useMemo(() => {
     return [...childData].sort((a, b) => {
@@ -512,6 +634,8 @@ const SortedChildTable = ({
       onSaveSuccess={(rowId, field, newValue, primaryKey, rowData, header) => onSaveSuccess?.(rowId, field, newValue, primaryKey, rowData, header)}
       onSaveError={(rowId, field, error, primaryKey, rowData, header) => onSaveError?.(rowId, field, error, primaryKey, rowData, header)}
       editFunctions={editFunctions}
+      sortable={sortable}
+      onSort={onSort}
     />
   );
 };

@@ -8,7 +8,7 @@ import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectI
  * Cada combinación sede×área tiene:
  *   - Toggle de selección
  *   - Campos comunes: FECHA_INICIO, FECHA_TERMINO, ID_PLAN
- *   - N grupos individuales: ID_HORARIO, CODIGO_GRUPO, NOMBRE_GRUPO, CAPACIDAD_MAXIMA, ID_AULA
+ *   - N grupos individuales: ID_TURNO, CODIGO_GRUPO, NOMBRE_GRUPO, CAPACIDAD_MAXIMA, ID_AULA
  *
  * value = array de combinaciones:
  * [{
@@ -16,14 +16,18 @@ import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectI
  *   NOMBRE_SEDE, CODIGO_SEDE, NOMBRE_AREA, CODIGO_AREA,
  *   selected: boolean,
  *   FECHA_INICIO, FECHA_TERMINO, ID_PLAN,
- *   grupos: [{ ID_HORARIO, CODIGO_GRUPO, NOMBRE_GRUPO, CAPACIDAD_MAXIMA, ID_AULA }]
+ *   grupos: [{ ID_TURNO, CODIGO_GRUPO, NOMBRE_GRUPO, CAPACIDAD_MAXIMA, ID_AULA }]
  * }]
+ *
+ * Props:
+ *   idPeriodo - período actual (filtra los turnos disponibles por período+sede)
  */
 const GruposGridInput = ({
   name,
   value,
   onChange,
-  disabled = false
+  disabled = false,
+  idPeriodo = null
 }) => {
   const [sedes, setSedes] = useState([]);
   const [areas, setAreas] = useState([]);
@@ -102,7 +106,7 @@ const GruposGridInput = ({
           FECHA_TERMINO: '',
           ID_PLAN: '',
           grupos: [{
-            ID_HORARIO: '',
+            ID_TURNO: '',
             NOMBRE_GRUPO: `G1 - ${a.NOMBRE_AREA}`,
             CAPACIDAD_MAXIMA: 30,
             ID_AULA: ''
@@ -148,7 +152,7 @@ const GruposGridInput = ({
       return {
         ...c,
         grupos: [...c.grupos, {
-          ID_HORARIO: '',
+          ID_TURNO: '',
           NOMBRE_GRUPO: `G${newIdx} - ${c.NOMBRE_AREA}`,
           CAPACIDAD_MAXIMA: 30,
           ID_AULA: ''
@@ -441,7 +445,7 @@ const GruposGridInput = ({
                               {/* Header de la tabla */}
                               <div className="grid grid-cols-[2fr_2fr_1.5fr_0.6fr_32px] gap-2 px-3 py-2 bg-gray-50 border-b border-gray-100 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
                                 <span>Nombre *</span>
-                                <span>Horario *</span>
+                                <span>Turno</span>
                                 <span>Aula</span>
                                 <span className="text-center">Cap.</span>
                                 <span></span>
@@ -461,18 +465,24 @@ const GruposGridInput = ({
                                     onChange={(e) => handleGrupoFieldChange(c.ID_SEDE, c.ID_AREA, c.MODALIDAD, gIdx, 'NOMBRE_GRUPO', e.target.value)}
                                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white"
                                   />
-                                  {/* Horario */}
+                                  {/* Turno (opcional): filtrado por período y sede del combo */}
                                   <ReferenceSelectInput
-                                    name={`horario-${comboKey(c)}-${gIdx}`}
-                                    referenceTable="HORARIOS"
-                                    referenceField="ID_HORARIO"
-                                    referenceLabelField="NOMBRE_HORARIO"
-                                    placeholder="Seleccionar..."
+                                    name={`turno-${comboKey(c)}-${gIdx}`}
+                                    referenceTable="VW_TURNOS"
+                                    referenceField="ID_TURNO"
+                                    referenceQuery="{NOMBRE_TURNO} · {NOMBRE_SEDE}"
+                                    referenceFilters={[
+                                      ...(idPeriodo ? [{ field: 'ID_PERIODO', op: '=', value: String(idPeriodo) }] : []),
+                                      isVirtual
+                                        ? { field: 'ID_SEDE', op: 'is', value: null }
+                                        : { field: 'ID_SEDE', op: '=', value: String(c.ID_SEDE) }
+                                    ]}
+                                    placeholder="Sin turno"
                                     searchable={true}
                                     showRefreshButton={true}
                                     comboboxClassName="text-sm"
-                                    value={g.ID_HORARIO}
-                                    onChange={(_, v) => handleGrupoFieldChange(c.ID_SEDE, c.ID_AREA, c.MODALIDAD, gIdx, 'ID_HORARIO', v)}
+                                    value={g.ID_TURNO}
+                                    onChange={(_, v) => handleGrupoFieldChange(c.ID_SEDE, c.ID_AREA, c.MODALIDAD, gIdx, 'ID_TURNO', v)}
                                     formData={{}}
                                   />
                                   {/* Aula */}

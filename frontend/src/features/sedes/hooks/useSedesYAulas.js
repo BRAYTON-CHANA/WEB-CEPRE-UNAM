@@ -129,6 +129,7 @@ export function useSedesYAulas() {
     records,
     loading,
     error,
+    refresh,
     updateRecord,
     sedesCrud,
     tableLevelConfigs,

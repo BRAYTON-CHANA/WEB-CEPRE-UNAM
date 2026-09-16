@@ -11,7 +11,7 @@ export const TABLE_DEFAULTS = {
   bordered: true,
   
   // Props opcionales - Funcionalidades
-  sortable: false,
+  sortable: true,
   selectable: false,
   pagination: true,
   

@@ -4,6 +4,7 @@ import TableMultiLevelEditable from '@/shared/components/table/views/TableMultiL
 import DatabaseTableEditable from '@/shared/components/table/views/DatabaseTableEditable';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
 import FilterSelect from '@/shared/components/ui/inputs/FilterSelect';
+import ErrorAlert from '@/shared/components/ui/ErrorAlert';
 import { useGrupos } from '@/features/grupos/hooks/useGrupos';
 import { GRUPOS_LEVEL_STYLES } from '@/features/grupos/config/levelStyles';
 import GruposBatchModal from '@/features/grupos/components/GruposBatchModal';
@@ -24,7 +25,7 @@ const GRUPOS_VIEW_MODE_KEY = 'grupos-view-mode';
 function GruposPanel({ sharedPeriodo, onSharedPeriodoChange, onVerCursos, onVerProgramacion }) {
   const {
     selectedPeriodo, selectedPeriodoNombre, handlePeriodoChange,
-    records, loading, error,
+    records, loading, error, refresh,
     onExpand, childrenData, childrenLoading, updateRecord,
     gruposCrud, tableLevelConfigs, crudLevels,
     isBatchOpen, batchSubmitting, batchError,
@@ -201,18 +202,14 @@ function GruposPanel({ sharedPeriodo, onSharedPeriodoChange, onVerCursos, onVerP
               </div>
             )}
 
-            {error && !loading && (
-              <div className="bg-red-50 rounded-xl border border-red-100 p-6">
-                <p className="text-red-700 text-sm"><strong>Error:</strong> {error.message || error}</p>
-              </div>
-            )}
-
-            {!loading && !error && (
+            {!loading && (
               <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
                 <TableMultiLevelEditable
                   key={gruposCrud.refreshTrigger}
                   data={records}
                   levelConfigs={tableLevelConfigs}
+                  externalError={error}
+                  onRefreshExternal={refresh}
                   saveMode="auto"
                   onSaveSuccess={(recordId, field, newValue, primaryKey) => updateRecord(recordId, primaryKey, field, newValue)}
                   formatToastMessage={(recordId, field, newValue, primaryKey, rowData, header) =>
@@ -237,20 +234,7 @@ function GruposPanel({ sharedPeriodo, onSharedPeriodoChange, onVerCursos, onVerP
             )}
 
             {gruposAllError && !gruposAllLoading && (
-              <div className="bg-red-50 rounded-xl border border-red-100 p-6">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-red-700 text-sm"><strong>Error:</strong> {gruposAllError.message || gruposAllError}</p>
-                  <button
-                    onClick={() => refreshGruposAll()}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-white border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Reintentar
-                  </button>
-                </div>
-              </div>
+              <ErrorAlert error={gruposAllError} loading={gruposAllLoading} onRetry={refreshGruposAll} />
             )}
 
             {!gruposAllLoading && !gruposAllError && (

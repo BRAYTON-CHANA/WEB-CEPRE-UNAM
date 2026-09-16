@@ -11,7 +11,7 @@ import { useAreas } from '@/features/areas/hooks/useAreas';
  */
 function AreasPanel() {
   const {
-    tableRecords, loading, error,
+    tableRecords, loading, error, refresh,
     areasCrud, tableLevelConfigs, crudLevels,
     handleSaveSuccess
   } = useAreas();
@@ -46,18 +46,14 @@ function AreasPanel() {
                 </div>
               )}
 
-              {error && (
-                <div className="bg-red-50 rounded-xl border border-red-100 p-6">
-                  <p className="text-red-700 text-sm"><strong>Error:</strong> {error.message}</p>
-                </div>
-              )}
-
-              {!loading && !error && (
+              {!loading && (
                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
                   <TableMultiLevelEditable
                     data={tableRecords}
                     levelConfigs={enrichedLevelConfigs}
                     saveMode="auto"
+                    externalError={error}
+                    onRefreshExternal={refresh}
                     onSaveSuccess={handleSaveSuccess}
                     formatToastMessage={(recordId, field, newValue, primaryKey, rowData, header) =>
                       `${rowData?.NOMBRE_AREA || 'Área'}: ${header?.label || field} → ${newValue ? 'Activo' : 'No activo'}`

@@ -43,18 +43,28 @@ export const postulanteFormFields = [
     placeholder: 'Seleccione un grupo (opcional)'
   },
   {
-    name: 'NOMBRES',
-    type: 'text',
-    label: 'Nombres',
-    required: true,
-    placeholder: 'Ej: JUAN CARLOS'
-  },
-  {
     name: 'APELLIDOS',
     type: 'text',
     label: 'Apellidos',
     required: true,
-    placeholder: 'Ej: PEREZ GARCIA'
+    placeholder: 'Ej: PEREZ GARCIA',
+    ignoreField: true
+  },
+  {
+    name: 'NOMBRES',
+    type: 'text',
+    label: 'Nombres',
+    required: true,
+    placeholder: 'Ej: JUAN CARLOS',
+    ignoreField: true
+  },
+  {
+    name: 'DNI',
+    type: 'text',
+    label: 'DNI',
+    required: true,
+    placeholder: 'Ej: 87654321',
+    ignoreField: true
   },
   {
     name: 'ID_CARRERA',
@@ -83,6 +93,12 @@ export const postulanteFormFields = [
     required: false,
     defaultValue: false
   },
+  {
+    name: 'ID_USUARIO',
+    type: 'hidden',
+    hidden: true,
+    ignoreField: true
+  },
   /*
   {
     name: 'ACTIVO',
@@ -96,7 +112,8 @@ export const postulanteFormFields = [
   {
     name: 'ID_ESTUDIANTE',
     type: 'hidden',
-    hidden: true
+    hidden: true,
+    ignoreField: true
   }
 ];
 
@@ -112,6 +129,9 @@ export const postulanteValidation = {
   },
   APELLIDOS: {
     required: { value: true, message: 'Los apellidos son obligatorios' }
+  },
+  DNI: {
+    required: { value: true, message: 'El DNI es obligatorio' }
   }
 };
 

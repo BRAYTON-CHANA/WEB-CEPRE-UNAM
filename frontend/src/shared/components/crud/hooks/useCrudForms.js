@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { db } from '@/shared/api';
 import cacheService from '@/shared/services/cacheService';
 
@@ -33,6 +33,14 @@ export function useCrudForms({
     title: '',
     message: ''
   });
+
+  // Pre-calentar el schema de la tabla para que el modal de formulario
+  // tenga el schema resuelto antes de abrirse (queda en schemaCache)
+  useEffect(() => {
+    if (tableName) {
+      db.getTableSchema(tableName).catch(() => {});
+    }
+  }, [tableName]);
 
   const showNotification = useCallback((type, title, message) => {
     setNotification({ isOpen: true, type, title, message });

@@ -54,7 +54,11 @@ export const resetCourseColors = () => {
 };
 
 /**
- * Transforma los records de VW_PROGRAMACION_GRUPO_COMPLETA a blocks + matrix + cellEvents
+ * Transforma los records de fn_obtener_programacion_grupo a blocks + matrix + cellEvents.
+ * Modelo por columna: cada DIA es una posición de la MATRIZ_DIAS del turno
+ * (fila = semana, columna = día). Una asignación cubre todas las semanas de la columna.
+ * La matrix retornada es sintética de 1 fila: ['Día 1', 'Día 2', ...]
+ * (las fechas reales se muestran vía columnDates).
  */
 export const transformRecords = (records) => {
   resetCourseColors();
@@ -64,7 +68,23 @@ export const transformRecords = (records) => {
   if (typeof mat === 'string') {
     try { mat = JSON.parse(mat); } catch { mat = []; }
   }
-  const matrix = Array.isArray(mat) ? mat : [];
+  const rawMatriz = Array.isArray(mat) ? mat : [];
+  const numCols = rawMatriz.length > 0 && Array.isArray(rawMatriz[0]) ? rawMatriz[0].length : 0;
+  const matrix = [Array.from({ length: numCols }, (_, i) => `Día ${i + 1}`)];
+
+  // columnDates[colIdx] = fechas de esa columna (una por semana/fila no-nula de MATRIZ_DIAS).
+  // Solo se formatean valores 'YYYY-MM-DD' — si la BD devuelve INTEGER[][] viejo, quedan vacías.
+  const columnDates = Array.from({ length: numCols }, (_, colIdx) => {
+    const fechas = [];
+    rawMatriz.forEach(fila => {
+      const v = Array.isArray(fila) ? fila[colIdx] : null;
+      const m = typeof v === 'string' ? v.match(/^(\d{4})-(\d{2})-(\d{2})/) : null;
+      if (!m) return;
+      const fechaLocal = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+      fechas.push(fechaLocal.toLocaleDateString('es-PE', { day: 'numeric', month: 'short' }));
+    });
+    return fechas;
+  });
 
   const startTimeParts = first.HORA_INICIO_JORNADA.split(':');
   const startHour = parseInt(startTimeParts[0]) + parseInt(startTimeParts[1]) / 60;
@@ -88,17 +108,17 @@ export const transformRecords = (records) => {
 
   const blocks = generateBlockTimeRanges(rawBlocks, startHour);
 
-  // cellEvents: key = "colIdx-bloqueOrden" (colIdx = DIA_IDX - 1, 0-based)
+  // cellEvents: key = "colIdx-bloqueOrden" (colIdx = DIA - 1, 0-based; DIA = columna de MATRIZ_DIAS)
   const cellEvents = {};
   records.forEach(r => {
     if (r.TIPO_BLOQUE === 'break') return;
     if (!r.CURSO_ASIGNADO && !r.ID_GRUPO_CURSO) return;
-    const colIdx = r.DIA_IDX - 1;
+    const colIdx = r.DIA - 1;
     const key = `${colIdx}-${r.BLOQUE_ORDEN}`;
-    
+
     // 🎨 Usar color del curso si está definido, sino asignar color aleatorio
     const courseColor = r.CURSO_COLOR || getCourseColor(String(r.ID_GRUPO_CURSO));
-    
+
     cellEvents[key] = {
       label:           r.CURSO_ASIGNADO || '',
       group:           `${r.CODIGO_GRUPO} - ${r.NOMBRE_GRUPO}`,
@@ -106,11 +126,12 @@ export const transformRecords = (records) => {
       color:           courseColor,
       idProgramacion:  r.ID_PROGRAMACION,
       idBloque:        r.ID_BLOQUE,
+      dia:             r.DIA,
       idGrupoCurso:    r.ID_GRUPO_CURSO
     };
   });
 
   const grupoNombre = `${first.CODIGO_GRUPO} - ${first.NOMBRE_GRUPO}`;
 
-  return { blocks, matrix, grupoNombre, cellEvents };
+  return { blocks, matrix, grupoNombre, cellEvents, columnDates };
 };

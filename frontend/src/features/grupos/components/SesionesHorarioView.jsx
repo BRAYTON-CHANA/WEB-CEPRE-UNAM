@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 
 const WEEKDAY_NAMES = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
 const MONTH_NAMES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
@@ -179,9 +179,24 @@ const buildSignature = (dayBlocks) => {
 /**
  * SesionesHorarioView — grilla tipo horario semanal.
  * La columna izquierda (time slots) viene de TODOS los bloques de la snapshot.
- * Las columnas se agrupan por weekday + patrón completo (ID_GRUPO_CURSO por slot + vacíos).
+ * Las columnas se agrupan por patrón completo de sesiones (ID_GRUPO_CURSO por
+ * slot + vacíos). Por defecto se fusionan días con el mismo patrón sin importar
+ * el weekday y las columnas se titulan DÍA 1, DÍA 2, ...; el checkbox
+ * "Agrupar por días de la semana" activado exige mismo día de la semana y
+ * las columnas pasan a titularse SÁBADO, DOMINGO, ...
  */
 function SesionesHorarioView({ sesiones, snapshotBloques }) {
+  const [agruparDias, setAgruparDias] = useState(() => {
+    try { return localStorage.getItem('sesiones-agrupar-dias') === '1'; }
+    catch { return false; }
+  });
+
+  const handleAgruparChange = (e) => {
+    const v = e.target.checked;
+    setAgruparDias(v);
+    try { localStorage.setItem('sesiones-agrupar-dias', v ? '1' : '0'); } catch {}
+  };
+
   const { columns, allTimeSlots } = useMemo(() => {
     if (!sesiones || sesiones.length === 0 || !snapshotBloques || snapshotBloques.length === 0) {
       return { columns: [], allTimeSlots: [] };
@@ -219,19 +234,21 @@ function SesionesHorarioView({ sesiones, snapshotBloques }) {
       dateInfos.push({ date, fechaStr, weekday, dayBlocks, sigKey });
     }
 
-    // 4. Agrupar por (weekday + firma)
+    // 4. Agrupar solo por firma (default) o por firma + weekday
     const grouped = new Map();
     for (const info of dateInfos) {
-      const groupKey = `${info.weekday}||${info.sigKey}`;
+      const groupKey = agruparDias ? `${info.weekday}||${info.sigKey}` : info.sigKey;
       if (!grouped.has(groupKey)) {
         grouped.set(groupKey, {
-          weekday: info.weekday,
+          weekdays: [],
           sigKey: info.sigKey,
           dates: [],
           blocks: info.dayBlocks
         });
       }
-      grouped.get(groupKey).dates.push(info.date);
+      const g = grouped.get(groupKey);
+      g.dates.push(info.date);
+      if (!g.weekdays.includes(info.weekday)) g.weekdays.push(info.weekday);
     }
 
     // 5. Construir columnas ordenadas por primera fecha
@@ -276,7 +293,7 @@ function SesionesHorarioView({ sesiones, snapshotBloques }) {
     }
 
     return { columns, allTimeSlots };
-  }, [sesiones, snapshotBloques]);
+  }, [sesiones, snapshotBloques, agruparDias]);
 
   if (!sesiones || sesiones.length === 0) {
     return (
@@ -301,6 +318,18 @@ function SesionesHorarioView({ sesiones, snapshotBloques }) {
   const findRun = (runs, slotIdx) => runs.find(r => slotIdx >= r.startSlot && slotIdx <= r.endSlot);
 
   return (
+    <div>
+      <div className="flex justify-end px-4 py-2 border-b border-gray-100">
+        <label className="inline-flex items-center gap-2 text-xs font-medium text-gray-600 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={agruparDias}
+            onChange={handleAgruparChange}
+            className="w-4 h-4 rounded border-gray-300 text-[#2D366F] focus:ring-[#2D366F] cursor-pointer"
+          />
+          Agrupar por días de la semana
+        </label>
+      </div>
     <div className="overflow-x-auto">
       <table className="w-full text-sm border-collapse">
         <thead>
@@ -314,7 +343,9 @@ function SesionesHorarioView({ sesiones, snapshotBloques }) {
                 className="bg-[#2D366F] text-white px-3 py-2 text-center border border-[#2D366F] min-w-[150px]"
               >
                 <div className="font-bold text-xs uppercase tracking-wider">
-                  {WEEKDAY_NAMES[col.weekday]}
+                  {agruparDias
+                    ? col.weekdays.map(w => WEEKDAY_NAMES[w]).join(' · ')
+                    : `DÍA ${idx + 1}`}
                 </div>
                 <div className="text-[10px] font-normal text-blue-200 mt-1 leading-tight whitespace-pre-line">
                   {col.dates.map(formatDateShort).join('\n')}
@@ -423,6 +454,7 @@ function SesionesHorarioView({ sesiones, snapshotBloques }) {
           })}
         </tbody>
       </table>
+    </div>
     </div>
   );
 }

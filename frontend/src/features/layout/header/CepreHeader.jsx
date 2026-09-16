@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/shared/context/AuthContext';
+import PeriodoSelector from './PeriodoSelector';
 import logo from '@/shared/assets/images/unam-logo.png';
 
 const CepreHeader = () => {
@@ -54,7 +55,7 @@ const CepreHeader = () => {
     <header className="bg-[#25346A] backdrop-blur border-b border-white/10 sticky top-0 z-50">
       <nav className="w-full px-3 sm:px-4 lg:px-5">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
+          {/* Logo + Periodo */}
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <Link to="/" className="flex items-center gap-3">
@@ -75,6 +76,11 @@ const CepreHeader = () => {
                 </div>
               </Link>
             </div>
+            {user && (
+              <div className="hidden md:block ml-6 pl-6 border-l border-white/15">
+                <PeriodoSelector />
+              </div>
+            )}
           </div>
 
           {/* Desktop Navigation */}
@@ -229,6 +235,7 @@ const CepreHeader = () => {
               </Link>
               {user && (
                 <div className="border-t border-white/10 pt-3 mt-2">
+                  <PeriodoSelector variant="mobile" onSelect={() => setIsMenuOpen(false)} />
                   <div className="px-4 pb-3">
                     <div className="flex items-center gap-3 mb-3">
                       <span className="w-10 h-10 rounded-full bg-white/20 text-white text-sm font-bold flex items-center justify-center">

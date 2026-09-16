@@ -4,9 +4,11 @@ import { db } from '@/shared/api';
 /**
  * Hook para obtener datos de una tabla específica
  * @param {string} tableName - Nombre de la tabla
+ * @param {Object|Array} filters - Filtros para db.select
+ * @param {string[]|null} fields - Columnas a traer (null = todas)
  * @returns {Object} - records, loading, error y refresh
  */
-export function useTableData(tableName, filters = {}) {
+export function useTableData(tableName, filters = {}, fields = null) {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -22,7 +24,7 @@ export function useTableData(tableName, filters = {}) {
     setError(null);
 
     try {
-      const result = await db.select(tableName, filters);
+      const result = await db.select(tableName, filters, fields);
       const normalized = Array.isArray(result) ? result : (result || []);
       setRecords(normalized);
     } catch (err) {
@@ -31,7 +33,7 @@ export function useTableData(tableName, filters = {}) {
     } finally {
       setLoading(false);
     }
-  }, [tableName, JSON.stringify(filters)]);
+  }, [tableName, JSON.stringify(filters), JSON.stringify(fields)]);
 
   useEffect(() => {
     fetchData();

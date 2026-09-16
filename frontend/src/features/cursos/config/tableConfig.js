@@ -2,7 +2,7 @@
  * Configuración de tabla para Cursos (un solo nivel)
  */
 export const tableConfig = {
-  tableName: 'VW_CURSOS'
+  tableName: 'CURSOS'
 };
 
 /**

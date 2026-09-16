@@ -3,6 +3,7 @@ import { useTableData } from '../../crud/hooks/useTableData';
 import CrudHeader from '@/shared/components/crud/views/CrudHeader';
 import TableMultiLevel from './TableMultiLevel';
 import Toast from '@/shared/components/ui/Toast';
+import ErrorAlert from '@/shared/components/ui/ErrorAlert';
 import { db } from '@/shared/api';
 import cacheService from '@/shared/services/cacheService';
 
@@ -27,7 +28,10 @@ import cacheService from '@/shared/services/cacheService';
  * @param {number}   refreshTrigger  - Trigger externo para refrescar
  * @param {object}   headerProps     - Props para CrudHeader
  * @param {boolean}  externalLoading - Override loading cuando data es externa
- * @param {object}   tableProps      - Props extra para TableMultiLevel (onExpand, childrenData, etc.)
+ * @param {string|object} externalError - Error de carga externo (muestra banner con Reintentar → onRefreshExternal)
+ * @param {object}   tableProps      - Props extra para TableMultiLevel (onExpand, childrenData, sortable, etc.)
+ * @param {array}    searchFields    - Columnas para el buscador client-side (ej: ['NOMBRE', 'DESCRIPCION'])
+ * @param {string}   searchPlaceholder - Placeholder del input de búsqueda
  * @param {object}   toastProps      - Props extra para Toast (fontFamily, backgroundColor, etc.)
  */
 const TableMultiLevelEditable = forwardRef(function TableMultiLevelEditable({
@@ -48,7 +52,10 @@ const TableMultiLevelEditable = forwardRef(function TableMultiLevelEditable({
   refreshTrigger = 0,
   headerProps = {},
   externalLoading = false,
+  externalError = null,
   tableProps = {},
+  searchFields = null,
+  searchPlaceholder = 'Buscar...',
   toastProps = {},
   onRefreshExternal
 }, ref) {
@@ -63,7 +70,7 @@ const TableMultiLevelEditable = forwardRef(function TableMultiLevelEditable({
 
   const records = isExternal ? externalData : fetchedRecords;
   const loading  = isExternal ? externalLoading : fetchLoading;
-  const error    = isExternal ? null : fetchError;
+  const error    = isExternal ? externalError : fetchError;
 
   const [tableKey, setTableKey] = useState(0);
   const lastLoadingRef     = useRef(loading);
@@ -73,6 +80,7 @@ const TableMultiLevelEditable = forwardRef(function TableMultiLevelEditable({
   const [batchSaveError, setBatchSaveError] = useState(null);
   const [toast, setToast] = useState(null);
   const [optimisticOverrides, setOptimisticOverrides] = useState({});
+  const [searchInput, setSearchInput] = useState('');
 
   // Limpiar overrides cuando los datos cambian (create/edit/delete/refresh traen valores frescos)
   useEffect(() => {
@@ -90,6 +98,19 @@ const TableMultiLevelEditable = forwardRef(function TableMultiLevelEditable({
       return overrides ? { ...row, ...overrides } : row;
     });
   }, [records, optimisticOverrides, levelConfigs]);
+
+  // Búsqueda client-side: substring match sin acentos ni mayúsculas sobre searchFields
+  const normalizeSearch = (v) =>
+    String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+  const searchTerm = normalizeSearch(searchInput.trim());
+
+  const filteredRecords = useMemo(() => {
+    if (!searchTerm || !searchFields?.length) return displayRecords;
+    return displayRecords.filter(row =>
+      searchFields.some(field => normalizeSearch(row[field]).includes(searchTerm))
+    );
+  }, [displayRecords, searchFields, searchTerm]);
 
   const isBatchMode = saveMode === 'manual';
 
@@ -309,21 +330,11 @@ const TableMultiLevelEditable = forwardRef(function TableMultiLevelEditable({
       )}
 
       {error && (
-        <div className="bg-red-50 rounded-xl border border-red-100 p-4">
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-red-700 text-sm"><strong>Error:</strong> {error}</p>
-            <button
-              onClick={() => { if (!isExternal) refresh(); else if (onRefreshExternal) onRefreshExternal(); }}
-              disabled={loading}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-white border border-red-200 rounded-lg hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Reintentar
-            </button>
-          </div>
-        </div>
+        <ErrorAlert
+          error={error}
+          loading={loading}
+          onRetry={() => { if (!isExternal) refresh(); else if (onRefreshExternal) onRefreshExternal(); }}
+        />
       )}
 
       {batchSaveError && (
@@ -334,6 +345,39 @@ const TableMultiLevelEditable = forwardRef(function TableMultiLevelEditable({
 
       {levelConfigs.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
+          {searchFields?.length > 0 && (
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+              <div className="relative flex-1 max-w-sm">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder={searchPlaceholder}
+                  className="w-full pl-9 pr-8 py-2 border border-gray-300 rounded-md text-sm bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#25346A]/30 focus:border-[#25346A] transition-colors"
+                />
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchInput('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                    title="Limpiar búsqueda"
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              {searchTerm && (
+                <span className="text-xs text-gray-400 whitespace-nowrap">
+                  {filteredRecords.length} de {displayRecords.length}
+                </span>
+              )}
+            </div>
+          )}
           {loading ? (
             <div className="flex items-center justify-center py-16">
               <div className="inline-block w-6 h-6 border-2 border-gray-200 border-t-blue-600 rounded-full animate-spin mr-3" />
@@ -348,10 +392,19 @@ const TableMultiLevelEditable = forwardRef(function TableMultiLevelEditable({
               </div>
               <p className="text-gray-400 text-sm">No hay datos para mostrar</p>
             </div>
+          ) : filteredRecords.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                <svg className="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <p className="text-gray-400 text-sm">Sin resultados para «{searchInput.trim()}»</p>
+            </div>
           ) : (
             <TableMultiLevel
               key={tableKey}
-              data={displayRecords}
+              data={filteredRecords}
               levelConfigs={enhancedLevelConfigs}
               editingData={editingData}
               onCellChange={handleCellChange}

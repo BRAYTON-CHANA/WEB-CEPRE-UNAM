@@ -1,6 +1,6 @@
 /**
  * Configuración de formulario para DOCENTES
- * Formulario especial de 2 páginas:
+ * Formulario especial de 3 páginas:
  *   Página 1: Datos de usuario (seleccionar existente o crear/editar)
  *   Página 2: Datos de docente
  */
@@ -121,6 +121,7 @@ export const docenteDocenteFields = [
     ],
     colSpan: 1
   },
+
   {
     name: 'GRADO_ACADEMICO',
     type: 'select',
@@ -172,7 +173,7 @@ export const docenteDocenteFields = [
 // Todos los campos combinados (para compatibilidad)
 export const docentesFormFields = [...docenteUsuarioFields, ...docenteDocenteFields];
 
-// Layout multi-step: 2 páginas
+// Layout multi-step: 3 páginas
 export const docentesFormLayout = {
   type: 'multistep',
   pages: [

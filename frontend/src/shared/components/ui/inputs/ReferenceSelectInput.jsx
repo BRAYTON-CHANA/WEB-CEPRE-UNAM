@@ -134,6 +134,10 @@ const ReferenceSelectInput = React.memo(({
     return referenceFilters.map(filter => {
       if (typeof filter.value === 'string' && filter.value.includes('{')) {
         const processedValue = formatTemplate(filter.value, formData);
+        // emptyAsNull: template resuelto a vacío → filtrar IS NULL en vez de omitir el filtro
+        if (filter.emptyAsNull && (processedValue === '' || processedValue == null)) {
+          return { ...filter, op: 'is', value: null };
+        }
         return { ...filter, value: processedValue };
       }
       return filter;

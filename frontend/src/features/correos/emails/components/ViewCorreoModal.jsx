@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Modal from '@/shared/components/modal/views/Modal';
 import { formatList, formatDate, formatBytes } from '@/shared/utils';
-import { getAttachmentUrl } from '../services/emailsService';
+import { getAttachmentUrl, getCorreoDetalle } from '../services/emailsService';
 import {
   FileImageIcon,
   FilePdfIcon,
@@ -62,10 +62,33 @@ const getIconForFile = (adjunto) => {
 const ViewCorreoModal = ({ email, onClose }) => {
   const [downloadingId, setDownloadingId] = useState(null);
   const [downloadError, setDownloadError] = useState(null);
+  const [detalle, setDetalle] = useState(null);
+  const [loadingDetalle, setLoadingDetalle] = useState(false);
 
-  const adjuntos = useMemo(() => getAdjuntos(email?.ADJUNTOS), [email?.ADJUNTOS]);
+  // El listado no trae CUERPO_HTML/ADJUNTOS (egress); se cargan al abrir el modal.
+  // undefined = no traído; null/'' = traído pero vacío.
+  useEffect(() => {
+    setDetalle(null);
+    if (!email?.ID_CORREO || email.CUERPO_HTML !== undefined) return;
+    let cancelled = false;
+    setLoadingDetalle(true);
+    getCorreoDetalle(email.ID_CORREO)
+      .then((d) => { if (!cancelled) setDetalle(d); })
+      .catch((err) => {
+        console.error('[ViewCorreoModal] Error cargando detalle:', err);
+      })
+      .finally(() => { if (!cancelled) setLoadingDetalle(false); });
+    return () => { cancelled = true; };
+  }, [email?.ID_CORREO]);
+
+  const adjuntos = useMemo(
+    () => getAdjuntos(detalle?.ADJUNTOS ?? email?.ADJUNTOS),
+    [detalle?.ADJUNTOS, email?.ADJUNTOS]
+  );
 
   if (!email) return null;
+
+  const cuerpoHtml = detalle?.CUERPO_HTML ?? email.CUERPO_HTML;
 
   const handleDownload = async (adj, idx) => {
     setDownloadError(null);
@@ -161,10 +184,17 @@ const ViewCorreoModal = ({ email, onClose }) => {
           </div>
         )}
       </div>
-      <div
-        className="rich-text p-6 text-sm"
-        dangerouslySetInnerHTML={{ __html: email.CUERPO_HTML || '' }}
-      />
+      {loadingDetalle ? (
+        <div className="p-10 text-center">
+          <span className="inline-block w-5 h-5 border-2 border-gray-200 border-t-blue-600 rounded-full animate-spin mb-2" />
+          <p className="text-sm text-slate-500">Cargando contenido...</p>
+        </div>
+      ) : (
+        <div
+          className="rich-text p-6 text-sm"
+          dangerouslySetInnerHTML={{ __html: cuerpoHtml || '' }}
+        />
+      )}
     </Modal>
   );
 };

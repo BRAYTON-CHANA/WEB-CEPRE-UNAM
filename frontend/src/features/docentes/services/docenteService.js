@@ -215,7 +215,7 @@ export async function getTablasDocente(idDocente) {
 
 /**
  * Guarda el docente + 4 tablas hijas en una sola transacción SQL.
- * Usa fn_guardar_docente_completo (rollback automático si algo falla).
+ * Usa upsert_docente (rollback automático si algo falla).
  *
  * @param {Object} formData - Datos del formulario (página 2).
  * @param {number} idUsuario - ID_USUARIO ya guardado.
@@ -225,26 +225,22 @@ export async function getTablasDocente(idDocente) {
  * @returns {Promise<Object>} - { id_docente, filas_hijas }
  */
 export async function guardarDocenteCompleto(formData, idUsuario, idDocente, tablasData, archivosMetadata = {}) {
-  const p_docente = {
-    RUC: formData.RUC,
-    CONDICION_LABORAL: formData.CONDICION_LABORAL,
-    GRADO_ACADEMICO: formData.GRADO_ACADEMICO || '',
-    GRADO_ACADEMICO_DESCRIPCION: formData.GRADO_ACADEMICO_DESCRIPCION || '',
-    ACTIVO: formData.ACTIVO !== undefined ? formData.ACTIVO : true,
-    GRADO_ACADEMICO_STORAGE_PATH: archivosMetadata.grado?.path || '',
-    GRADO_ACADEMICO_FILENAME: archivosMetadata.grado?.filename || '',
-    GRADO_ACADEMICO_CONTENT_TYPE: archivosMetadata.grado?.contentType || '',
-    GRADO_ACADEMICO_TAMAÑO_BYTES: archivosMetadata.grado?.size ? String(archivosMetadata.grado.size) : '',
-    CONSTANCIA_SUNEDU_DRE_STORAGE_PATH: archivosMetadata.constancia?.path || '',
-    CONSTANCIA_SUNEDU_DRE_FILENAME: archivosMetadata.constancia?.filename || '',
-    CONSTANCIA_SUNEDU_DRE_CONTENT_TYPE: archivosMetadata.constancia?.contentType || '',
-    CONSTANCIA_SUNEDU_DRE_TAMAÑO_BYTES: archivosMetadata.constancia?.size ? String(archivosMetadata.constancia.size) : ''
-  };
-
-  const result = await db.executeFunction('fn_guardar_docente_completo', {
-    p_id_docente: idDocente || null,
+  const result = await db.executeFunction('upsert_docente', {
     p_id_usuario: idUsuario,
-    p_docente,
+    p_id_docente: idDocente || null,
+    p_ruc: formData.RUC,
+    p_condicion_laboral: formData.CONDICION_LABORAL,
+    p_grado_academico: formData.GRADO_ACADEMICO || null,
+    p_grado_academico_descripcion: formData.GRADO_ACADEMICO_DESCRIPCION || null,
+    p_docente_activo: formData.ACTIVO ?? null,
+    p_grado_academico_storage_path: archivosMetadata.grado?.path || null,
+    p_grado_academico_filename: archivosMetadata.grado?.filename || null,
+    p_grado_academico_content_type: archivosMetadata.grado?.contentType || null,
+    p_grado_academico_tamano_bytes: archivosMetadata.grado?.size || null,
+    p_constancia_sunedu_dre_storage_path: archivosMetadata.constancia?.path || null,
+    p_constancia_sunedu_dre_filename: archivosMetadata.constancia?.filename || null,
+    p_constancia_sunedu_dre_content_type: archivosMetadata.constancia?.contentType || null,
+    p_constancia_sunedu_dre_tamano_bytes: archivosMetadata.constancia?.size || null,
     p_formacion: tablasData.formacion || [],
     p_capacitaciones: tablasData.capacitaciones || [],
     p_idiomas: tablasData.idiomas || [],
@@ -260,15 +256,15 @@ export async function guardarDocenteCompleto(formData, idUsuario, idDocente, tab
 
 /**
  * Actualiza solo las 4 tablas hijas de un docente (sin tocar DOCENTES).
- * Usa fn_actualizar_tablas_docente (DELETE + INSERT en transacción).
+ * Usa upsert_docente con solo p_id_docente + tablas hijas.
  * Para el modal standalone de "Editar tablas relacionadas".
  *
  * @param {number} idDocente - ID_DOCENTE
  * @param {Object} tablasData - { formacion, capacitaciones, idiomas, experiencia }
  * @returns {Promise<Object>} - { id_docente, filas_hijas }
  */
-export async function actualizarTablasDocente(idDocente, tablasData) {
-  const result = await db.executeFunction('fn_actualizar_tablas_docente', {
+export async function upsertTablasHijasDocente(idDocente, tablasData) {
+  const result = await db.executeFunction('upsert_docente', {
     p_id_docente: idDocente,
     p_formacion: tablasData.formacion || [],
     p_capacitaciones: tablasData.capacitaciones || [],
@@ -298,4 +294,4 @@ export async function subirArchivosDocente(idUsuario, formData) {
   return { grado, constancia };
 }
 
-export default { guardarUsuarioDocente, guardarDocente, cargarUsuario, guardarDocenteCompleto, actualizarTablasDocente, subirArchivosDocente };
+export default { guardarUsuarioDocente, guardarDocente, cargarUsuario, guardarDocenteCompleto, upsertTablasHijasDocente, subirArchivosDocente };

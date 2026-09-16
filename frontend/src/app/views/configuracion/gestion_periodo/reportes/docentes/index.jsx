@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { ConfigLayout } from '@/features/layout';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
 import { useTableData } from '@/shared/components/crud/hooks/useTableData';
+import { usePeriodo } from '@/shared/context/PeriodoContext';
 import ExportOptionsModal from '@/features/configuracion/reportes/shared/ExportOptionsModal';
 import { exportDocenteToExcel, exportAllDocentesToExcel } from '@/features/configuracion/reportes/docentes/utils/exportDocenteToExcel';
 import { exportDocenteToPdf, exportAllDocentesToPdf } from '@/features/configuracion/reportes/docentes/utils/exportDocenteToPdf';
@@ -94,7 +95,7 @@ function DocenteCard({ row, onExportExcel, onExportPdf, exportingExcel, exportin
 }
 
 function ReportesDocentes() {
-  const [selectedPeriodo, setSelectedPeriodo] = useState('');
+  const { periodo: selectedPeriodo, setPeriodo: setSelectedPeriodo } = usePeriodo();
   const [search, setSearch]                   = useState('');
   const [page, setPage]                       = useState(1);
   const [exportModalPending, setExportModalPending]         = useState(null);
@@ -125,7 +126,7 @@ function ReportesDocentes() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated  = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-  const handlePeriodoChange = (_, value) => { setSelectedPeriodo(value); setPage(1); setSearch(''); };
+  const handlePeriodoChange = (_, value) => { setSelectedPeriodo(value ? Number(value) : null); setPage(1); setSearch(''); };
   const handleSearch = (e) => { setSearch(e.target.value); setPage(1); };
 
   const handleModalConfirm = async (opts) => {

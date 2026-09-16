@@ -60,6 +60,7 @@ export function useCursos() {
     tableRecords,
     loading,
     error,
+    refresh,
     cursosCrud,
     tableLevelConfigs,
     crudLevels,

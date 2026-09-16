@@ -1,6 +1,7 @@
 import React from 'react';
 import { CrudHeader } from '@/shared/components/crud';
 import { TableMultiLevel } from '@/shared/components/table';
+import ErrorAlert from '@/shared/components/ui/ErrorAlert';
 import { ConfigLayout } from '@/features/layout';
 import { headerProps } from '@/features/permisos/config/headerConfig';
 import { usePermisos } from '@/features/permisos/hooks/usePermisos';
@@ -10,7 +11,7 @@ import { usePermisos } from '@/features/permisos/hooks/usePermisos';
  * Catálogo de permisos agrupado por RECURSO.
  */
 function PermisosPanel() {
-  const { records, loading, error, tableLevelConfigs } = usePermisos();
+  const { records, loading, error, refresh, tableLevelConfigs } = usePermisos();
 
   return (
     <ConfigLayout>
@@ -29,11 +30,7 @@ function PermisosPanel() {
           </div>
         )}
 
-        {error && (
-          <div className="bg-red-50 rounded-xl border border-red-100 p-6">
-            <p className="text-red-700 text-sm"><strong>Error:</strong> {error.message}</p>
-          </div>
-        )}
+        <ErrorAlert error={error} loading={loading} onRetry={refresh} />
 
         {!loading && !error && (
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">

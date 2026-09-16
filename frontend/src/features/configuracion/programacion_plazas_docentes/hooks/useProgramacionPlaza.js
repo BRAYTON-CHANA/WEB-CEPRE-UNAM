@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { db } from '@/shared/api';
-import { transformRecords } from '../../programacion_grupo/config/transformers';
+import { transformRecords } from '../../../grupos/config/transformers';
 import { initialSelectorValues } from '../config/selectorConfig';
 
 export function useProgramacionPlaza() {
@@ -40,9 +40,8 @@ export function useProgramacionPlaza() {
     if (!idGrupo) return;
     setLoading(true);
     try {
-      const [records, fechasRaw, gruposPlaza] = await Promise.all([
+      const [records, gruposPlaza] = await Promise.all([
         db.select('VW_PROGRAMACION_GRUPO_COMPLETA', { ID_GRUPO: idGrupo }),
-        db.executeFunction('fn_calcular_fechas_matriz', { ID_GRUPO: idGrupo }).catch(() => []),
         idPlazaDocente && idPeriodo && idSede && idTurno
           ? db.executeFunction('fn_grupos_por_plaza', {
               p_id_plaza_docente: idPlazaDocente,
@@ -55,11 +54,12 @@ export function useProgramacionPlaza() {
 
       if (!records || records.length === 0) { resetPlantilla(); return; }
 
-      const { blocks, matrix: mat, grupoNombre: nombre, cellEvents: ce } = transformRecords(records);
+      const { blocks, matrix: mat, grupoNombre: nombre, cellEvents: ce, columnDates: colDates } = transformRecords(records);
       setCustomBlocks(blocks);
       setMatrix(mat);
       setGrupoNombre(nombre);
       setCellEvents(ce);
+      setColumnDates(colDates);
 
       const bMap = {};
       records.forEach(r => { bMap[r.BLOQUE_ORDEN] = r.ID_BLOQUE; });
@@ -70,22 +70,6 @@ export function useProgramacionPlaza() {
         ? gruposPlaza.find(g => String(g.ID_GRUPO) === String(idGrupo))
         : null;
       setIdGrupoPlanCurso(matchGrupo?.ID_GRUPO_PLAN_CURSO ?? null);
-
-      const colMap = {};
-      const rawArr = Array.isArray(fechasRaw) ? fechasRaw : (fechasRaw ? [fechasRaw] : []);
-      rawArr.forEach(r => {
-        const colIdx = (r.col ?? r.COL) - 1;
-        if (colIdx < 0) return;
-        if (!colMap[colIdx]) colMap[colIdx] = [];
-        const rawFecha = r.fecha ?? r.FECHA;
-        const [y, m, d] = String(rawFecha).split('-').map(Number);
-        const fechaLocal = new Date(y, m - 1, d);
-        const fechaStr = fechaLocal.toLocaleDateString('es-PE', { day: 'numeric', month: 'short' });
-        colMap[colIdx].push(fechaStr);
-      });
-      const maxCol = Math.max(...Object.keys(colMap).map(Number), -1);
-      const colDates = Array.from({ length: maxCol + 1 }, (_, i) => colMap[i] || []);
-      setColumnDates(colDates);
     } catch (err) {
       console.error('Error al cargar plantilla:', err);
       resetPlantilla();

@@ -6,7 +6,7 @@ import GruposGridInput from '@/features/grupos/components/GruposGridInput';
  * GruposBatchModal — modal de creación batch de grupos.
  *
  * Solo período es global (fijo del selector).
- * Horario, fechas y plan académico van por combinación sede×área dentro del grid.
+ * Turno (opcional), fechas y plan académico van por combinación sede×área dentro del grid.
  * Aula va por grupo individual dentro del grid.
  *
  * Props:
@@ -61,12 +61,8 @@ function GruposBatchModal({
         setValidationError(`La combinación ${c.NOMBRE_SEDE} × ${c.NOMBRE_AREA}: la fecha de término debe ser mayor que la de inicio`);
         return;
       }
-      // Validar cada grupo
+      // Validar cada grupo (turno es opcional)
       for (const g of (c.grupos || [])) {
-        if (!g.ID_HORARIO) {
-          setValidationError(`Un grupo en ${c.NOMBRE_SEDE} × ${c.NOMBRE_AREA} necesita un horario`);
-          return;
-        }
         if (!g.NOMBRE_GRUPO?.trim()) {
           setValidationError(`Un grupo en ${c.NOMBRE_SEDE} × ${c.NOMBRE_AREA} necesita un nombre`);
           return;
@@ -144,6 +140,7 @@ function GruposBatchModal({
           value={combos}
           onChange={(_, v) => setCombos(v)}
           disabled={submitting}
+          idPeriodo={selectedPeriodo}
         />
       </div>
     </Modal>

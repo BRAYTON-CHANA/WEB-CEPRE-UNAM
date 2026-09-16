@@ -421,6 +421,7 @@ export function useConvocatoriaDocumentos(activeCondicion) {
     clasificacionesRecords,
     loading,
     error,
+    refreshClasificaciones,
     // Data — level 2 (lazy loading)
     childrenData,
     childrenLoading,

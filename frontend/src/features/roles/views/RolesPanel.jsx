@@ -1,7 +1,7 @@
 import React from 'react';
 import { CrudMultiLevelManager, CrudHeader } from '@/shared/components/crud';
 import { TableMultiLevelEditable } from '@/shared/components/table';
-import { PermisosEditorModal } from '@/shared/components';
+import { PermisosEditorModal, SedesEditorModal } from '@/shared/components';
 import { ConfigLayout } from '@/features/layout';
 import { headerProps, getHeaderActions } from '@/features/roles/config/headerConfig';
 import { useRoles } from '@/features/roles/hooks/useRoles';
@@ -13,10 +13,12 @@ import { useRoles } from '@/features/roles/hooks/useRoles';
  */
 function RolesPanel() {
   const {
-    records, loading, error,
+    records, loading, error, refresh,
     rolesCrud, tableLevelConfigs, crudLevels,
     permisosModalOpen, permisosEditingRow, permisosSaving,
-    handleSavePermisos, handleClosePermisos
+    handleSavePermisos, handleClosePermisos,
+    sedesModalOpen, sedesEditingRow, sedesSaving,
+    handleSaveSedes, handleCloseSedes
   } = useRoles();
 
   return (
@@ -49,18 +51,16 @@ function RolesPanel() {
                 </div>
               )}
 
-              {error && (
-                <div className="bg-red-50 rounded-xl border border-red-100 p-6">
-                  <p className="text-red-700 text-sm"><strong>Error:</strong> {error.message}</p>
-                </div>
-              )}
-
-              {!loading && !error && (
+              {!loading && (
                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
                   <TableMultiLevelEditable
                     key={h.refreshTrigger}
                     data={records}
                     levelConfigs={enrichedLevelConfigs}
+                    externalError={error}
+                    onRefreshExternal={refresh}
+                    searchFields={['NOMBRE_ROL', 'DESCRIPCION']}
+                    searchPlaceholder="Buscar por nombre o descripción..."
                     saveMode="auto"
                     formatToastMessage={(recordId, field, newValue, primaryKey, rowData, header) =>
                       `${rowData?.NOMBRE_ROL || 'Rol'}: ${header?.label || field} → ${newValue ? 'Activo' : 'No activo'}`
@@ -77,7 +77,17 @@ function RolesPanel() {
                 selectedValues={(permisosEditingRow?.PERMISOS || []).map(p => p.id_permiso).filter(Boolean)}
                 onSave={handleSavePermisos}
                 loading={permisosSaving}
-              />            </div>
+              />
+
+              <SedesEditorModal
+                isOpen={sedesModalOpen}
+                onClose={handleCloseSedes}
+                title={sedesEditingRow?.NOMBRE_ROL ? `Sedes del rol: ${sedesEditingRow.NOMBRE_ROL}` : 'Asignar sedes al rol'}
+                selectedValues={(sedesEditingRow?.SEDES || []).map(s => s.id_sede).filter(Boolean)}
+                onSave={handleSaveSedes}
+                loading={sedesSaving}
+              />
+            </div>
           );
         }}
       </CrudMultiLevelManager>

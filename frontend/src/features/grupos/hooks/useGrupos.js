@@ -4,7 +4,9 @@ import { useMultiLevelFetch } from '@/shared/hooks/useMultiLevelFetch';
 import { getTableLevelConfigs, getGruposFlatConfig } from '@/features/grupos/config/tableConfig';
 import { grupoFormFields, grupoEditFormFields, grupoEditValidation, grupoEditModalConfig, grupoMultiStep, grupoValidation, grupoModalConfig, grupoFormLayout } from '@/features/grupos/config/formConfig';
 import { createGruposBatch } from '@/features/grupos/services/gruposService';
+import { usePeriodo } from '@/shared/context/PeriodoContext';
 import { db } from '@/shared/api';
+import cacheService from '@/shared/services/cacheService';
 
 /**
  * useGrupos — lógica de la página de Grupos.
@@ -19,20 +21,7 @@ export function useGrupos({ externalPeriodo, onExternalPeriodoChange, onVerCurso
     if (onExternalPeriodoChange) onExternalPeriodoChange(value);
     else setInternalPeriodo(value);
   };
-  const [periodos, setPeriodos] = useState([]);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const data = await db.select('PERIODOS', {});
-        if (mounted) setPeriodos(Array.isArray(data) ? data : []);
-      } catch {
-        if (mounted) setPeriodos([]);
-      }
-    })();
-    return () => { mounted = false; };
-  }, []);
+  const { periodos } = usePeriodo();
 
   const selectedPeriodoNombre = useMemo(() => {
     if (!selectedPeriodo) return '';
@@ -175,10 +164,25 @@ export function useGrupos({ externalPeriodo, onExternalPeriodoChange, onVerCurso
     });
   }, [selectedPeriodo, selectedSedeId, selectedIsVirtual]);
 
+  // ===== Regenerar asistencias del grupo (acción explícita, grupos activos) =====
+  const handleRegenerarAsistenciasGrupo = useCallback(async (idGrupos) => {
+    const ids = Array.isArray(idGrupos) ? idGrupos : [idGrupos];
+    try {
+      for (const id of ids) {
+        const result = await db.executeFunction('fn_regenerar_asistencias_grupo', { p_id_grupo: id });
+        console.log(`[useGrupos] Asistencias regeneradas grupo ${id}:`, result);
+      }
+      cacheService.invalidateAll();
+      await handleRefreshAll();
+    } catch (err) {
+      console.error('[useGrupos] Error regenerando asistencias de grupo:', err);
+    }
+  }, [handleRefreshAll]);
+
   // ===== Configs =====
   const tableLevelConfigs = useMemo(
-    () => getTableLevelConfigs(gruposCrud, handleAddGrupo, null, onVerCursos, onVerProgramacion),
-    [gruposCrud, handleAddGrupo, onVerCursos, onVerProgramacion]
+    () => getTableLevelConfigs(gruposCrud, handleAddGrupo, null, onVerCursos, onVerProgramacion, handleRegenerarAsistenciasGrupo),
+    [gruposCrud, handleAddGrupo, onVerCursos, onVerProgramacion, handleRegenerarAsistenciasGrupo]
   );
 
   // ===== Batch create =====
@@ -217,7 +221,7 @@ export function useGrupos({ externalPeriodo, onExternalPeriodoChange, onVerCurso
     ));
   }, []);
 
-  const flatTableConfig = useMemo(() => getGruposFlatConfig(gruposCrud, onVerCursos, onVerProgramacion), [gruposCrud, onVerCursos, onVerProgramacion]);
+  const flatTableConfig = useMemo(() => getGruposFlatConfig(gruposCrud, onVerCursos, onVerProgramacion, handleRegenerarAsistenciasGrupo), [gruposCrud, onVerCursos, onVerProgramacion, handleRegenerarAsistenciasGrupo]);
 
   const crudLevels = useMemo(() => [
     {

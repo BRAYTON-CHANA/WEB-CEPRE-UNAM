@@ -15,7 +15,7 @@ import { useSmtp } from '../hooks/useSmtp';
  */
 function SmtpPanel() {
   const {
-    tableRecords, loading, error,
+    tableRecords, loading, error, refresh,
     handleSaveSuccess,
     isCreateOpen, isEditOpen, selectedRecord,
     isDeleteOpen, rowToDelete, deleteLoading,
@@ -43,19 +43,15 @@ function SmtpPanel() {
           </div>
         )}
 
-        {error && (
-          <div className="bg-red-50 rounded-xl border border-red-100 p-6">
-            <p className="text-red-700 text-sm"><strong>Error:</strong> {error.message}</p>
-          </div>
-        )}
-
-        {!loading && !error && (
+        {!loading && (
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
             <TableMultiLevelEditable
               data={tableRecords}
               levelConfigs={tableLevelConfigs}
               saveMode="auto"
               externalLoading={loading}
+              externalError={error}
+              onRefreshExternal={refresh}
               onSaveSuccess={handleSaveSuccess}
             />
           </div>

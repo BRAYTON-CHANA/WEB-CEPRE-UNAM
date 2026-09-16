@@ -44,8 +44,12 @@ function GruposProgramacionPanel({
     deleteMode,
     selectedCells,
     selectedCurso,
+    draftAssignments,
     showTemplate,
     conflictError,
+    batchConflict,
+    batchResult,
+    coursesVersion,
     advertenciaHoras,
     estadisticasOpen,
     setSelectedCurso,
@@ -55,13 +59,21 @@ function GruposProgramacionPanel({
     handleCancelDelete,
     handleCellToggle,
     handleConfirmAdd,
+    handleRetryBatch,
+    handleCloseBatchConflict,
+    handleClearBatchResult,
+    handleClearDraft,
     handleCellDelete,
     handleClearConflict,
     handleClearAdvertencia,
     handleOpenEstadisticas,
     handleCloseEstadisticas,
     // Estado de activación (solo lectura)
-    grupoActivo
+    grupoActivo,
+    // Estado del turno del grupo
+    turnoNoConfigurado,
+    turnoInactivo,
+    turnoNombre
   } = useProgramacionGrupo({ sharedGrupo });
 
   // ===== Estado de sesiones (cuando grupo está activo) =====
@@ -159,11 +171,27 @@ function GruposProgramacionPanel({
     };
     loadCursos();
     return () => { cancelled = true; };
-  }, [sharedGrupo]);
+  }, [sharedGrupo, coursesVersion]);
 
   const stableFormData = useMemo(() => ({
     ID_GRUPO: sharedGrupo || ''
   }), [sharedGrupo]);
+
+  const displayCellEvents = useMemo(() => {
+    const events = { ...cellEvents };
+    Object.entries(draftAssignments || {}).forEach(([key, idGrupoCurso]) => {
+      const curso = grupoCursosData.find(item => String(item.ID_GRUPO_CURSO) === String(idGrupoCurso));
+      if (!curso) return;
+      events[key] = {
+        label: curso.NOMBRE_CURSO,
+        description: 'Pendiente de guardar',
+        color: curso.CURSO_COLOR || '#43B3C1',
+        idGrupoCurso: curso.ID_GRUPO_CURSO,
+        temporary: true
+      };
+    });
+    return events;
+  }, [cellEvents, draftAssignments, grupoCursosData]);
 
   // ===== Hook de sesiones manuales (modo activado) =====
   const sesionesManual = useSesionesManual({
@@ -676,8 +704,26 @@ function GruposProgramacionPanel({
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-2 text-sm text-gray-600">Cargando plantilla...</p>
             </div>
+          ) : turnoNoConfigurado ? (
+            <div className="p-12 bg-white rounded-xl border border-gray-200 shadow-sm text-center">
+              <svg className="mx-auto h-12 w-12 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="mt-3 text-gray-700 font-semibold">Turno no configurado</p>
+              <p className="mt-1 text-sm text-gray-400">
+                {grupoNombre ? `${grupoNombre} — ` : ''}El grupo no tiene un turno asignado. Edite el grupo y seleccione un turno para programar.
+              </p>
+            </div>
           ) : showTemplate ? (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
+              {turnoInactivo && (
+                <div className="flex items-center gap-2.5 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                  <svg className="w-4 h-4 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span>El turno{turnoNombre ? ` "${turnoNombre}"` : ''} está inactivo.</span>
+                </div>
+              )}
               <PlantillaToolbar
                 grupoNombre={grupoNombre}
                 selectionMode={selectionMode}
@@ -688,11 +734,13 @@ function GruposProgramacionPanel({
                 idGrupo={sharedGrupo}
                 stableFormData={stableFormData}
                 cellEvents={cellEvents}
+                draftAssignments={draftAssignments}
                 grupoCursosData={grupoCursosData}
                 onSetSelectedCurso={setSelectedCurso}
                 onStartAdd={handleStartAdd}
                 onCancelAdd={handleCancelAdd}
                 onConfirmAdd={handleConfirmAdd}
+                onClearDraft={handleClearDraft}
                 onStartDelete={handleStartDelete}
                 onCancelDelete={handleCancelDelete}
                 onShowEstadisticas={handleOpenEstadisticas}
@@ -700,7 +748,7 @@ function GruposProgramacionPanel({
               <ScheduleTemplate
                 blocks={customBlocks}
                 matrix={matrix}
-                cellEvents={cellEvents}
+                cellEvents={displayCellEvents}
                 columnDates={columnDates}
                 selectionMode={selectionMode}
                 deleteMode={deleteMode}
@@ -719,6 +767,66 @@ function GruposProgramacionPanel({
             </div>
           )}
         </>
+      )}
+
+      {batchConflict && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleCloseBatchConflict} />
+          <div className="relative flex max-h-[78vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex-shrink-0 border-b border-amber-200 bg-amber-50 px-6 py-4">
+              <h3 className="text-lg font-bold text-amber-800">Conflicto en el guardado</h3>
+              <p className="mt-1 text-sm text-gray-600">Se revirtieron las {batchConflict.total} asignaciones; no se insertó nada.</p>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">
+              {batchConflict.detail ? (
+                <div className="overflow-hidden rounded-lg border border-amber-200 bg-amber-50/30">
+                  <ConflictErrorDisplay error={batchConflict.detail} />
+                </div>
+              ) : (
+                <p className="max-h-40 overflow-auto whitespace-pre-wrap rounded-lg bg-gray-50 p-3 text-xs text-gray-600">{batchConflict.message}</p>
+              )}
+            </div>
+            <div className="flex flex-wrap justify-end gap-2 border-t border-gray-200 bg-gray-50 p-4">
+              <button onClick={handleCloseBatchConflict} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100">Cancelar y corregir</button>
+              <button onClick={handleRetryBatch} disabled={saving} className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50">{saving ? 'Guardando...' : 'Guardar omitiendo conflictos'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {batchResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={handleClearBatchResult} />
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="border-b border-emerald-200 bg-emerald-50 p-6">
+              <h3 className="text-lg font-bold text-emerald-800">Guardado completado</h3>
+            </div>
+            <div className="max-h-[65vh] overflow-y-auto p-6">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center"><strong className="block text-2xl text-emerald-700">{batchResult.insertadas || 0}</strong><span className="text-xs text-emerald-700">Insertadas</span></div>
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center"><strong className="block text-2xl text-amber-700">{batchResult.omitidas || 0}</strong><span className="text-xs text-amber-700">Omitidas</span></div>
+              </div>
+              {!!batchResult.errores?.length && (
+                <div className="mt-5 space-y-3">
+                  <h4 className="text-sm font-bold text-gray-800">Conflictos omitidos</h4>
+                  {batchResult.errores.map((error, index) => (
+                    <details key={`${error.id_grupo_curso}-${error.dia}-${error.bloque_orden}-${index}`} className="overflow-hidden rounded-lg border border-amber-200 bg-amber-50/30">
+                      <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-amber-800">
+                        Día {error.dia} · bloque {error.bloque_orden}
+                      </summary>
+                      {error.detalle ? (
+                        <ConflictErrorDisplay error={error.detalle} />
+                      ) : (
+                        <p className="whitespace-pre-wrap border-t border-amber-100 p-4 text-xs text-gray-600">{error.mensaje}</p>
+                      )}
+                    </details>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end border-t border-gray-200 bg-gray-50 p-4"><button onClick={handleClearBatchResult} className="rounded-lg bg-gray-900 px-5 py-2 text-sm font-semibold text-white hover:bg-gray-800">Entendido</button></div>
+          </div>
+        </div>
       )}
 
       {conflictError && (

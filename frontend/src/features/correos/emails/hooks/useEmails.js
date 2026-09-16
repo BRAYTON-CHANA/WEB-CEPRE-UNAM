@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTableData, useCrudForms } from '@/shared/components/crud';
-import { sendEmailById } from '../services/emailsService';
-import { tableConfig, getTableLevelConfigs } from '../config/tableConfig';
+import { sendEmailById, getCorreoDetalle } from '../services/emailsService';
+import { formatList } from '@/shared/utils';
+import { tableConfig, getTableLevelConfigs, CORREOS_LIST_FIELDS } from '../config/tableConfig';
 import {
   correosFormFields,
   correosMultiStep,
@@ -35,7 +36,7 @@ function msUntilNextCronRefresh() {
  * State + handlers + CRUD wiring + auto-refresh cron + composer/view/enviar.
  */
 export function useEmails() {
-  const { records, loading, error, refresh } = useTableData(tableConfig.tableName);
+  const { records, loading, error, refresh } = useTableData(tableConfig.tableName, {}, CORREOS_LIST_FIELDS);
   const refreshRef = useRef(refresh);
   refreshRef.current = refresh;
 
@@ -75,11 +76,58 @@ export function useEmails() {
   const [editPendienteOpen, setEditPendienteOpen] = useState(false);
   const [pendientesRefreshKey, setPendientesRefreshKey] = useState(0);
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('CREADO_EN');
+  const [sortOrder, setSortOrder] = useState('desc');
+
+  const displayRecords = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    let filtered = records || [];
+
+    if (q) {
+      filtered = filtered.filter((row) => {
+        const haystack = [
+          row.ASUNTO,
+          formatList(row.DESTINATARIOS),
+          formatList(row.CC),
+          formatList(row.BCC),
+          row.CUENTA_SMTP_NOMBRE,
+          row.CREADOR_NOMBRE || row.CREADO_POR,
+          row.ESTADO,
+          row.PRIORIDAD,
+          row.REMITENTE,
+        ].join(' ').toLowerCase();
+        return haystack.includes(q);
+      });
+    }
+
+    const sorted = [...filtered].sort((a, b) => {
+      const aVal = a[sortBy];
+      const bVal = b[sortBy];
+      if (!aVal && !bVal) return 0;
+      if (!aVal) return sortOrder === 'asc' ? -1 : 1;
+      if (!bVal) return sortOrder === 'asc' ? 1 : -1;
+      const aDate = new Date(aVal);
+      const bDate = new Date(bVal);
+      if (isNaN(aDate) || isNaN(bDate)) return 0;
+      return sortOrder === 'asc' ? aDate - bDate : bDate - aDate;
+    });
+
+    return sorted;
+  }, [records, searchTerm, sortBy, sortOrder]);
+
   const handleView = (row) => setViewEmail(row);
   const handleViewRecipients = (row) => setRecipientsEmail(row);
 
-  const handleEditComposer = (row) => {
-    setEditEmail(row);
+  const handleEditComposer = async (row) => {
+    let data = row;
+    try {
+      const detalle = await getCorreoDetalle(row.ID_CORREO);
+      if (detalle) data = { ...row, ...detalle };
+    } catch (err) {
+      console.error('[useEmails] Error cargando detalle del correo:', err);
+    }
+    setEditEmail(data);
     setComposerOpen(true);
   };
 
@@ -101,9 +149,16 @@ export function useEmails() {
   const handleOpenPendientesFromTable = () => setPendingView({ ids: null });
   const handleClosePendientes = () => setPendingView(null);
 
-  const handleOpenEditPendiente = (row) => {
+  const handleOpenEditPendiente = async (row) => {
     setComposerOpen(false);
-    setEditPendienteEmail(row);
+    let data = row;
+    try {
+      const detalle = await getCorreoDetalle(row.ID_CORREO);
+      if (detalle) data = { ...row, ...detalle };
+    } catch (err) {
+      console.error('[useEmails] Error cargando detalle del correo:', err);
+    }
+    setEditPendienteEmail(data);
     setEditPendienteOpen(true);
   };
 
@@ -146,9 +201,18 @@ export function useEmails() {
 
   return {
     records,
+    displayRecords,
     loading,
     error,
     refresh,
+    // Búsqueda y orden
+    searchTerm,
+    setSearchTerm,
+    sortBy,
+    setSortBy,
+    sortOrder,
+    setSortOrder,
+    // CRUD
     correosCrud,
     tableLevelConfigs,
     crudLevels,

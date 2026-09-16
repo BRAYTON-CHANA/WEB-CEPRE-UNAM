@@ -3,13 +3,14 @@ import { ConfigLayout } from '@/features/layout';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
 import TableMultiLevel from '@/shared/components/table/views/TableMultiLevel';
 import { useTableData } from '@/shared/components/crud/hooks/useTableData';
+import { usePeriodo } from '@/shared/context/PeriodoContext';
 import { exportSesionesToExcel, exportAllSesionesToExcel } from '@/features/configuracion/reportes/grupos/utils/exportSesionesToExcel';
 import { exportSesionesToPdf, exportAllSesionesToPdf } from '@/features/configuracion/reportes/grupos/utils/exportSesionesToPdf';
 import ExportOptionsModal from '@/features/configuracion/reportes/shared/ExportOptionsModal';
 import { levelConfigs } from '@/features/configuracion/reportes/grupos/config';
 
 function ReportesGrupos() {
-  const [selectedPeriodo, setSelectedPeriodo] = useState('');
+  const { periodo: selectedPeriodo, setPeriodo: setSelectedPeriodo } = usePeriodo();
   const [exportingAll, setExportingAll] = useState(false);
   const [exportProgress, setExportProgress] = useState({ current: 0, total: 0 });
   const [exportingIndividual, setExportingIndividual] = useState(null);
@@ -27,7 +28,7 @@ function ReportesGrupos() {
   );
 
   const handlePeriodoChange = (_, value) => {
-    setSelectedPeriodo(value);
+    setSelectedPeriodo(value ? Number(value) : null);
   };
 
   const handleExportIndividual = (row) => {
@@ -102,6 +103,7 @@ function ReportesGrupos() {
     <ConfigLayout>
       <ExportOptionsModal
         isOpen={!!exportModalPending}
+        mode="grupos"
         title={
           exportModalPending?.format === 'pdf'
             ? (exportModalPending?.type === 'all' ? 'Opciones — Exportar Todo PDF' : 'Opciones — Exportar PDF')

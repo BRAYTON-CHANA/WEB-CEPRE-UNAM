@@ -113,6 +113,7 @@ export function useHorarios() {
     records,
     loading,
     error,
+    refresh,
     horariosCrud,
     bloquesCrud,
     tableLevelConfigs,

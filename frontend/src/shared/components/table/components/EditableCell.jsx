@@ -143,9 +143,31 @@ const EditableCell = ({
     targetPrimaryKey, primaryKey, rowId, column.field, onSaveSuccess, onSaveError
   ]);
 
+  const runValidation = useCallback((newValue) => {
+    if (typeof column.validate === 'function') {
+      return column.validate(newValue, rowData);
+    }
+    return null;
+  }, [column.validate, rowData]);
+
+  const closeEditing = useCallback(() => {
+    setIsEditing(false);
+    if (onEditEnd) onEditEnd();
+  }, [onEditEnd]);
+
   const handleChange = useCallback(async (fieldName, newValue) => {
     const previousValue = value;
     console.log(`[EditableCell:${column.field}] 🖱️ handleChange iniciado`, { rowId, previousValue, newValue, hasAutoSave, hasEditFunction: !!editFunction, saveMode });
+
+    // Validación declarativa antes de guardar
+    const validationError = runValidation(newValue);
+    if (validationError) {
+      console.log(`[EditableCell:${column.field}] 🚫 Validación fallida:`, validationError);
+      setSaveError(validationError);
+      closeEditing();
+      return;
+    }
+    setSaveError(null);
 
     // Intercept: si hay confirmBeforeSave y el nuevo valor coincide con whenValue, mostrar modal
     if (column.confirmBeforeSave && newValue === column.confirmBeforeSave.whenValue) {
@@ -197,11 +219,19 @@ const EditableCell = ({
       closeEditing();
     }
     console.log(`[EditableCell:${column.field}] 🏁 handleChange finalizado`);
-  }, [rowId, column.field, value, onCellChange, editFunction, hasAutoSave, executeSave, saveMode]);
+  }, [rowId, column.field, value, onCellChange, editFunction, hasAutoSave, executeSave, saveMode, runValidation, closeEditing]);
 
   // ===== Handlers de confirmación (confirmBeforeSave) =====
   const handleConfirmSave = useCallback(async () => {
     const previousValue = value;
+    const validationError = runValidation(pendingValue);
+    if (validationError) {
+      setSaveError(validationError);
+      setShowConfirm(false);
+      setPendingValue(null);
+      return;
+    }
+    setSaveError(null);
     setShowConfirm(false);
     if (!editFunction) {
       onCellChange(rowId, column.field, pendingValue);
@@ -223,7 +253,7 @@ const EditableCell = ({
       }
     }
     setPendingValue(null);
-  }, [pendingValue, value, editFunction, onCellChange, rowId, column.field, hasAutoSave, saveMode, executeSave]);
+  }, [pendingValue, value, editFunction, onCellChange, rowId, column.field, hasAutoSave, saveMode, executeSave, runValidation]);
 
   const handleCancelConfirm = useCallback(() => {
     setShowConfirm(false);
@@ -238,11 +268,6 @@ const EditableCell = ({
       if (onEditStart) onEditStart(cellId);
     }
   };
-
-  const closeEditing = useCallback(() => {
-    setIsEditing(false);
-    if (onEditEnd) onEditEnd();
-  }, [onEditEnd]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') closeEditing();
@@ -352,12 +377,15 @@ const EditableCell = ({
             />
           )}
           {saveError && (
-            <span
-              title={saveError}
-              className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white text-[10px] cursor-help"
-            >
-              !
-            </span>
+            <>
+              <span
+                title={saveError}
+                className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white text-[10px] cursor-help"
+              >
+                !
+              </span>
+              <div className="text-xs text-red-500 mt-1 max-w-[180px] leading-tight">{saveError}</div>
+            </>
           )}
           {showConfirm && column.confirmBeforeSave && createPortal(
             <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">

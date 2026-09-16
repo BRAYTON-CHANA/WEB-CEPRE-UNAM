@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ConfigLayout } from '@/features/layout';
+import { usePeriodo } from '@/shared/context/PeriodoContext';
 import GruposPanel from '@/features/grupos/views/GruposPanel';
 import GruposCursosPanel from '@/features/grupos/views/GruposCursosPanel';
 import GruposProgramacionPanel from '@/features/grupos/views/GruposProgramacionPanel';
@@ -15,7 +16,7 @@ import GruposBreadcrumb from '@/features/grupos/components/GruposBreadcrumb';
  */
 function GruposConfig() {
   const [view, setView] = useState('grupos');
-  const [sharedPeriodo, setSharedPeriodo] = useState('');
+  const { periodo: sharedPeriodo, setPeriodo: setSharedPeriodo } = usePeriodo();
   const [sharedModalidad, setSharedModalidad] = useState('');
   const [sharedSede, setSharedSede] = useState('');
   const [sharedGrupo, setSharedGrupo] = useState('');

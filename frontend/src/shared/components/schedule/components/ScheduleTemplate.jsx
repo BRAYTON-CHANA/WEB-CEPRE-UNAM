@@ -258,7 +258,7 @@ const ScheduleTemplate = ({
                     const cellKey = getCellKey(colIndex, block.orden);
                     const event = cellEvents[cellKey];
                     const isSelected = selectedCells.has(cellKey);
-                    const canClick = selectionMode && !event;
+                    const canClick = selectionMode && (!event || event.temporary);
                     return (
                       <td
                         key={colIndex}
@@ -275,11 +275,11 @@ const ScheduleTemplate = ({
                             className="absolute inset-0 flex flex-col items-center justify-center px-2 py-1 text-black shadow-md z-10"
                             style={{
                               backgroundColor: hexToRgba(event.color, 0.25),
-                              border: '2px solid rgba(0,0,0,0.55)',
+                              border: event.temporary ? '2px dashed rgba(5, 150, 105, 0.9)' : '2px solid rgba(0,0,0,0.55)',
                               backdropFilter: 'blur(4px)'
                             }}
                           >
-                            {onCellDelete && (
+                            {onCellDelete && !event.temporary && (
                               <button
                                 onClick={(e) => handleDeleteClick(e, event)}
                                 className={[
@@ -296,6 +296,9 @@ const ScheduleTemplate = ({
                             <span className="text-xs font-bold text-center whitespace-normal break-words leading-tight text-black">
                               {event.label}
                             </span>
+                            {event.temporary && (
+                              <span className="mt-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">Pendiente</span>
+                            )}
                             {event.group && (
                               <span className="text-[10px] text-center whitespace-normal break-words leading-tight text-black/70 mt-0.5">
                                 {event.group}
