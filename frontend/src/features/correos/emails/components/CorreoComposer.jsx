@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthContext } from '@/shared/context/AuthContext';
 import { createDraft, updateEmail, saveMassDraft } from '../services/emailsService';
+import { buildAdjuntosDocentes } from '../utils/adjuntosDocentes';
 import { useComposerData } from '@/shared/hooks/correos/useComposerData';
 import { useAdjuntos } from '@/shared/hooks/correos/useAdjuntos';
 import { useRecipients } from '@/shared/hooks/correos/useRecipients';
@@ -9,8 +10,19 @@ import { MASIVO_VIEWS } from '@/shared/constants/correos/composer';
 import { hasCuerpoContent } from '@/shared/utils/emailUtils';
 import CorreoEditor from '@/shared/components/correos/editor/CorreoEditor';
 import RecipientInput from '@/shared/components/correos/RecipientInput';
+import ExportOptionsModal from '@/features/reportes/shared/ExportOptionsModal';
 
 let nextAdjId = 1000;
+
+// Defaults para el horario adjunto a docentes: solo hora y nombre
+// (código de área y plaza docente desactivados).
+const DOCENTE_ADJ_OPTS_DEFAULT = {
+  showCodigo: false,
+  showDocente: false,
+  showHorario: true,
+  showNombreDocente: true,
+  agruparDias: false,
+};
 
 const parseAdjuntos = (value) => {
   if (!value) return [];
@@ -63,6 +75,18 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
   const [error, setError] = useState(null);
   const [dirty, setDirty] = useState(false);
   const [selectedView, setSelectedView] = useState('');
+  const [adjFormatos, setAdjFormatos] = useState([]);
+  const [genProgress, setGenProgress] = useState(null);
+  const [adjOpts, setAdjOpts] = useState(null);
+  const [adjOptsModalOpen, setAdjOptsModalOpen] = useState(false);
+  const adjOptsResolver = React.useRef(null);
+
+  // Abre el modal de opciones del horario adjunto y espera la elección.
+  // Resuelve las opciones confirmadas o null si el usuario cancela.
+  const askAdjOpts = () => new Promise((resolve) => {
+    adjOptsResolver.current = resolve;
+    setAdjOptsModalOpen(true);
+  });
 
   // ── Modo edición: cargar datos del correo cuando se abre ──────────────────
   useEffect(() => {
@@ -100,6 +124,7 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
       clearRecipients();
       setCuerpo('');
       setSelectedView('');
+      setAdjFormatos([]);
     }
     setPersonalizado(newValue);
     setCrearPorDestinatario(newValue);
@@ -120,6 +145,7 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
     setAsunto('');
     setCuerpo('');
     setSelectedView(newView);
+    setAdjFormatos([]);
     setDirty(true);
   };
 
@@ -181,12 +207,33 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
         generatedIds = [result?.[0]?.ID_CORREO].filter(Boolean);
       } else if (crearPorDestinatario) {
         // Generación individual; con merge fields únicamente en modo personalizado.
-        const recipients = para.map(p => ({
+        let recipients = para.map(p => ({
           id: p.id,
           email: p.email,
           label: p.label,
           rowData: p.rowData || {},
         }));
+
+        // Adjuntos personalizados (ej. horario del docente) si el view lo soporta.
+        if (personalizado && viewConfig?.adjuntosPersonalizados && adjFormatos.length > 0) {
+          // Pedir opciones de contenido antes de generar (aplica a PDF y Excel).
+          const opts = await askAdjOpts();
+          if (!opts) return; // usuario canceló — abortar generación
+          setAdjOpts(opts);
+          setGenProgress({ current: 0, total: recipients.length });
+          const { adjuntosPorDestinatario } = await buildAdjuntosDocentes(
+            recipients,
+            adjFormatos,
+            (current, total) => setGenProgress({ current, total }),
+            opts
+          );
+          recipients = recipients.map(r => ({
+            ...r,
+            adjuntos: adjuntosPorDestinatario.get(r.id) || [],
+          }));
+          setGenProgress(null);
+        }
+
         const result = await saveMassDraft({
           personalizado,
           viewName: personalizado ? viewConfig?.view : null,
@@ -226,6 +273,8 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
       setCrearPorDestinatario(false);
       setCuenta('');
       setSelectedView('');
+      setAdjFormatos([]);
+      setGenProgress(null);
       clearRecipients();
       setAsunto('');
       setCuerpo('');
@@ -265,7 +314,9 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
               {loading && (
                 <div className="mt-3 flex items-center gap-2 text-sm text-[#25346A]">
                   <span className="inline-block w-4 h-4 border-2 border-[#25346A] border-t-transparent rounded-full animate-spin" />
-                  Generando correos, por favor espera...
+                  {genProgress
+                    ? `Generando adjuntos ${genProgress.current}/${genProgress.total}...`
+                    : 'Generando correos, por favor espera...'}
                 </div>
               )}
             </div>
@@ -484,6 +535,46 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
                   mergeMenuLabel={esMasivo ? `Campos de ${viewConfig?.label || 'view'}` : null}
                 />
                 </div>
+
+                {esMasivo && viewConfig?.adjuntosPersonalizados && (
+                  <div className="rounded-2xl border border-indigo-200 bg-indigo-50/60 px-5 py-4">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 mt-0.5 text-indigo-500 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-slate-800">{viewConfig.adjuntosPersonalizados.titulo}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">{viewConfig.adjuntosPersonalizados.descripcion}</p>
+                        <div className="mt-2.5 flex flex-wrap gap-2">
+                          {viewConfig.adjuntosPersonalizados.formats.map((f) => {
+                            const checked = adjFormatos.includes(f.id);
+                            return (
+                              <label
+                                key={f.id}
+                                className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                                  checked
+                                    ? 'border-indigo-400 bg-indigo-100 text-indigo-800'
+                                    : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => {
+                                    setAdjFormatos(prev => checked ? prev.filter(x => x !== f.id) : [...prev, f.id]);
+                                    setDirty(true);
+                                  }}
+                                  className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                {f.label}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </fieldset>
               </section>
             </div>
@@ -505,10 +596,27 @@ const CorreoComposer = ({ onBack, onSuccess, editMode = false, editData = null }
             disabled={loading}
             className="w-full sm:w-auto px-5 py-2.5 bg-[#25346A] text-white rounded-xl text-sm font-medium hover:bg-[#1c2753] disabled:opacity-50 transition-colors shadow-sm"
           >
-            {loading ? 'Generando...' : 'Generar correos'}
+            {loading ? (genProgress ? `Adjuntos ${genProgress.current}/${genProgress.total}...` : 'Generando...') : 'Generar correos'}
           </button>
         </footer>
         </form>
+
+        <ExportOptionsModal
+          isOpen={adjOptsModalOpen}
+          mode="docentes"
+          title="Contenido del horario adjunto"
+          initialOptions={adjOpts || DOCENTE_ADJ_OPTS_DEFAULT}
+          onConfirm={(opts) => {
+            adjOptsResolver.current?.(opts);
+            adjOptsResolver.current = null;
+            setAdjOptsModalOpen(false);
+          }}
+          onCancel={() => {
+            adjOptsResolver.current?.(null);
+            adjOptsResolver.current = null;
+            setAdjOptsModalOpen(false);
+          }}
+        />
       </div>
     </div>
   );

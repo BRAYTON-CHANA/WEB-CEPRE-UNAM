@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+
+const PAGE_SIZE = 100;
 
 function PorcentajeBadge({ pct }) {
   if (pct === null || pct === undefined) {
@@ -43,6 +45,15 @@ function JustificadoBadge({ pct }) {
 }
 
 export function TablaEstudiantes({ estudiantes, loading, onVerAsistencia, mostrarGrupo = false }) {
+  const [page, setPage] = useState(1);
+
+  // Reset a la página 1 cuando cambia la lista (filtros/grupo/período)
+  useEffect(() => { setPage(1); }, [estudiantes]);
+
+  const totalPages = Math.max(1, Math.ceil(estudiantes.length / PAGE_SIZE));
+  const paginated = estudiantes.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const offset = (page - 1) * PAGE_SIZE;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -81,10 +92,10 @@ export function TablaEstudiantes({ estudiantes, loading, onVerAsistencia, mostra
           </tr>
         </thead>
         <tbody>
-          {estudiantes.map((est, idx) => (
+          {paginated.map((est, idx) => (
             <tr key={est.ID_POSTULANTE} className="border-b border-gray-50 hover:bg-slate-50 transition-colors">
               <td className="px-4 py-3.5 whitespace-nowrap">
-                <span className="text-xs font-mono text-gray-300 select-none">{String(idx + 1).padStart(2, '0')}</span>
+                <span className="text-xs font-mono text-gray-300 select-none">{String(offset + idx + 1).padStart(2, '0')}</span>
               </td>
               <td className="px-4 py-3.5 whitespace-nowrap">
                 <span className="font-semibold text-gray-800">{est.APELLIDOS}, {est.NOMBRES}</span>
@@ -144,6 +155,30 @@ export function TablaEstudiantes({ estudiantes, loading, onVerAsistencia, mostra
           ))}
         </tbody>
       </table>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100 bg-gray-50/50">
+          <p className="text-xs text-gray-500">
+            Página {page} de {totalPages} · mostrando {paginated.length} de {estudiantes.length}
+          </p>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              ‹ Anterior
+            </button>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Siguiente ›
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

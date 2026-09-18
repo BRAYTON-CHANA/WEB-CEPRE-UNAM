@@ -6,6 +6,7 @@ import { SedeTabs } from '@/features/asistencias/grupos/components/SedeTabs';
 import { db } from '@/shared/api';
 import { exportRegistroGrupo, exportRegistroSedEstudiantes } from '@/features/asistencias/reportes/estudiantes/utils/exportRegistroEstudiantes';
 import { ModalSeleccionFechas } from '@/features/asistencias/reportes/estudiantes/components/ModalSeleccionFechas';
+import { SEDE_VIRTUAL, sedeKey } from '@/features/asistencias/shared/utils/sedeVirtual';
 
 const selectAll = async (table, filters = {}) => {
   const PAGE_SIZE = 1000;
@@ -61,7 +62,7 @@ function ReportesEstudiantes() {
 
         const gruposEnriquecidos = gruposList.map(g => ({
           ...g,
-          NOMBRE_SEDE:  sedesMap.get(g.ID_SEDE)?.NOMBRE_SEDE  || `Sede ${g.ID_SEDE}`,
+          NOMBRE_SEDE:  g.ID_SEDE == null ? 'Virtual' : (sedesMap.get(g.ID_SEDE)?.NOMBRE_SEDE  || `Sede ${g.ID_SEDE}`),
           NOMBRE_TURNO: turnosMap.get(g.ID_TURNO)?.NOMBRE_TURNO || '',
           NOMBRE_AREA:  areasMap.get(g.ID_AREA)?.NOMBRE_AREA   || '',
         }));
@@ -74,17 +75,23 @@ function ReportesEstudiantes() {
           return a.NOMBRE_SEDE.localeCompare(b.NOMBRE_SEDE);
         });
 
-        setSedes(sedesOrdenadas);
+        // Agregar tab Virtual si hay grupos sin sede (ID_SEDE null)
+        const hayVirtual = gruposEnriquecidos.some(g => g.ID_SEDE == null);
+        const sedesConVirtual = hayVirtual
+          ? [...sedesOrdenadas, { ID_SEDE: SEDE_VIRTUAL, NOMBRE_SEDE: 'Virtual' }]
+          : sedesOrdenadas;
+
+        setSedes(sedesConVirtual);
         setGrupos(gruposEnriquecidos);
 
         const conteo = {};
-        sedesOrdenadas.forEach(sede => {
-          conteo[sede.ID_SEDE] = gruposEnriquecidos.filter(g => g.ID_SEDE === sede.ID_SEDE).length;
+        sedesConVirtual.forEach(sede => {
+          conteo[sede.ID_SEDE] = gruposEnriquecidos.filter(g => sedeKey(g.ID_SEDE) === sede.ID_SEDE).length;
         });
         setConteoPorSede(conteo);
 
-        if (sedesOrdenadas.length > 0 && !sedeActiva) {
-          setSedeActiva(sedesOrdenadas[0].ID_SEDE);
+        if (sedesConVirtual.length > 0 && !sedeActiva) {
+          setSedeActiva(sedesConVirtual[0].ID_SEDE);
         }
       })
       .catch(console.error)
@@ -92,7 +99,7 @@ function ReportesEstudiantes() {
   }, [periodoActivo]);
 
   const sedeActual = sedes.find(s => s.ID_SEDE === sedeActiva);
-  const gruposFiltrados = grupos.filter(g => g.ID_SEDE === sedeActiva);
+  const gruposFiltrados = grupos.filter(g => sedeKey(g.ID_SEDE) === sedeActiva);
 
   const handleExportGrupo = async (grupo) => {
     setExportandoGrupo(grupo.ID_GRUPO);
@@ -145,7 +152,7 @@ function ReportesEstudiantes() {
   };
 
   return (
-    <CepreLayout>
+    <CepreLayout showSidebar>
       {modalGrupo && (
         <ModalSeleccionFechas
           grupo={modalGrupo}

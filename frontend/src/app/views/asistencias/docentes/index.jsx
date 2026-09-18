@@ -7,6 +7,7 @@ import { SedeTabs } from '@/features/asistencias/grupos/components/SedeTabs';
 import { DocentesGrid } from '@/features/asistencias/docentes/components/DocentesGrid';
 import { VistaDocente } from '@/features/asistencias/docentes/components/VistaDocente';
 import { db } from '@/shared/api';
+import { SEDE_VIRTUAL, sedeKey } from '@/features/asistencias/shared/utils/sedeVirtual';
 
 function AsistenciasDocentes() {
   const { periodos, periodoActivo, setPeriodoActivo, loading: loadingPeriodos } = usePeriodos();
@@ -30,27 +31,33 @@ function AsistenciasDocentes() {
     setLoadingSedes(true);
     Promise.all([
       db.select('SEDES', { ACTIVO: true }),
-      db.select('PLAZA_DOCENTE', { ID_PERIODO: periodoActivo, ACTIVO: true })
+      db.select('VW_PLAZA_DOCENTE', { ID_PERIODO: periodoActivo, PLAZA_ACTIVO: true })
     ])
       .then(([sedesData, plazasData]) => {
         const sedesList = sedesData || [];
         const plazas = plazasData || [];
 
-        setSedes(sedesList);
+        // Agregar tab Virtual si hay plazas sin sede (ID_SEDE null)
+        const hayVirtual = plazas.some(p => p.ID_SEDE == null && p.ID_DOCENTE);
+        const sedesConVirtual = hayVirtual
+          ? [...sedesList, { ID_SEDE: SEDE_VIRTUAL, NOMBRE_SEDE: 'Virtual' }]
+          : sedesList;
 
-        // Calcular docentes únicos por sede
+        setSedes(sedesConVirtual);
+
+        // Calcular docentes únicos por sede (plazas sin sede → Virtual)
         const docentesPorSede = {};
-        sedesList.forEach(sede => {
+        sedesConVirtual.forEach(sede => {
           const docentesUnicos = new Set();
           plazas
-            .filter(p => p.ID_SEDE === sede.ID_SEDE && p.ID_DOCENTE)
+            .filter(p => sedeKey(p.ID_SEDE) === sede.ID_SEDE && p.ID_DOCENTE)
             .forEach(p => docentesUnicos.add(p.ID_DOCENTE));
           docentesPorSede[sede.ID_SEDE] = docentesUnicos.size;
         });
         setConteoPorSede(docentesPorSede);
 
-        if (sedesList.length > 0 && !sedeActiva) {
-          setSedeActiva(sedesList[0].ID_SEDE);
+        if (sedesConVirtual.length > 0 && !sedeActiva) {
+          setSedeActiva(sedesConVirtual[0].ID_SEDE);
         }
       })
       .catch(() => {
@@ -68,7 +75,7 @@ function AsistenciasDocentes() {
   const periodoNombre = periodos.find(p => p.ID_PERIODO === periodoActivo)?.NOMBRE_PERIODO ?? '';
 
   return (
-    <CepreLayout>
+    <CepreLayout showSidebar>
       <div className="min-h-screen py-10" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
         <div className="max-w-screen-2xl mx-auto px-6">
 

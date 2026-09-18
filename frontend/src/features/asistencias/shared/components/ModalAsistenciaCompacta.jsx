@@ -1,16 +1,9 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { db } from '@/shared/api';
 import { useAsistenciasPorDia } from '../hooks/useAsistenciasPorDia';
+import { EstadoAsistenciaSelect, ESTADOS_ASISTENCIA } from './EstadoAsistenciaSelect';
 import FormConfirmModal from '@/shared/components/form/components/FormConfirmModal';
 import { Modal } from '@/shared/components/modal';
-
-const ESTADOS = [
-  { value: null,         label: '—',  fullLabel: 'Sin marcar',  cls: 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200' },
-  { value: 'ASISTIO',    label: 'A',  fullLabel: 'Asistió',     cls: 'bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-200' },
-  { value: 'TARDANZA',   label: 'T',  fullLabel: 'Tardanza',    cls: 'bg-amber-100 text-amber-700 border-amber-300 hover:bg-amber-200' },
-  { value: 'FALTA',      label: 'F',  fullLabel: 'Falta',       cls: 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200' },
-  { value: 'JUSTIFICADO', label: 'J',  fullLabel: 'Justificado', cls: 'bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200' },
-];
 
 function formatHora(horaStr) {
   if (!horaStr) return '—';
@@ -22,94 +15,6 @@ function abreviarCurso(nombre) {
   if (!nombre) return '—';
   if (nombre.length <= 12) return nombre;
   return nombre.substring(0, 10) + '…';
-}
-
-function EstadoSelectCompacto({ value, onChange }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const buttonRef = useRef(null);
-  const estadoActual = ESTADOS.find(e => e.value === value) || ESTADOS[0];
-
-  // Close on click outside
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (buttonRef.current && !buttonRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen]);
-
-  // Close on escape key
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') setIsOpen(false);
-    };
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      return () => document.removeEventListener('keydown', handleEscape);
-    }
-  }, [isOpen]);
-
-  return (
-    <div className="relative inline-block" ref={buttonRef}>
-      {/* Trigger Button */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-10 h-8 rounded-lg text-sm font-bold border flex items-center justify-center gap-0.5 transition-all hover:scale-105 active:scale-95 shadow-sm ${estadoActual.cls}`}
-        title={estadoActual.fullLabel}
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-      >
-        <span>{estadoActual.label}</span>
-        <svg 
-          className={`w-3 h-3 opacity-60 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {/* Dropdown Menu */}
-      {isOpen && (
-        <div 
-          className="absolute z-50 mt-1 bg-white rounded-xl shadow-2xl border border-gray-200 py-1.5 min-w-[150px] animate-in fade-in slide-in-from-top-1 duration-150 origin-top"
-          role="listbox"
-        >
-          {ESTADOS.map((e) => (
-            <button
-              key={e.value ?? '__null__'}
-              type="button"
-              onClick={() => {
-                onChange(e.value);
-                setIsOpen(false);
-              }}
-              className={`w-full px-3 py-2 text-left text-sm flex items-center gap-3 hover:bg-gray-50 transition-colors ${
-                value === e.value ? 'bg-gray-50 font-semibold' : ''
-              }`}
-              role="option"
-              aria-selected={value === e.value}
-            >
-              <span className={`w-7 h-7 rounded-md text-xs font-bold border flex items-center justify-center shadow-sm ${e.cls}`}>
-                {e.label}
-              </span>
-              <span className="text-gray-700 whitespace-nowrap">{e.fullLabel}</span>
-              {value === e.value && (
-                <svg className="w-4 h-4 text-gray-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }
 
 export function ModalAsistenciaCompacta({ fecha, grupo, onClose, onSuccess }) {
@@ -387,7 +292,7 @@ export function ModalAsistenciaCompacta({ fecha, grupo, onClose, onSuccess }) {
                           const idAsistencia = getIdAsistencia(est.ID_POSTULANTE, sesion.ID_SESION);
                           return (
                             <td key={sesion.ID_SESION} className={`px-2 py-2 text-center ${changed ? 'bg-blue-50/60' : ''}`}>
-                              <EstadoSelectCompacto
+                              <EstadoAsistenciaSelect
                                 value={estado}
                                 onChange={nuevoEstado => handleEstadoChange(est.ID_POSTULANTE, sesion.ID_SESION, nuevoEstado, idAsistencia)}
                               />
@@ -454,7 +359,7 @@ export function ModalAsistenciaCompacta({ fecha, grupo, onClose, onSuccess }) {
           {/* Leyenda */}
           <div className="px-6 py-2 border-t border-gray-100 bg-gray-50 flex items-center gap-4 text-xs text-gray-500 shrink-0">
             <span className="font-medium">Leyenda:</span>
-            {ESTADOS.map(e => (
+            {ESTADOS_ASISTENCIA.map(e => (
               <span key={e.value ?? '__null__'} className="inline-flex items-center gap-1">
                 <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold border ${e.cls}`}>
                   {e.label}

@@ -18,6 +18,7 @@ import '../../theme/components/SidebarMenu.css';
  * @param {React.ComponentType} footer - Componente de footer (opcional)
  * @param {React.ComponentType} sidebar - Componente de sidebar (opcional)
  * @param {boolean} defaultOpen - Si el sidebar inicia abierto
+ * @param {boolean} defaultPinned - Si el sidebar inicia anclado cuando no hay valor guardado
  * @param {boolean} hoverEnabled - Si el hover-to-expand está activo (default true)
  * @param {number} peekWidth - Ancho del sidebar cuando colapsado (default 40)
  * @param {number} hoverDelay - Ms antes de cerrar al salir el mouse (default 300)
@@ -28,6 +29,7 @@ const LayoutWithSidebar = ({
   footer = null,
   sidebar: Sidebar = null,
   defaultOpen = true,
+  defaultPinned = false,
   hoverEnabled = true,
   peekWidth = 40,
   hoverDelay = 300
@@ -42,9 +44,9 @@ const LayoutWithSidebar = ({
   const [isPinned, setIsPinned] = useState(() => {
     try {
       const saved = localStorage.getItem(PIN_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : false;
+      return saved ? JSON.parse(saved) : defaultPinned;
     } catch {
-      return false;
+      return defaultPinned;
     }
   });
   const [isHovering, setIsHovering] = useState(false);

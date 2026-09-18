@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/shared/api';
+import { SEDE_VIRTUAL } from '../../shared/utils/sedeVirtual';
 
 export function useDocentes(idPeriodo, idSede) {
   const [docentes, setDocentes] = useState([]);
@@ -16,13 +17,19 @@ export function useDocentes(idPeriodo, idSede) {
     setLoading(true);
     setError(null);
 
+    // Sede virtual: sin filtro server-side, se filtran plazas con ID_SEDE null en cliente
+    const esVirtual = idSede === SEDE_VIRTUAL;
+    const plazasFilters = esVirtual
+      ? { ID_PERIODO: idPeriodo, PLAZA_ACTIVO: true }
+      : { ID_PERIODO: idPeriodo, ID_SEDE: idSede, PLAZA_ACTIVO: true };
+
     // Cargar plazas y docentes
     Promise.all([
-      db.select('PLAZA_DOCENTE', { ID_PERIODO: idPeriodo, ID_SEDE: idSede, ACTIVO: true }),
-      db.select('DOCENTES', { ACTIVO: true })
+      db.select('VW_PLAZA_DOCENTE', plazasFilters),
+      db.select('VW_DOCENTES', { ACTIVO: true })
     ])
       .then(([plazasData, docentesData]) => {
-        const plazas = plazasData || [];
+        const plazas = esVirtual ? (plazasData || []).filter(p => p.ID_SEDE == null) : (plazasData || []);
         const docentesList = docentesData || [];
 
         // Crear map de docentes

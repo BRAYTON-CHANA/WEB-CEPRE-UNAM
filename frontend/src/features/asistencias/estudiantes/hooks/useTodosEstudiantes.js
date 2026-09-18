@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/shared/api';
+import { SEDE_VIRTUAL } from '../../shared/utils/sedeVirtual';
 
 export function useTodosEstudiantes(idPeriodo, idSede) {
   const [estudiantes, setEstudiantes] = useState([]);
@@ -13,9 +14,15 @@ export function useTodosEstudiantes(idPeriodo, idSede) {
     }
     setLoading(true);
     setError(null);
-    db.select('VW_RESUMEN_ASISTENCIAS_POSTULANTE', { ID_PERIODO: idPeriodo, ID_SEDE: idSede })
+    // Sede virtual: sin filtro server-side, se filtran ID_SEDE null en cliente
+    const esVirtual = idSede === SEDE_VIRTUAL;
+    const filters = esVirtual
+      ? { ID_PERIODO: idPeriodo }
+      : { ID_PERIODO: idPeriodo, ID_SEDE: idSede };
+    db.select('VW_RESUMEN_ASISTENCIAS_POSTULANTE', filters)
       .then(data => {
-        const resultado = (data || [])
+        const rows = esVirtual ? (data || []).filter(r => r.ID_SEDE == null) : (data || []);
+        const resultado = rows
           .map(row => ({
             ID_POSTULANTE:  row.ID_POSTULANTE,
             NOMBRES:        row.NOMBRES,

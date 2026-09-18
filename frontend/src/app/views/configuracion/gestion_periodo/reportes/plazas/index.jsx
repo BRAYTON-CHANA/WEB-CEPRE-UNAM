@@ -1,16 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { ConfigLayout } from '@/features/layout';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
-import TableMultiLevel from '@/shared/components/table/views/TableMultiLevel';
+import { Table } from '@/shared/components/table';
 import { useTableData } from '@/shared/components/crud/hooks/useTableData';
 import { usePeriodo } from '@/shared/context/PeriodoContext';
-import { exportPlazaToExcel, exportSedeToExcel, exportAllPlazasToExcel } from '@/features/configuracion/reportes/plazas/utils/exportPlazaToExcel';
-import { exportPlazaToPdf, exportSedeToPdf, exportAllPlazasToPdf } from '@/features/configuracion/reportes/plazas/utils/exportPlazaToPdf';
-import ExportOptionsModal from '@/features/configuracion/reportes/shared/ExportOptionsModal';
+import { exportPlazaToExcel, exportAllPlazasToExcel } from '@/features/reportes/plazas/utils/exportPlazaToExcel';
+import { exportPlazaToPdf, exportAllPlazasToPdf } from '@/features/reportes/plazas/utils/exportPlazaToPdf';
+import ExportOptionsModal from '@/features/reportes/shared/ExportOptionsModal';
 
 function ReportesPlazas() {
   const { periodo: selectedPeriodo, setPeriodo: setSelectedPeriodo } = usePeriodo();
-  const [exportProgress, setExportProgress] = useState(null);
   const [exportingIndividual, setExportingIndividual] = useState(null);
   const [exportingAll, setExportingAll] = useState(false);
   const [exportAllProgress, setExportAllProgress] = useState({ current: 0, total: 0 });
@@ -18,8 +17,6 @@ function ReportesPlazas() {
   const [exportPdfProgress, setExportPdfProgress] = useState(null);
   const [exportingIndividualPdf, setExportingIndividualPdf] = useState(null);
   const [exportModalPending, setExportModalPending] = useState(null);
-
-  const handleExportSede = (row) => setExportModalPending({ type: 'sede', row });
 
   const handleExportIndividualPlaza = (row) => setExportModalPending({ type: 'plaza', row });
 
@@ -29,26 +26,7 @@ function ReportesPlazas() {
     if (!pending) return;
     const isPdf = pending.format === 'pdf';
 
-    if (pending.type === 'sede') {
-      const row = pending.row;
-      if (isPdf) {
-        setExportPdfProgress({ current: 0, total: 0, nombre: row.NOMBRE_SEDE });
-        await exportSedeToPdf(
-          row.ID_SEDE, row.NOMBRE_SEDE, selectedPeriodo,
-          (current, total) => setExportPdfProgress({ current, total, nombre: row.NOMBRE_SEDE }),
-          opts
-        );
-        setExportPdfProgress(null);
-      } else {
-        setExportProgress({ current: 0, total: 0, nombre: row.NOMBRE_SEDE });
-        await exportSedeToExcel(
-          row.ID_SEDE, row.NOMBRE_SEDE, selectedPeriodo,
-          (current, total) => setExportProgress({ current, total, nombre: row.NOMBRE_SEDE }),
-          opts
-        );
-        setExportProgress(null);
-      }
-    } else if (pending.type === 'plaza') {
+    if (pending.type === 'plaza') {
       const row = pending.row;
       if (isPdf) {
         setExportingIndividualPdf(row.IDENTIFICADOR_DOCENTE);
@@ -90,67 +68,70 @@ function ReportesPlazas() {
     }
   };
 
-  const levelConfigs = [
+  const headers = [
     {
-      level: 1,
-      headers: [
-        { title: 'NOMBRE_SEDE', type: 'string' }
-      ],
-      boundColumn: 'ID_SEDE',
-      actions: {
-        exportExcel: {
-          enabled: true,
-          icon: 'download',
-          label: 'Exportar Excel',
-          className: 'text-green-600 hover:bg-green-100',
-          onClick: (row) => handleExportSede(row),
-        },
-        exportPdf: {
-          enabled: true,
-          icon: 'file-text',
-          label: 'Exportar PDF',
-          className: 'text-red-600 hover:bg-red-50',
-          onClick: (row) => setExportModalPending({ type: 'sede', format: 'pdf', row })
-        }
+      field: 'CONTEXTO',
+      title: 'Sede / Modalidad / Curso',
+      type: 'string',
+      render: (_value, row) => (
+        <div className="flex flex-col gap-0.5">
+          <span className="text-sm font-medium text-gray-900">
+            {row.NOMBRE_SEDE} · {row.MODALIDAD}
+          </span>
+          <span className="text-xs text-gray-500">
+            {row.CODIGO_CURSO} - {row.NOMBRE_CURSO}
+          </span>
+        </div>
+      )
+    },
+    { field: 'IDENTIFICADOR_DOCENTE', title: 'Identificador', type: 'string' },
+    {
+      field: 'DOCENTE_NOMBRE',
+      title: 'Docente',
+      type: 'string',
+      render: (value, row) => {
+        if (!value) return <span className="text-gray-300 italic">Sin asignar</span>;
+        const dni = row.DOCENTE_DNI ? ` · DNI: ${row.DOCENTE_DNI}` : '';
+        return <span className="text-sm">{value}{dni}</span>;
       }
     },
-    {
-      level: 2,
-      headers: [
-        { title: 'IDENTIFICADOR_DOCENTE',  type: 'string' },
-        { title: 'NOMBRE_CURSO',           type: 'string' },
-        { title: 'CODIGOS_GRUPOS',         type: 'array'  },
-        { title: 'HORAS_REALIZADAS',      type: 'number' },
-        { title: 'PAGO_POR_HORA',          type: 'number' },
-        { title: 'PAGO_ESTIMADO',          type: 'number' },
-      ],
-      boundColumn: 'ID_PLAZA_DOCENTE',
-      actions: {
-        exportExcel: {
-          enabled: true,
-          icon: 'download',
-          label: 'Exportar Excel',
-          className: 'text-green-600 hover:bg-green-100',
-          onClick: (row) => handleExportIndividualPlaza(row)
-        },
-        exportPdf: {
-          enabled: true,
-          icon: 'file-text',
-          label: 'Exportar PDF',
-          className: 'text-red-600 hover:bg-red-50',
-          onClick: (row) => setExportModalPending({ type: 'plaza', format: 'pdf', row })
-        }
-      }
-    }
+    { field: 'CODIGOS_GRUPOS',      title: 'Grupos',       type: 'tag-list' },
+    { field: 'TOTAL_SESIONES',      title: 'Sesiones',     type: 'number' },
+    { field: 'HORAS_TOTALES',       title: 'Horas',        type: 'number' },
+    { field: 'HORAS_ASISTIDAS',     title: 'Horas asist.', type: 'number' },
+    { field: 'PAGO_POR_HORA',       title: 'Pago/Hora',    type: 'currency' },
+    { field: 'PAGO_TOTAL',          title: 'Pago total',   type: 'currency' },
   ];
+
+  const tableActions = {
+    exportExcel: {
+      enabled: true,
+      icon: 'download',
+      label: 'Exportar Excel',
+      className: 'text-green-600 hover:bg-green-100',
+      onClick: (row) => handleExportIndividualPlaza(row)
+    },
+    exportPdf: {
+      enabled: true,
+      icon: 'file-text',
+      label: 'Exportar PDF',
+      className: 'text-red-600 hover:bg-red-50',
+      onClick: (row) => setExportModalPending({ type: 'plaza', format: 'pdf', row })
+    }
+  };
 
   const filters = useMemo(() => {
     return selectedPeriodo ? { ID_PERIODO: selectedPeriodo } : {};
   }, [selectedPeriodo]);
 
   const { records, loading, error } = useTableData(
-    selectedPeriodo ? 'VW_HORAS_POR_PLAZA' : null,
+    selectedPeriodo ? 'VW_REPORTE_PLAZAS' : null,
     filters
+  );
+
+  const plazasActivas = useMemo(
+    () => (records || []).filter(r => r.PLAZA_ACTIVO !== false),
+    [records]
   );
 
   const handlePeriodoChange = (_, value) => {
@@ -167,11 +148,9 @@ function ReportesPlazas() {
         title={
           exportModalPending?.format === 'pdf'
             ? (exportModalPending?.type === 'all' ? 'Opciones — Exportar Todo PDF'
-               : exportModalPending?.type === 'sede' ? `Opciones — Exportar PDF — ${exportModalPending?.row?.NOMBRE_SEDE}`
-               : 'Opciones — Exportar PDF')
+               : `Opciones — Exportar PDF — ${exportModalPending?.row?.IDENTIFICADOR_DOCENTE || 'Plaza'}`)
             : (exportModalPending?.type === 'all' ? 'Opciones — Exportar Todo Excel'
-               : exportModalPending?.type === 'sede' ? `Opciones — Exportar Excel — ${exportModalPending?.row?.NOMBRE_SEDE}`
-               : 'Opciones — Exportar Excel')
+               : `Opciones — Exportar Excel — ${exportModalPending?.row?.IDENTIFICADOR_DOCENTE || 'Plaza'}`)
         }
         onConfirm={handleModalConfirm}
         onCancel={() => setExportModalPending(null)}
@@ -241,27 +220,6 @@ function ReportesPlazas() {
         </div>
       )}
 
-      {exportProgress && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-xl shadow-2xl p-8 w-96 text-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-800 font-semibold text-lg mb-1">Exportando {exportProgress.nombre}</p>
-            <p className="text-gray-500 text-sm mb-4">
-              {exportProgress.total > 0
-                ? `Plaza ${exportProgress.current} de ${exportProgress.total}`
-                : 'Cargando plazas...'}
-            </p>
-            {exportProgress.total > 0 && (
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all"
-                  style={{ width: `${Math.round((exportProgress.current / exportProgress.total) * 100)}%` }}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      )}
       <div className="px-4 py-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -358,13 +316,18 @@ function ReportesPlazas() {
                 Plazas Docentes del Período
               </h3>
               <p className="text-sm text-gray-600 mt-1">
-                Total: {records.length} plaza{records.length !== 1 ? 's' : ''}
+                Total: {plazasActivas.length} plaza{plazasActivas.length !== 1 ? 's' : ''}
               </p>
             </div>
             <div className="overflow-x-auto">
-              <TableMultiLevel
-                data={records}
-                levelConfigs={levelConfigs}
+              <Table
+                headers={headers}
+                data={plazasActivas}
+                actions={tableActions}
+                boundColumn="ID_PLAZA_DOCENTE"
+                pagination={true}
+                itemsPerPage={50}
+                emptyMessage="No hay plazas para este período"
               />
             </div>
           </div>

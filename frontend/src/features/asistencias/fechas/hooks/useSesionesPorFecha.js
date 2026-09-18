@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/shared/api';
+import { SEDE_VIRTUAL } from '../../shared/utils/sedeVirtual';
 
 export function useSesionesPorFecha(fecha, idSede) {
   const [sesiones, setSesiones] = useState([]);
@@ -12,12 +13,15 @@ export function useSesionesPorFecha(fecha, idSede) {
     setLoading(true);
     setError(null);
     try {
-      const filters = { FECHA: fecha, ID_SEDE: idSede };
+      // Sede virtual: sin filtro server-side, se filtran ID_SEDE null en cliente
+      const esVirtual = idSede === SEDE_VIRTUAL;
+      const filters = esVirtual ? { FECHA: fecha } : { FECHA: fecha, ID_SEDE: idSede };
       const data = await db.select('VW_SESIONES_COMPLETA', filters);
-      
+      const lista = esVirtual ? (data || []).filter(s => s.ID_SEDE == null) : (data || []);
+
       // Agrupar por grupo
       const gruposMap = new Map();
-      (data || []).forEach(sesion => {
+      lista.forEach(sesion => {
         const grupoId = sesion.ID_GRUPO;
         if (!gruposMap.has(grupoId)) {
           gruposMap.set(grupoId, {

@@ -78,7 +78,7 @@ function GruposProgramacionPanel({
 
   // ===== Estado de sesiones (cuando grupo está activo) =====
   const [sesiones, setSesiones] = useState([]);
-  const [snapshotBloques, setSnapshotBloques] = useState([]);
+  const [turnoBloques, setTurnoBloques] = useState([]);
   const [sesionesLoading, setSesionesLoading] = useState(false);
   const [grupoCursosData, setGrupoCursosData] = useState([]);
   const [viewMode, setViewMode] = useState(() => {
@@ -113,12 +113,12 @@ function GruposProgramacionPanel({
   }, [sesiones, filtroFecha, filtroCurso]);
 
   const loadSesiones = useCallback(async (idGrupo) => {
-    if (!idGrupo) { setSesiones([]); setSnapshotBloques([]); return; }
+    if (!idGrupo) { setSesiones([]); setTurnoBloques([]); return; }
     setSesionesLoading(true);
     try {
       const [data, bloquesData] = await Promise.all([
         db.select('VW_SESIONES_GRUPO', { ID_GRUPO: idGrupo }),
-        db.select('VW_SESION_HORARIO_BLOQUES', { ID_GRUPO: idGrupo })
+        db.select('VW_GRUPO_TURNO_BLOQUES', { ID_GRUPO: idGrupo })
       ]);
       const arr = Array.isArray(data) ? data : [];
       // Ordenar por FECHA y HORA_INICIO
@@ -134,11 +134,11 @@ function GruposProgramacionPanel({
         return 0;
       });
       setSesiones(arr);
-      setSnapshotBloques(Array.isArray(bloquesData) ? bloquesData : []);
+      setTurnoBloques(Array.isArray(bloquesData) ? bloquesData : []);
     } catch (err) {
       console.error('Error al cargar sesiones:', err);
       setSesiones([]);
-      setSnapshotBloques([]);
+      setTurnoBloques([]);
     } finally {
       setSesionesLoading(false);
     }
@@ -149,7 +149,7 @@ function GruposProgramacionPanel({
       loadSesiones(sharedGrupo);
     } else {
       setSesiones([]);
-      setSnapshotBloques([]);
+      setTurnoBloques([]);
     }
   }, [grupoActivo, sharedGrupo, loadSesiones]);
 
@@ -196,7 +196,7 @@ function GruposProgramacionPanel({
   // ===== Hook de sesiones manuales (modo activado) =====
   const sesionesManual = useSesionesManual({
     sharedGrupo,
-    snapshotBloques,
+    turnoBloques,
     sesiones,
     onSesionesChange: () => sharedGrupo ? loadSesiones(sharedGrupo) : Promise.resolve()
   });
@@ -535,7 +535,7 @@ function GruposProgramacionPanel({
                   <p className="mt-1 text-sm text-gray-400">No se encontraron sesiones para este grupo.</p>
                 </div>
               ) : viewMode === 'horario' ? (
-                <SesionesHorarioView sesiones={sesiones} snapshotBloques={snapshotBloques} />
+                <SesionesHorarioView sesiones={sesiones} turnoBloques={turnoBloques} />
               ) : (
                 <div className="space-y-3">
                   {/* Filtros del Plano */}

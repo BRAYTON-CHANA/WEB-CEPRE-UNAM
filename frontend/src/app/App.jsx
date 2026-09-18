@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthContext } from '@/shared/context/AuthContext';
+import { getRoleFlags } from '@/shared/utils/roles';
 import '@/shared/theme/globals.css';
 
 // Import pages
@@ -34,7 +35,6 @@ import CarrerasConfig from '@/app/views/configuracion/academico/carreras';
 import CorreosConfig from '@/app/views/configuracion/sistema/correos/correos';
 import PasswordResetConfig from '@/app/views/configuracion/sistema/correos/password-reset';
 import CuentasSmtpConfig from '@/app/views/configuracion/sistema/correos/cuentas-smtp';
-// import ProgramacionPlazasDocentes from '@/app/views/configuracion/gestion_periodo/programacion_plazas_docentes'; // TEMP: En mantenimiento
 import ReportesIndex from '@/app/views/configuracion/gestion_periodo/reportes';
 import ReportesGrupos from '@/app/views/configuracion/gestion_periodo/reportes/grupos';
 import ReportesPlazas from '@/app/views/configuracion/gestion_periodo/reportes/plazas';
@@ -50,6 +50,9 @@ import AsistenciasGrupos from '@/app/views/asistencias/grupos';
 import AsistenciasPorFecha from '@/app/views/asistencias/fechas';
 import AsistenciasDocentes from '@/app/views/asistencias/docentes';
 import AsistenciasEstudiantes from '@/app/views/asistencias/estudiantes';
+import AsistenciasNuevo from '@/app/views/asistencias_nuevo';
+import HorarioDocente from '@/app/views/horario';
+import AsistenciasNuevoEstudiantes from '@/app/views/asistencias_nuevo/estudiantes';
 import AsistenciasReportes from '@/app/views/asistencias/reportes';
 import AsistenciasReportesDocentes from '@/app/views/asistencias/reportes/docentes';
 import AsistenciasReportesEstudiantes from '@/app/views/asistencias/reportes/estudiantes';
@@ -58,7 +61,7 @@ import Configuracion from '@/app/views/configuracion';
 
 
 function App() {
-  const { isAuthenticated, user } = useAuthContext();
+  const { isAuthenticated, user, activeRole } = useAuthContext();
   const location = useLocation();
 
   const publicRoutes = ['/login', '/recuperar-contrasena'];
@@ -77,6 +80,19 @@ function App() {
 
   if (isAuthenticated && publicRoutes.includes(location.pathname) && !requiresPasswordChange) {
     return <Navigate to="/" replace />;
+  }
+
+  // Restricción por rol activo: módulos ocultos tampoco accesibles por URL
+  if (isAuthenticated) {
+    const path = location.pathname;
+    const { esDocente, puedeVerConfiguracion, puedeVerAsistenciasViejo, puedeVerAsistenciasNuevo } = getRoleFlags(user, activeRole);
+    const esRutaVieja = path === '/asistencias' || path.startsWith('/asistencias/');
+    const bloqueado =
+      (path.startsWith('/configuracion') && !puedeVerConfiguracion) ||
+      (path.startsWith('/asistencias_nuevo') && !puedeVerAsistenciasNuevo) ||
+      (path === '/horario' && !esDocente) ||
+      (esRutaVieja && !puedeVerAsistenciasViejo);
+    if (bloqueado) return <Navigate to="/" replace />;
   }
 
   return (
@@ -101,6 +117,9 @@ function App() {
       <Route path="/asistencias/fechas" element={<AsistenciasPorFecha />} />
       <Route path="/asistencias/docentes" element={<AsistenciasDocentes />} />
       <Route path="/asistencias/estudiantes" element={<AsistenciasEstudiantes />} />
+      <Route path="/horario" element={<HorarioDocente />} />
+      <Route path="/asistencias_nuevo" element={<AsistenciasNuevo />} />
+      <Route path="/asistencias_nuevo/estudiantes" element={<AsistenciasNuevoEstudiantes />} />
       <Route path="/asistencias/reportes" element={<AsistenciasReportes />} />
       <Route path="/asistencias/reportes/docentes" element={<AsistenciasReportesDocentes />} />
       <Route path="/asistencias/reportes/estudiantes" element={<AsistenciasReportesEstudiantes />} />
@@ -122,8 +141,6 @@ function App() {
       <Route path="/configuracion/gestion_periodo/contratacion_docente/convocatorias" element={<ConvocatoriasConfig />} />
       <Route path="/configuracion/gestion_periodo/grupos" element={<GruposConfig />} />
       <Route path="/configuracion/gestion_periodo/postulantes" element={<PostulantesConfig />} />
-      {/* <Route path="/configuracion/gestion_periodo/programacion_plazas_docentes" element={<ProgramacionPlazasDocentes />} /> TEMP: En mantenimiento */}
-
       <Route path="/configuracion/sistema/usuarios" element={<UsuariosConfig />} />
       {/* <Route path="/configuracion/sistema/permisos" element={<PermisosConfig />} /> */}
       <Route path="/configuracion/sistema/roles" element={<RolesConfig />} />

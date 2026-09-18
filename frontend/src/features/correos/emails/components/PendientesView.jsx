@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { db } from '@/shared/api';
 import ErrorAlert from '@/shared/components/ui/ErrorAlert';
 import { formatDate, formatList } from '@/shared/utils';
@@ -64,6 +64,11 @@ const PendientesView = ({ ids, onBack, onEdit, refreshTrigger }) => {
   const [prioridadFilter, setPrioridadFilter] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
 
+  // Envío en curso: ref para bloqueo síncrono anti doble-click + state para UI
+  const sendingRef = useRef(new Set());
+  const [sendingIds, setSendingIds] = useState(new Set());
+  const isSending = sendingIds.size > 0;
+
   const load = async () => {
     setLoading(true);
     setError(null);
@@ -101,13 +106,20 @@ const PendientesView = ({ ids, onBack, onEdit, refreshTrigger }) => {
   }, [records, search, estadoFilter, prioridadFilter]);
 
   const handleSend = async (row) => {
+    // Bloqueo síncrono: si ya hay un envío en curso, ignorar el click
+    if (sendingRef.current.size > 0) return;
     const ok = window.confirm(`¿Enviar el correo "${row.ASUNTO || '(sin asunto)'}" ahora?`);
     if (!ok) return;
+    sendingRef.current = new Set([row.ID_CORREO]);
+    setSendingIds(sendingRef.current);
     try {
       await sendEmailById(row.ID_CORREO);
       await load();
     } catch (err) {
       alert(`Error al enviar: ${err.message}`);
+    } finally {
+      sendingRef.current = new Set();
+      setSendingIds(sendingRef.current);
     }
   };
 
@@ -145,8 +157,12 @@ const PendientesView = ({ ids, onBack, onEdit, refreshTrigger }) => {
   const handleSendSelected = async () => {
     const ids = [...selectedIds];
     if (ids.length === 0) return;
+    // Bloqueo síncrono: si ya hay un envío en curso, ignorar el click
+    if (sendingRef.current.size > 0) return;
     const ok = window.confirm(`¿Enviar ${ids.length} correo${ids.length === 1 ? '' : 's'} seleccionado${ids.length === 1 ? '' : 's'}?`);
     if (!ok) return;
+    sendingRef.current = new Set(ids);
+    setSendingIds(sendingRef.current);
     try {
       const result = await sendMultipleById(ids);
       const mensaje = [
@@ -158,6 +174,9 @@ const PendientesView = ({ ids, onBack, onEdit, refreshTrigger }) => {
       await load();
     } catch (err) {
       alert(`Error al enviar: ${err.message}`);
+    } finally {
+      sendingRef.current = new Set();
+      setSendingIds(sendingRef.current);
     }
   };
 
@@ -258,7 +277,8 @@ const PendientesView = ({ ids, onBack, onEdit, refreshTrigger }) => {
               type="checkbox"
               checked={allSelected}
               onChange={toggleSelectAll}
-              className="w-4 h-4 text-[#25346A] border-slate-300 rounded focus:ring-[#43B3C1]"
+              disabled={isSending}
+              className="w-4 h-4 text-[#25346A] border-slate-300 rounded focus:ring-[#43B3C1] disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <span className="font-medium">Seleccionar todos</span>
             <span className="text-xs text-slate-400">({selectedIds.size} seleccionado{selectedIds.size === 1 ? '' : 's'})</span>
@@ -266,14 +286,19 @@ const PendientesView = ({ ids, onBack, onEdit, refreshTrigger }) => {
           <button
             type="button"
             onClick={handleSendSelected}
-            disabled={selectedIds.size === 0}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              selectedIds.size === 0
+            disabled={selectedIds.size === 0 || isSending}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-2 ${
+              selectedIds.size === 0 || isSending
                 ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
                 : 'bg-[#25346A] text-white hover:bg-[#1c2753]'
             }`}
           >
-            Enviar {selectedIds.size > 0 ? selectedIds.size : ''} seleccionado{selectedIds.size === 1 ? '' : 's'}
+            {isSending && (
+              <span className="inline-block w-3.5 h-3.5 border-2 border-slate-400 border-t-slate-600 rounded-full animate-spin" />
+            )}
+            {isSending
+              ? `Enviando ${sendingIds.size} correo${sendingIds.size === 1 ? '' : 's'}...`
+              : `Enviar ${selectedIds.size > 0 ? selectedIds.size : ''} seleccionado${selectedIds.size === 1 ? '' : 's'}`}
           </button>
         </div>
       )}
@@ -298,7 +323,8 @@ const PendientesView = ({ ids, onBack, onEdit, refreshTrigger }) => {
                     type="checkbox"
                     checked={selectedIds.has(row.ID_CORREO)}
                     onChange={() => toggleSelect(row.ID_CORREO)}
-                    className="mt-1.5 w-4 h-4 text-[#25346A] border-slate-300 rounded focus:ring-[#43B3C1] shrink-0"
+                    disabled={isSending}
+                    className="mt-1.5 w-4 h-4 text-[#25346A] border-slate-300 rounded focus:ring-[#43B3C1] shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                     aria-label={`Seleccionar ${row.ASUNTO || 'correo'}`}
                   />
                 )}
@@ -348,9 +374,17 @@ const PendientesView = ({ ids, onBack, onEdit, refreshTrigger }) => {
                   <button
                     type="button"
                     onClick={() => handleSend(row)}
-                    className="px-3.5 py-2 text-xs font-medium text-white bg-[#25346A] rounded-lg hover:bg-[#1c2753]"
+                    disabled={isSending}
+                    className={`px-3.5 py-2 text-xs font-medium rounded-lg inline-flex items-center gap-1.5 ${
+                      isSending
+                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                        : 'text-white bg-[#25346A] hover:bg-[#1c2753]'
+                    }`}
                   >
-                    Enviar
+                    {sendingIds.has(row.ID_CORREO) && (
+                      <span className="inline-block w-3 h-3 border-2 border-slate-400 border-t-slate-600 rounded-full animate-spin" />
+                    )}
+                    {sendingIds.has(row.ID_CORREO) ? 'Enviando...' : 'Enviar'}
                   </button>
                 )}
               </div>
@@ -358,6 +392,15 @@ const PendientesView = ({ ids, onBack, onEdit, refreshTrigger }) => {
           </div>
         ))}
       </div>
+
+      {isSending && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-[#25346A] text-white px-5 py-3 rounded-xl shadow-lg">
+          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          <span className="text-sm font-medium">
+            Enviando {sendingIds.size > 1 ? `${sendingIds.size} correos` : 'correo'}...
+          </span>
+        </div>
+      )}
 
       <ViewCorreoModal email={viewEmail} onClose={() => setViewEmail(null)} />
     </div>

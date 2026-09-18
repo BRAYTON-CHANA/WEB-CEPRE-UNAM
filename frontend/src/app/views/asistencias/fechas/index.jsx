@@ -6,6 +6,7 @@ import { VistaFecha } from '@/features/asistencias/fechas/VistaFecha';
 import { useFechasConClases } from '@/features/asistencias/fechas/hooks/useFechasConClases';
 import { usePeriodos } from '@/features/asistencias/grupos/hooks/usePeriodos';
 import { SedeTabs } from '@/features/asistencias/grupos/components/SedeTabs';
+import { sedeKey } from '@/features/asistencias/shared/utils/sedeVirtual';
 
 export default function AsistenciasPorFecha() {
   const { periodos, periodoActivo, setPeriodoActivo, loading: loadingPeriodos } = usePeriodos();
@@ -13,13 +14,14 @@ export default function AsistenciasPorFecha() {
   const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
   const [sedeActiva, setSedeActiva] = useState(null);
 
-  // Extraer sedes únicas — Moquegua primero, resto alfabético
+  // Extraer sedes únicas — Moquegua primero, resto alfabético (ID_SEDE null → 'Virtual')
   const sedes = useMemo(() => {
     const map = new Map();
     fechas.forEach(f => {
       (f.sesiones || []).forEach(s => {
-        if (s.ID_SEDE && !map.has(s.ID_SEDE)) {
-          map.set(s.ID_SEDE, { ID_SEDE: s.ID_SEDE, NOMBRE_SEDE: s.NOMBRE_SEDE });
+        const key = sedeKey(s.ID_SEDE);
+        if (!map.has(key)) {
+          map.set(key, { ID_SEDE: key, NOMBRE_SEDE: s.NOMBRE_SEDE });
         }
       });
     });
@@ -50,7 +52,7 @@ export default function AsistenciasPorFecha() {
     const counts = {};
     sedes.forEach(sede => {
       counts[sede.ID_SEDE] = fechas.filter(f =>
-        (f.sesiones || []).some(s => s.ID_SEDE === sede.ID_SEDE)
+        (f.sesiones || []).some(s => sedeKey(s.ID_SEDE) === sede.ID_SEDE)
       ).length;
     });
     return counts;
@@ -61,7 +63,7 @@ export default function AsistenciasPorFecha() {
     if (!sedeActiva) return [];
     return fechas
       .map(f => {
-        const sesionesFiltered = (f.sesiones || []).filter(s => s.ID_SEDE === sedeActiva);
+        const sesionesFiltered = (f.sesiones || []).filter(s => sedeKey(s.ID_SEDE) === sedeActiva);
         if (sesionesFiltered.length === 0) return null;
         const grupos = new Set(sesionesFiltered.map(s => s.ID_GRUPO));
         return {
@@ -76,7 +78,7 @@ export default function AsistenciasPorFecha() {
 
   if (fechaSeleccionada) {
     return (
-      <CepreLayout>
+      <CepreLayout showSidebar>
         <div className="min-h-screen py-10" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
           <div className="max-w-screen-2xl mx-auto px-6">
             <VistaFecha
@@ -91,7 +93,7 @@ export default function AsistenciasPorFecha() {
   }
 
   return (
-    <CepreLayout>
+    <CepreLayout showSidebar>
       <div className="min-h-screen py-10" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
         <div className="max-w-screen-2xl mx-auto px-6">
 

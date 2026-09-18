@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { db } from '@/shared/api';
+import { SEDE_VIRTUAL } from '../../shared/utils/sedeVirtual';
 
 export function useSesionesDocente(idPeriodo, idSede, idDocente, idPlaza) {
   const [sesiones, setSesiones] = useState([]);
@@ -22,14 +23,16 @@ export function useSesionesDocente(idPeriodo, idSede, idDocente, idPlaza) {
 
     try {
       // Query directo a VW_SESIONES_COMPLETA filtrando por plaza y docente
+      // Sede virtual: ID_SEDE IS NULL (no se puede filtrar null por parámetro posicional aquí)
+      const filtroSede = idSede === SEDE_VIRTUAL ? '"ID_SEDE" IS NULL' : '"ID_SEDE" = $4';
       const todasLasSesiones = await db.rawSelect(
-        `SELECT * FROM "VW_SESIONES_COMPLETA" 
-         WHERE "ID_PLAZA_DOCENTE" = $1 
+        `SELECT * FROM "VW_SESIONES_COMPLETA"
+         WHERE "ID_PLAZA_DOCENTE" = $1
            AND "ID_DOCENTE_PROGRAMADO" = $2
            AND "ID_PERIODO" = $3
-           AND "ID_SEDE" = $4
+           AND ${filtroSede}
          ORDER BY "FECHA", "HORA_INICIO"`,
-        idPlaza, idDocente, idPeriodo, idSede
+        idPlaza, idDocente, idPeriodo, ...(idSede === SEDE_VIRTUAL ? [] : [idSede])
       ) || [];
 
       setSesiones(todasLasSesiones);

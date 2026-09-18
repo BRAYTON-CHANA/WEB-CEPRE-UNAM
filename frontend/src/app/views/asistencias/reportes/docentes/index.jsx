@@ -5,6 +5,7 @@ import { usePeriodos } from '@/features/asistencias/grupos/hooks/usePeriodos';
 import { SedeTabs } from '@/features/asistencias/grupos/components/SedeTabs';
 import { db } from '@/shared/api';
 import { exportRegistroDocente, exportRegistroSede } from '@/features/asistencias/reportes/docentes/utils/exportRegistroDocente';
+import { SEDE_VIRTUAL } from '@/features/asistencias/shared/utils/sedeVirtual';
 
 function AsistenciasReportesDocentes() {
   const { periodos, periodoActivo, setPeriodoActivo, loading: loadingPeriodos } = usePeriodos();
@@ -45,13 +46,18 @@ function AsistenciasReportesDocentes() {
           return a.NOMBRE_SEDE.localeCompare(b.NOMBRE_SEDE);
         });
         
-        setSedes(sedesOrdenadas);
+        // Agregar tab Virtual si algún docente tiene plazas sin sede
+        const hayVirtual = docs.some(d => (d.SEDES || []).includes('Virtual'));
+        const sedesConVirtual = hayVirtual
+          ? [...sedesOrdenadas, { ID_SEDE: SEDE_VIRTUAL, NOMBRE_SEDE: 'Virtual' }]
+          : sedesOrdenadas;
+
+        setSedes(sedesConVirtual);
         setDocentes(docs);
 
-        // Contar docentes por sede
+        // Contar docentes por sede (incluye 'Virtual' del array SEDES de la vista)
         const conteo = {};
-        sedesOrdenadas.forEach(sede => {
-          const sedesDeDocente = docs.flatMap(d => d.SEDES || []);
+        sedesConVirtual.forEach(sede => {
           conteo[sede.ID_SEDE] = docs.filter(d => {
             const docSedes = d.SEDES || [];
             return docSedes.includes(sede.NOMBRE_SEDE);
@@ -59,8 +65,8 @@ function AsistenciasReportesDocentes() {
         });
         setConteoPorSede(conteo);
 
-        if (sedesOrdenadas.length > 0 && !sedeActiva) {
-          setSedeActiva(sedesOrdenadas[0].ID_SEDE);
+        if (sedesConVirtual.length > 0 && !sedeActiva) {
+          setSedeActiva(sedesConVirtual[0].ID_SEDE);
         }
       })
       .catch(console.error)
@@ -101,7 +107,7 @@ function AsistenciasReportesDocentes() {
   };
 
   return (
-    <CepreLayout>
+    <CepreLayout showSidebar>
       <div className="min-h-screen py-10" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
         <div className="max-w-screen-2xl mx-auto px-6">
           

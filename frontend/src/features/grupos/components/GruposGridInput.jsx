@@ -465,7 +465,7 @@ const GruposGridInput = ({
                                     onChange={(e) => handleGrupoFieldChange(c.ID_SEDE, c.ID_AREA, c.MODALIDAD, gIdx, 'NOMBRE_GRUPO', e.target.value)}
                                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white"
                                   />
-                                  {/* Turno (opcional): filtrado por período y sede del combo */}
+                                  {/* Turno (requerido): filtrado por período y sede del combo */}
                                   <ReferenceSelectInput
                                     name={`turno-${comboKey(c)}-${gIdx}`}
                                     referenceTable="VW_TURNOS"
@@ -477,7 +477,7 @@ const GruposGridInput = ({
                                         ? { field: 'ID_SEDE', op: 'is', value: null }
                                         : { field: 'ID_SEDE', op: '=', value: String(c.ID_SEDE) }
                                     ]}
-                                    placeholder="Sin turno"
+                                    placeholder="Seleccione turno"
                                     searchable={true}
                                     showRefreshButton={true}
                                     comboboxClassName="text-sm"

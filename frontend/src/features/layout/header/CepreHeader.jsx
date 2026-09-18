@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/shared/context/AuthContext';
+import { getRoleFlags } from '@/shared/utils/roles';
 import PeriodoSelector from './PeriodoSelector';
 import logo from '@/shared/assets/images/unam-logo.png';
 
@@ -12,6 +13,7 @@ const CepreHeader = () => {
   const navigate = useNavigate();
   const { user, activeRole, setActiveRole, logout } = useAuthContext();
   const roles = user?.roles || [];
+  const { puedeVerConfiguracion } = getRoleFlags(user, activeRole);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const handleLogout = () => {
@@ -92,12 +94,14 @@ const CepreHeader = () => {
               >
                 Inicio
               </Link>
-              <Link 
-                to="/configuracion" 
-                className={isActive('/configuracion') ? navLinkActive : navLink}
-              >
-                Configuración
-              </Link>
+              {puedeVerConfiguracion && (
+                <Link
+                  to="/configuracion"
+                  className={isActive('/configuracion') ? navLinkActive : navLink}
+                >
+                  Configuración
+                </Link>
+              )}
             </div>
             <div className="h-6 w-px bg-white/20" />
             {user && (
@@ -227,12 +231,14 @@ const CepreHeader = () => {
               >
                 Inicio
               </Link>
-              <Link
-                to="/configuracion"
-                className={`block px-3 py-2 rounded-lg text-base font-medium transition-colors ${isActive('/configuracion') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10'}`}
-              >
-                Configuración
-              </Link>
+              {puedeVerConfiguracion && (
+                <Link
+                  to="/configuracion"
+                  className={`block px-3 py-2 rounded-lg text-base font-medium transition-colors ${isActive('/configuracion') ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10'}`}
+                >
+                  Configuración
+                </Link>
+              )}
               {user && (
                 <div className="border-t border-white/10 pt-3 mt-2">
                   <PeriodoSelector variant="mobile" onSelect={() => setIsMenuOpen(false)} />

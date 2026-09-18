@@ -6,6 +6,7 @@ import { useGrupos } from '@/features/asistencias/grupos/hooks/useGrupos';
 import { SedeTabs } from '@/features/asistencias/grupos/components/SedeTabs';
 import { GruposGrid } from '@/features/asistencias/grupos/components/GruposGrid';
 import { VistaGrupo } from '@/features/asistencias/grupos/components/vista-grupo';
+import { sedeKey } from '@/features/asistencias/shared/utils/sedeVirtual';
 
 function AsistenciasGrupos() {
   const { periodos, periodoActivo, setPeriodoActivo, loading: loadingPeriodos } = usePeriodos();
@@ -13,12 +14,13 @@ function AsistenciasGrupos() {
   const [sedeActiva, setSedeActiva] = useState(null);
   const [grupoSeleccionado, setGrupoSeleccionado] = useState(null);
 
-  // Extraer sedes únicas de los grupos
+  // Extraer sedes únicas de los grupos (ID_SEDE null → tab 'Virtual')
   const sedes = useMemo(() => {
     const map = new Map();
     grupos.forEach(g => {
-      if (g.ID_SEDE && !map.has(g.ID_SEDE)) {
-        map.set(g.ID_SEDE, { ID_SEDE: g.ID_SEDE, NOMBRE_SEDE: g.NOMBRE_SEDE });
+      const key = sedeKey(g.ID_SEDE);
+      if (!map.has(key)) {
+        map.set(key, { ID_SEDE: key, NOMBRE_SEDE: g.NOMBRE_SEDE });
       }
     });
     return [...map.values()];
@@ -35,7 +37,7 @@ function AsistenciasGrupos() {
   const totalPorSede = useMemo(() => {
     const counts = {};
     sedes.forEach(sede => {
-      counts[sede.ID_SEDE] = grupos.filter(g => g.ID_SEDE === sede.ID_SEDE).length;
+      counts[sede.ID_SEDE] = grupos.filter(g => sedeKey(g.ID_SEDE) === sede.ID_SEDE).length;
     });
     return counts;
   }, [grupos, sedes]);
@@ -43,13 +45,13 @@ function AsistenciasGrupos() {
   // Filtrar grupos por sede activa
   const gruposFiltrados = useMemo(() => {
     if (!sedeActiva) return [];
-    return grupos.filter(g => g.ID_SEDE === sedeActiva);
+    return grupos.filter(g => sedeKey(g.ID_SEDE) === sedeActiva);
   }, [grupos, sedeActiva]);
 
   const periodoNombre = periodos.find(p => p.ID_PERIODO === periodoActivo)?.NOMBRE_PERIODO ?? '';
 
   return (
-    <CepreLayout>
+    <CepreLayout showSidebar>
       <div className="min-h-screen py-10" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
         <div className="max-w-screen-2xl mx-auto px-6">
 

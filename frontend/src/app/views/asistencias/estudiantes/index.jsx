@@ -8,6 +8,7 @@ import { useEstudiantesPorGrupo } from '@/features/asistencias/estudiantes/hooks
 import { useTodosEstudiantes } from '@/features/asistencias/estudiantes/hooks/useTodosEstudiantes';
 import { TablaEstudiantes } from '@/features/asistencias/estudiantes/components/TablaEstudiantes';
 import { ModalHistorialEstudiante } from '@/features/asistencias/estudiantes/components/ModalHistorialEstudiante';
+import { sedeKey } from '@/features/asistencias/shared/utils/sedeVirtual';
 
 function AsistenciasEstudiantes() {
   const { periodos, periodoActivo, setPeriodoActivo, loading: loadingPeriodos } = usePeriodos();
@@ -22,12 +23,13 @@ function AsistenciasEstudiantes() {
   const [valorFiltro, setValorFiltro] = useState('');
   const [estudianteModal, setEstudianteModal] = useState(null);
 
-  // Extraer sedes — Moquegua primero
+  // Extraer sedes — Moquegua primero (ID_SEDE null → tab 'Virtual')
   const sedes = useMemo(() => {
     const map = new Map();
     grupos.forEach(g => {
-      if (g.ID_SEDE && !map.has(g.ID_SEDE)) {
-        map.set(g.ID_SEDE, { ID_SEDE: g.ID_SEDE, NOMBRE_SEDE: g.NOMBRE_SEDE });
+      const key = sedeKey(g.ID_SEDE);
+      if (!map.has(key)) {
+        map.set(key, { ID_SEDE: key, NOMBRE_SEDE: g.NOMBRE_SEDE });
       }
     });
     return [...map.values()].sort((a, b) => {
@@ -61,7 +63,7 @@ function AsistenciasEstudiantes() {
   const gruposDeSede = useMemo(() => {
     if (!sedeActiva) return [];
     return grupos
-      .filter(g => g.ID_SEDE === sedeActiva)
+      .filter(g => sedeKey(g.ID_SEDE) === sedeActiva)
       .sort((a, b) => a.NOMBRE_GRUPO.localeCompare(b.NOMBRE_GRUPO));
   }, [grupos, sedeActiva]);
 
@@ -79,7 +81,7 @@ function AsistenciasEstudiantes() {
   const totalPorSede = useMemo(() => {
     const counts = {};
     sedes.forEach(s => {
-      counts[s.ID_SEDE] = grupos.filter(g => g.ID_SEDE === s.ID_SEDE).length;
+      counts[s.ID_SEDE] = grupos.filter(g => sedeKey(g.ID_SEDE) === s.ID_SEDE).length;
     });
     return counts;
   }, [grupos, sedes]);
@@ -132,7 +134,7 @@ function AsistenciasEstudiantes() {
   }, [estudiantesRaw, busqueda, tipoFiltro, condicionFiltro, valorFiltro]);
 
   return (
-    <CepreLayout>
+    <CepreLayout showSidebar>
       <div className="min-h-screen py-10" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
         <div className="max-w-screen-2xl mx-auto px-6">
 

@@ -19,8 +19,8 @@ const formatTime = (t) => {
  *
  * Props:
  *   bloquesDelDia    — array de bloques con info de ocupación
- *   selectedBloques  — Set de idSesionBloque seleccionados
- *   onBloqueToggle   — (idSesionBloque) => void
+ *   selectedBloques  — Set de idBloque seleccionados
+ *   onBloqueToggle   — (idBloque) => void
  *   selectionMode    — boolean (si está en modo selección)
  */
 function SesionesManualGrid({ bloquesDelDia, selectedBloques, onBloqueToggle, selectionMode }) {
@@ -47,7 +47,7 @@ function SesionesManualGrid({ bloquesDelDia, selectedBloques, onBloqueToggle, se
         </thead>
         <tbody>
           {bloquesDelDia.map((b, idx) => {
-            const isSelected = selectedBloques.has(b.idSesionBloque);
+            const isSelected = selectedBloques.has(b.idBloque);
             const canClick = selectionMode && b.seleccionable;
 
             return (
@@ -87,7 +87,7 @@ function SesionesManualGrid({ bloquesDelDia, selectedBloques, onBloqueToggle, se
                 ) : canClick ? (
                   /* Clase vacía seleccionable */
                   <td
-                    onClick={() => onBloqueToggle(b.idSesionBloque)}
+                    onClick={() => onBloqueToggle(b.idBloque)}
                     className={[
                       'p-0 border-b border-r border-slate-200 relative overflow-hidden min-w-[200px] cursor-pointer transition-colors',
                       isSelected ? 'bg-emerald-100 ring-2 ring-inset ring-emerald-400' : 'bg-blue-50 hover:bg-blue-100'

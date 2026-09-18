@@ -3,7 +3,7 @@ import { useCsvPreview } from '../hooks/useCsvImport';
 
 const INTERNAL_KEYS = new Set([
   'isNewUsuario', 'isDuplicado', 'idUsuario', 'idSede', 'idSedeExamen',
-  'idCarrera', 'error', 'fieldErrors'
+  'idCarrera', 'idGrupo', 'error', 'warning', 'fieldErrors', 'fieldWarnings'
 ]);
 
 const HEADER_LABELS = {
@@ -23,6 +23,7 @@ const HEADER_LABELS = {
   TIPO_DISCAPACIDAD: 'Tipo Discap.',
   FECHA_INSCRIPCION: 'Fecha Insc.',
   CARRERA: 'Carrera',
+  GRUPO: 'Grupo',
   TURNO: 'Turno',
   GRADO: 'Grado',
   ANIO_EGRESO: 'Año Egreso',
@@ -77,7 +78,8 @@ export default function CsvImportModal({ isOpen, onClose, onSuccess, idPeriodo }
 
   const importableCount = useMemo(() => {
     if (!previewData?.rows) return 0;
-    return previewData.rows.filter(r => !r.error && !r.isDuplicado).length;
+    // Los duplicados también se importan: el upsert los actualiza (COALESCE)
+    return previewData.rows.filter(r => !r.error).length;
   }, [previewData]);
 
   if (!isOpen) return null;
@@ -128,7 +130,7 @@ export default function CsvImportModal({ isOpen, onClose, onSuccess, idPeriodo }
 
   const getRowStatus = (row) => {
     if (row.error) return { color: 'bg-red-50', icon: '✗', text: 'text-red-600', label: 'Error' };
-    if (row.isDuplicado) return { color: 'bg-orange-50', icon: '⏭', text: 'text-orange-600', label: 'Duplicado' };
+    if (row.isDuplicado) return { color: 'bg-orange-50', icon: '↻', text: 'text-orange-600', label: 'Actualizará' };
     if (row.isNewUsuario) return { color: 'bg-yellow-50', icon: '⚠', text: 'text-yellow-600', label: 'Nuevo usuario' };
     return { color: 'bg-green-50', icon: '✓', text: 'text-green-600', label: 'Correcto' };
   };
@@ -241,6 +243,9 @@ export default function CsvImportModal({ isOpen, onClose, onSuccess, idPeriodo }
                 ))}
                 <span className="text-xs text-gray-500 ml-auto">
                   Mostrando {filteredRows.length} de {previewData.stats.total} filas
+                  {previewData.stats.conAdvertencias > 0 && (
+                    <span className="text-orange-500"> · {previewData.stats.conAdvertencias} con advertencias</span>
+                  )}
                 </span>
               </div>
 
@@ -299,11 +304,16 @@ export default function CsvImportModal({ isOpen, onClose, onSuccess, idPeriodo }
                                   {row.error.length > 60 ? row.error.slice(0, 60) + '…' : row.error}
                                 </span>
                               ) : row.isDuplicado ? (
-                                <span className="text-orange-600">Ya postulante en este período</span>
+                                <span className="text-orange-600">Postulante existente — se actualizará con los datos del CSV</span>
                               ) : row.isNewUsuario ? (
                                 <span className="text-yellow-600">Usuario nuevo → crear</span>
                               ) : (
                                 <span className="text-green-600">Listo para importar</span>
+                              )}
+                              {row.warning && (
+                                <span className="block text-orange-500 mt-0.5" title={row.warning}>
+                                  ⚠ {row.warning.length > 60 ? row.warning.slice(0, 60) + '…' : row.warning}
+                                </span>
                               )}
                             </td>
                           </tr>
@@ -326,6 +336,22 @@ export default function CsvImportModal({ isOpen, onClose, onSuccess, idPeriodo }
                                             <strong>{getColumnLabel(fe.field)}:</strong> {fe.message} — <em>valor subido:</em>{' '}
                                             <code className="bg-red-50 px-1 rounded">
                                               {row[fe.field] !== undefined && row[fe.field] !== '' ? String(row[fe.field]) : '(vacío)'}
+                                            </code>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+
+                                  {row.fieldWarnings?.length > 0 && (
+                                    <div className="mb-3">
+                                      <p className="text-sm font-medium text-orange-700 mb-1">Advertencias:</p>
+                                      <ul className="list-disc list-inside text-sm text-orange-600 space-y-1">
+                                        {row.fieldWarnings.map((fw, i) => (
+                                          <li key={i}>
+                                            <strong>{getColumnLabel(fw.field)}:</strong> {fw.message} — <em>valor subido:</em>{' '}
+                                            <code className="bg-orange-50 px-1 rounded">
+                                              {row[fw.field] !== undefined && row[fw.field] !== '' ? String(row[fw.field]) : '(vacío)'}
                                             </code>
                                           </li>
                                         ))}

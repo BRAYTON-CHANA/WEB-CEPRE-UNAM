@@ -16,7 +16,7 @@ const CepreLayout = ({ children, showHeader = true, showFooter = true, showSideb
 
   if (showSidebar) {
     return (
-      <LayoutWithSidebar header={header} footer={footer} sidebar={CepreSidebar} defaultOpen={true}>
+      <LayoutWithSidebar header={header} footer={footer} sidebar={CepreSidebar} defaultOpen={true} defaultPinned={true}>
         {children}
       </LayoutWithSidebar>
     );

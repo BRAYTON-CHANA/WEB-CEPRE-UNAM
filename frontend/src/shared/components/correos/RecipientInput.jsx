@@ -97,6 +97,12 @@ const RecipientInput = ({ value = [], onChange, single = false, emailOnly = fals
     descriptionField: viewConfig.descriptionField,
     filters: [],
     filterFields: viewConfig.filterFields,
+    // Campos extra a cargar en raw: los filterFields (para que los filtros
+    // client-side tengan datos) y rowDataFields (para adjuntos personalizados).
+    referenceDisplayFields: [
+      ...(viewConfig.filterFields || []),
+      ...(viewConfig.rowDataFields || []).map((f) => ({ field: f })),
+    ],
     title: `Añadir desde ${viewConfig.label}`,
   } : undefined;
 

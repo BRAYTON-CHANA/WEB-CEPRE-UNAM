@@ -179,18 +179,21 @@ function buildBatchPayload(chunk, idPeriodo) {
     payload.p_discapacidad.push(parseSiNo(row.DISCAPACIDAD));
     payload.p_tipo_discapacidad.push(row.TIPO_DISCAPACIDAD ? row.TIPO_DISCAPACIDAD.trim() : null);
     payload.p_nro_conadis.push(null);
-    payload.p_activo_usuario.push(true);
+    // NULL → el INSERT defaultea TRUE y el UPDATE conserva el valor existente
+    payload.p_activo_usuario.push(null);
     payload.p_id_periodo.push(idPeriodo);
     payload.p_id_sede.push(row.idSedeExamen || row.idSede || null);
     payload.p_id_sede_carrera.push(row.idSede || null);
-    payload.p_id_grupo.push(null);
+    // idGrupo viene del lookup por CODIGO_GRUPO en preview; NULL si no vino/no existe
+    payload.p_id_grupo.push(row.idGrupo || null);
     payload.p_id_carrera.push(row.idCarrera || null);
     payload.p_codigo_estudiante.push(null);
     payload.p_codigo_edicion.push(row.CODIGO_EDICION ? row.CODIGO_EDICION.trim() : null);
     payload.p_fecha_inscripcion.push(parseDate(row.FECHA_INSCRIPCION));
     payload.p_alumno_libre.push(parseSiNo(row.ALUMNO_LIBRE));
-    payload.p_apto.push(true);
-    payload.p_activo_postulante.push(true);
+    // NULL → INSERT defaultea TRUE, UPDATE conserva (no reactiva a un no-apto/inactivo)
+    payload.p_apto.push(null);
+    payload.p_activo_postulante.push(null);
     payload.p_turno.push(row.TURNO ? row.TURNO.trim() : null);
     payload.p_grado.push(parseIntOrNull(row.GRADO));
     payload.p_anio_egreso.push(parseIntOrNull(row.ANIO_EGRESO));
@@ -447,6 +450,10 @@ function normalizeHeader(h) {
     // POSTULANTES
     'FECHA INSCRIPCION': 'FECHA_INSCRIPCION',
     'CARRERA': 'CARRERA',
+    'GRUPO': 'GRUPO',
+    'CODIGO GRUPO': 'GRUPO',
+    'CODIGO_GRUPO': 'GRUPO',
+    'GRUPO CODIGO': 'GRUPO',
     'TURNO': 'TURNO',
     'GRADO': 'GRADO',
     'AÑO EGRESO': 'ANIO_EGRESO',
@@ -458,8 +465,8 @@ function normalizeHeader(h) {
     'VALIDADO_POR': 'VALIDADO_POR',
     'NOMBRES Y APELLIDOS DEL PADRE O APODERADO': 'NOMBRE_APODERADO',
     'DIRECCION DEL PADRE O APODERADO': 'DIRECCION_APODERADO',
+    'TELEFONO APODERADO': 'TELEFONO_APODERADO',
     'TELEFONO DEL PADRE O APODERADO': 'TELEFONO_APODERADO',
-    'TELEFONO': 'TELEFONO_APODERADO', // si solo dice TELEFONO en contexto apoderado
     'TIENE ALGUN HERMANO': 'TIENE_HERMANO',
     'TIENE ALGÚN HERMANO': 'TIENE_HERMANO',
     'TIENE_HERMANO': 'TIENE_HERMANO',
@@ -538,9 +545,10 @@ export function useCsvPreview(idPeriodo) {
 
     // Precargar datos referenciales + schemas
     console.log('[CSV PREVIEW] Cargando datos referenciales y schemas...');
-    const [sedes, carreras, usuariosByDni, postulantesExistentes, schemaUsuarios, schemaPostulantes] = await Promise.all([
+    const [sedes, carreras, grupos, usuariosByDni, postulantesExistentes, schemaUsuarios, schemaPostulantes] = await Promise.all([
       backend.select('SEDES', {}, ['ID_SEDE', 'NOMBRE_SEDE', 'CODIGO_SEDE']),
       backend.select('CARRERAS', {}, ['ID_CARRERA', 'NOMBRE_CARRERA']),
+      backend.select('GRUPOS', { ID_PERIODO: idPeriodo }, ['ID_GRUPO', 'CODIGO_GRUPO']),
       backend.select('USUARIOS', {}, ['ID_USUARIO', 'DNI']),
       backend.select('POSTULANTES', { ID_PERIODO: idPeriodo }, ['ID_POSTULANTE', 'ID_USUARIO']),
       backend.getTableSchema('USUARIOS').catch(() => null),
@@ -555,6 +563,7 @@ export function useCsvPreview(idPeriodo) {
     // Indexar
     const sedesMap = new Map(sedes.map(s => [s.NOMBRE_SEDE?.toUpperCase(), s.ID_SEDE]));
     const carrerasMap = new Map(carreras.map(c => [c.NOMBRE_CARRERA?.toUpperCase(), c.ID_CARRERA]));
+    const gruposMap = new Map(grupos.map(g => [g.CODIGO_GRUPO?.toUpperCase(), g.ID_GRUPO]));
     const usuariosByDniMap = new Map(usuariosByDni.filter(u => u.DNI).map(u => [u.DNI, u.ID_USUARIO]));
     const postulantesExistentesSet = new Set(postulantesExistentes.map(p => p.ID_USUARIO));
 
@@ -562,7 +571,7 @@ export function useCsvPreview(idPeriodo) {
 
     const previewRows = [];
     const errors = [];
-    let ready = 0, nuevos = 0, duplicados = 0;
+    let ready = 0, nuevos = 0, duplicados = 0, conAdvertencias = 0;
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -576,16 +585,20 @@ export function useCsvPreview(idPeriodo) {
         idSede: null,
         idSedeExamen: null,
         idCarrera: null,
+        idGrupo: null,
         error: null,
-        fieldErrors: []
+        warning: null,
+        fieldErrors: [],
+        fieldWarnings: []
       };
 
       try {
         // ===== Validar contra schema todos los campos presentes =====
         const fieldErrors = [];
+        const fieldWarnings = [];
         for (const [csvField, value] of Object.entries(row)) {
-          // Skip campos que se resuelven por nombre (no van directo a la tabla)
-          if (['SEDE_VACANTE', 'SEDE_EXAMEN', 'CARRERA'].includes(csvField)) continue;
+          // Skip campos que se resuelven por nombre/código (no van directo a la tabla)
+          if (['SEDE_VACANTE', 'SEDE_EXAMEN', 'CARRERA', 'GRUPO'].includes(csvField)) continue;
           const err = validateFieldAgainstSchema(csvField, value, schemas);
           if (err) fieldErrors.push(err);
         }
@@ -648,6 +661,23 @@ export function useCsvPreview(idPeriodo) {
           else previewRow.idCarrera = idCarrera;
         }
 
+        // Buscar grupo por CODIGO_GRUPO dentro del período.
+        // No encontrado → warning (no bloquea): ID_GRUPO es nullable, importa sin grupo.
+        if (row.GRUPO?.trim()) {
+          const idGrupo = gruposMap.get(row.GRUPO.trim().toUpperCase());
+          if (!idGrupo) {
+            fieldWarnings.push({ field: 'GRUPO', message: `Grupo no encontrado en el período: ${row.GRUPO} (se importa sin grupo)` });
+          } else {
+            previewRow.idGrupo = idGrupo;
+          }
+        }
+
+        if (fieldWarnings.length > 0) {
+          previewRow.fieldWarnings = fieldWarnings;
+          previewRow.warning = fieldWarnings.map(w => w.message).join('; ');
+          conAdvertencias++;
+        }
+
         if (fieldErrors.length > 0) {
           previewRow.error = fieldErrors.map(e => e.message).join('; ');
           previewRow.fieldErrors = fieldErrors;
@@ -675,12 +705,15 @@ export function useCsvPreview(idPeriodo) {
         ready,
         new: nuevos,
         duplicados,
+        conAdvertencias,
         errors: errors.length
       }
     };
   }, [idPeriodo]);
 
-  // ===== Import: upsert USUARIOS + insert POSTULANTES =====
+  // ===== Import: upsert USUARIOS + upsert POSTULANTES =====
+  // Duplicados (ya postulante en el período) se ACTUALIZAN: el upsert en SQL
+  // aplica COALESCE(nuevo, existente) — dato nuevo gana, NULL/vacío conserva.
   const importRows = useCallback(async (rows) => {
     if (!idPeriodo) {
       setResult({ success: false, error: 'Período no seleccionado' });
@@ -690,9 +723,9 @@ export function useCsvPreview(idPeriodo) {
     setImporting(true);
     setProgress({ current: 0, total: rows.length });
 
-    // Filtrar filas válidas (sin error y no duplicadas)
-    const filasValidas = rows.filter(r => !r.error && !r.isDuplicado);
-    const filasDuplicadas = rows.filter(r => r.isDuplicado);
+    // Filtrar filas válidas (sin error). Los duplicados se actualizan vía upsert.
+    const filasValidas = rows.filter(r => !r.error);
+    const filasDuplicadas = rows.filter(r => r.isDuplicado && !r.error);
 
     let imported = 0;
     const errores = [];
@@ -719,11 +752,12 @@ export function useCsvPreview(idPeriodo) {
         }
       }
 
-      console.log(`[CSV IMPORT] Completado: ${imported} importados, ${errores.length} errores, ${filasDuplicadas.length} duplicados`);
+      console.log(`[CSV IMPORT] Completado: ${imported} importados (${filasDuplicadas.length} actualizados), ${errores.length} errores`);
 
       setResult({
         success: true,
         imported,
+        actualizados: filasDuplicadas.length,
         duplicados: filasDuplicadas.length,
         errores: errores.length,
         erroresDetalle: errores

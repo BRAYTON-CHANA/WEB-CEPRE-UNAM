@@ -161,7 +161,7 @@ const TableActions = ({
               : <span className="w-3.5 h-3.5 flex items-center justify-center">{action.icon}</span>
           )}
           {action.showLabel !== false && (
-            <span>{action.isDisabled ? 'Añadiendo...' : action.label || action.key}</span>
+            <span>{action.isDisabled ? (action.disabledLabel || 'Añadiendo...') : action.label || action.key}</span>
           )}
         </button>
       ))}

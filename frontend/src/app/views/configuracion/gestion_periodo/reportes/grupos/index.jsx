@@ -4,10 +4,10 @@ import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectI
 import TableMultiLevel from '@/shared/components/table/views/TableMultiLevel';
 import { useTableData } from '@/shared/components/crud/hooks/useTableData';
 import { usePeriodo } from '@/shared/context/PeriodoContext';
-import { exportSesionesToExcel, exportAllSesionesToExcel } from '@/features/configuracion/reportes/grupos/utils/exportSesionesToExcel';
-import { exportSesionesToPdf, exportAllSesionesToPdf } from '@/features/configuracion/reportes/grupos/utils/exportSesionesToPdf';
-import ExportOptionsModal from '@/features/configuracion/reportes/shared/ExportOptionsModal';
-import { levelConfigs } from '@/features/configuracion/reportes/grupos/config';
+import { exportSesionesToExcel, exportAllSesionesToExcel } from '@/features/reportes/grupos/utils/exportSesionesToExcel';
+import { exportSesionesToPdf, exportAllSesionesToPdf } from '@/features/reportes/grupos/utils/exportSesionesToPdf';
+import ExportOptionsModal from '@/features/reportes/shared/ExportOptionsModal';
+import { levelConfigs } from '@/features/reportes/grupos/config';
 
 function ReportesGrupos() {
   const { periodo: selectedPeriodo, setPeriodo: setSelectedPeriodo } = usePeriodo();
@@ -51,11 +51,11 @@ function ReportesGrupos() {
       const nombre = row.NOMBRE_GRUPO || row.CODIGO_GRUPO;
       if (isPdf) {
         setExportingIndividualPdf(nombre);
-        try { await exportSesionesToPdf(row.ID_GRUPO, nombre, opts); }
+        try { await exportSesionesToPdf(row.ID_GRUPO, nombre, { ...opts, idTurno: row.ID_TURNO }); }
         finally { setExportingIndividualPdf(null); }
       } else {
         setExportingIndividual(nombre);
-        try { await exportSesionesToExcel(row.ID_GRUPO, nombre, opts); }
+        try { await exportSesionesToExcel(row.ID_GRUPO, nombre, { ...opts, idTurno: row.ID_TURNO }); }
         finally { setExportingIndividual(null); }
       }
     } else if (pending.type === 'all') {

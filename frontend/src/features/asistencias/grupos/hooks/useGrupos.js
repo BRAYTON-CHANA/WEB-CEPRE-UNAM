@@ -29,12 +29,12 @@ export function useGrupos(idPeriodo) {
         const sedesMap = new Map();
         sedesList.forEach(s => sedesMap.set(s.ID_SEDE, s));
         
-        // Unir nombre de sede a cada grupo
+        // Unir nombre de sede a cada grupo (grupos virtuales no tienen sede)
         const gruposConSede = gruposList.map(g => ({
           ...g,
-          NOMBRE_SEDE: sedesMap.get(g.ID_SEDE)?.NOMBRE_SEDE || `Sede ${g.ID_SEDE}`
+          NOMBRE_SEDE: g.ID_SEDE == null ? 'Virtual' : (sedesMap.get(g.ID_SEDE)?.NOMBRE_SEDE || `Sede ${g.ID_SEDE}`)
         }));
-        
+
         setGrupos(gruposConSede);
       })
       .catch(err => setError(err.message))
@@ -57,7 +57,7 @@ export function useGrupos(idPeriodo) {
         sedesList.forEach(s => sedesMap.set(s.ID_SEDE, s));
         const gruposConSede = gruposList.map(g => ({
           ...g,
-          NOMBRE_SEDE: sedesMap.get(g.ID_SEDE)?.NOMBRE_SEDE || `Sede ${g.ID_SEDE}`
+          NOMBRE_SEDE: g.ID_SEDE == null ? 'Virtual' : (sedesMap.get(g.ID_SEDE)?.NOMBRE_SEDE || `Sede ${g.ID_SEDE}`)
         }));
         setGrupos(gruposConSede);
       })

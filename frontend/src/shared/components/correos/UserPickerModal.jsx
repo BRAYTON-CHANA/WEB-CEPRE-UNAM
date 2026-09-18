@@ -105,6 +105,7 @@ const UserPickerModal = ({ isOpen, onClose, onSelect, config }) => {
     labelTemplate: cfg.labelTemplate,
     descriptionField: cfg.descriptionField,
     filters: cfg.filters,
+    referenceDisplayFields: cfg.referenceDisplayFields,
   });
 
   React.useEffect(() => {

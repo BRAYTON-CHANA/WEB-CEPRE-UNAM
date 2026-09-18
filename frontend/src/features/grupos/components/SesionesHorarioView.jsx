@@ -58,16 +58,16 @@ const normalizeBloquesIds = (val) => {
 };
 
 /**
- * Construye la lista completa de bloques del template snapshot con tiempos calculados.
+ * Construye la lista completa de bloques del turno con tiempos calculados.
  * Retorna un array ordenado por ORDEN, cada bloque con horaInicio/horaFin.
  */
-const buildTemplateBlocks = (snapshotBloques) => {
-  if (!snapshotBloques || snapshotBloques.length === 0) return [];
+const buildTemplateBlocks = (turnoBloques) => {
+  if (!turnoBloques || turnoBloques.length === 0) return [];
 
-  const horaInicioJornada = snapshotBloques[0].HORA_INICIO_JORNADA;
+  const horaInicioJornada = turnoBloques[0].HORA_INICIO_JORNADA;
   const startMinutes = timeToMinutes(horaInicioJornada);
 
-  const sorted = [...snapshotBloques].sort((a, b) => (a.ORDEN || 0) - (b.ORDEN || 0));
+  const sorted = [...turnoBloques].sort((a, b) => (a.ORDEN || 0) - (b.ORDEN || 0));
 
   let currentMin = startMinutes;
   return sorted.map(b => {
@@ -78,7 +78,7 @@ const buildTemplateBlocks = (snapshotBloques) => {
     currentMin = endMin;
 
     return {
-      idSesionBloque: b.ID_SESION_BLOQUE,
+      idBloque: b.ID_BLOQUE,
       orden: b.ORDEN,
       duracion,
       tipo: (b.TIPO_BLOQUE || 'clase').toLowerCase(),
@@ -94,8 +94,8 @@ const buildTemplateBlocks = (snapshotBloques) => {
  * Construye el día completo: para cada bloque del template, determina qué sesión lo ocupa.
  * Retorna array de bloques del día (todos los del template) con curso/docente/color o null si vacío.
  */
-const buildDayBlocks = (templateBlocks, sesionesDelDia) => {
-  // Mapear ID_SESION_BLOQUE → sesión que lo ocupa
+const buildDayBlocks = (templateBlocks, sesionesDelDia, getSubtext) => {
+  // Mapear ID_BLOQUE → sesión que lo ocupa
   const bloqueToSesion = new Map();
   for (const s of sesionesDelDia) {
     const ids = normalizeBloquesIds(s.BLOQUES_IDS);
@@ -110,11 +110,11 @@ const buildDayBlocks = (templateBlocks, sesionesDelDia) => {
     const aIds = normalizeBloquesIds(a.BLOQUES_IDS);
     const bIds = normalizeBloquesIds(b.BLOQUES_IDS);
     const aMin = aIds.length ? Math.min(...aIds.map(id => {
-      const tb = templateBlocks.find(t => t.idSesionBloque === id);
+      const tb = templateBlocks.find(t => t.idBloque === id);
       return tb ? tb.orden : Infinity;
     })) : Infinity;
     const bMin = bIds.length ? Math.min(...bIds.map(id => {
-      const tb = templateBlocks.find(t => t.idSesionBloque === id);
+      const tb = templateBlocks.find(t => t.idBloque === id);
       return tb ? tb.orden : Infinity;
     })) : Infinity;
     return aMin - bMin;
@@ -125,7 +125,7 @@ const buildDayBlocks = (templateBlocks, sesionesDelDia) => {
   });
 
   return templateBlocks.map(b => {
-    const sesion = bloqueToSesion.get(b.idSesionBloque);
+    const sesion = bloqueToSesion.get(b.idBloque);
     if (b.tipo === 'break') {
       return {
         ...b,
@@ -139,15 +139,16 @@ const buildDayBlocks = (templateBlocks, sesionesDelDia) => {
       };
     }
     if (sesion) {
+      const subtext = getSubtext ? getSubtext(sesion) : (sesion.DOCENTE_ASIGNADO || null);
       return {
         ...b,
         curso: sesion.NOMBRE_CURSO || null,
-        docente: sesion.DOCENTE_ASIGNADO || null,
+        docente: subtext,
         color: sesion.CURSO_COLOR || null,
         idGrupoCurso: sesion.ID_GRUPO_CURSO || null,
         idSesion: sesion.ID_SESION || null,
         sessionIdx: sesionIdxMap.get(sesion.ID_SESION) ?? null,
-        key: `clase|${b.timeKey}|${sesion.ID_GRUPO_CURSO || ''}|${sesion.ID_SESION || ''}|${sesion.NOMBRE_CURSO || ''}|${sesion.DOCENTE_ASIGNADO || ''}`
+        key: `clase|${b.timeKey}|${sesion.ID_GRUPO_CURSO || ''}|${sesion.ID_SESION || ''}|${sesion.NOMBRE_CURSO || ''}|${subtext || ''}`
       };
     }
     // Slot vacío
@@ -178,14 +179,14 @@ const buildSignature = (dayBlocks) => {
 
 /**
  * SesionesHorarioView — grilla tipo horario semanal.
- * La columna izquierda (time slots) viene de TODOS los bloques de la snapshot.
+ * La columna izquierda (time slots) viene de TODOS los bloques del turno.
  * Las columnas se agrupan por patrón completo de sesiones (ID_GRUPO_CURSO por
  * slot + vacíos). Por defecto se fusionan días con el mismo patrón sin importar
  * el weekday y las columnas se titulan DÍA 1, DÍA 2, ...; el checkbox
  * "Agrupar por días de la semana" activado exige mismo día de la semana y
  * las columnas pasan a titularse SÁBADO, DOMINGO, ...
  */
-function SesionesHorarioView({ sesiones, snapshotBloques }) {
+function SesionesHorarioView({ sesiones, turnoBloques, getSubtext, compact = false }) {
   const [agruparDias, setAgruparDias] = useState(() => {
     try { return localStorage.getItem('sesiones-agrupar-dias') === '1'; }
     catch { return false; }
@@ -198,12 +199,12 @@ function SesionesHorarioView({ sesiones, snapshotBloques }) {
   };
 
   const { columns, allTimeSlots } = useMemo(() => {
-    if (!sesiones || sesiones.length === 0 || !snapshotBloques || snapshotBloques.length === 0) {
+    if (!sesiones || sesiones.length === 0 || !turnoBloques || turnoBloques.length === 0) {
       return { columns: [], allTimeSlots: [] };
     }
 
     // 1. Construir template completo de bloques con tiempos calculados
-    const templateBlocks = buildTemplateBlocks(snapshotBloques);
+    const templateBlocks = buildTemplateBlocks(turnoBloques);
     if (templateBlocks.length === 0) return { columns: [], allTimeSlots: [] };
 
     // allTimeSlots = TODOS los timeKeys del template (columna izquierda completa)
@@ -229,7 +230,7 @@ function SesionesHorarioView({ sesiones, snapshotBloques }) {
       if (!date) continue;
       const weekday = date.getDay();
 
-      const dayBlocks = buildDayBlocks(templateBlocks, sesionesDelDia);
+      const dayBlocks = buildDayBlocks(templateBlocks, sesionesDelDia, getSubtext);
       const sigKey = buildSignature(dayBlocks);
       dateInfos.push({ date, fechaStr, weekday, dayBlocks, sigKey });
     }
@@ -293,7 +294,7 @@ function SesionesHorarioView({ sesiones, snapshotBloques }) {
     }
 
     return { columns, allTimeSlots };
-  }, [sesiones, snapshotBloques, agruparDias]);
+  }, [sesiones, turnoBloques, agruparDias, getSubtext]);
 
   if (!sesiones || sesiones.length === 0) {
     return (
@@ -316,6 +317,10 @@ function SesionesHorarioView({ sesiones, snapshotBloques }) {
   }
 
   const findRun = (runs, slotIdx) => runs.find(r => slotIdx >= r.startSlot && slotIdx <= r.endSlot);
+
+  // Variante compacta: celdas más bajas, fechas en rango (para vista /horario)
+  const cellMinH = compact ? 'min-h-[42px]' : 'min-h-[72px]';
+  const headMinW = compact ? 'min-w-[110px]' : 'min-w-[150px]';
 
   return (
     <div>
@@ -340,15 +345,17 @@ function SesionesHorarioView({ sesiones, snapshotBloques }) {
             {columns.map((col, idx) => (
               <th
                 key={`col-${idx}`}
-                className="bg-[#2D366F] text-white px-3 py-2 text-center border border-[#2D366F] min-w-[150px]"
+                className={`bg-[#2D366F] text-white px-3 py-2 text-center border border-[#2D366F] ${headMinW}`}
               >
                 <div className="font-bold text-xs uppercase tracking-wider">
                   {agruparDias
                     ? col.weekdays.map(w => WEEKDAY_NAMES[w]).join(' · ')
                     : `DÍA ${idx + 1}`}
                 </div>
-                <div className="text-[10px] font-normal text-blue-200 mt-1 leading-tight whitespace-pre-line">
-                  {col.dates.map(formatDateShort).join('\n')}
+                <div className={`text-[10px] font-normal text-blue-200 mt-1 leading-tight ${compact ? 'whitespace-nowrap' : 'whitespace-pre-line'}`}>
+                  {compact && col.dates.length > 2
+                    ? `${formatDateShort(col.dates[0])} → ${formatDateShort(col.dates[col.dates.length - 1])} · ${col.dates.length}d`
+                    : col.dates.map(formatDateShort).join(compact ? ' · ' : '\n')}
                 </div>
               </th>
             ))}
@@ -361,7 +368,7 @@ function SesionesHorarioView({ sesiones, snapshotBloques }) {
             return (
               <tr key={`row-${rowIdx}`}>
                 <td
-                  className="sticky left-0 z-10 bg-white p-3 text-xs border border-slate-200 border-r-2 border-slate-300 w-28 align-middle"
+                  className={`sticky left-0 z-10 bg-white text-xs border border-slate-200 border-r-2 border-slate-300 align-middle ${compact ? 'p-1.5 w-20' : 'p-3 w-28'}`}
                 >
                   <div className="font-mono text-slate-500 leading-tight">
                     {formatTime(horaIni)} – {formatTime(horaFin)}
@@ -384,7 +391,7 @@ function SesionesHorarioView({ sesiones, snapshotBloques }) {
                         key={`cell-${colIdx}-${rowIdx}`}
                         className="p-0 border-b border-r border-slate-200 bg-white relative overflow-hidden min-w-[100px]"
                       >
-                        <div className="min-h-[72px] w-full" />
+                        <div className={`${cellMinH} w-full`} />
                       </td>
                     );
                   }
@@ -394,9 +401,9 @@ function SesionesHorarioView({ sesiones, snapshotBloques }) {
                     return (
                       <td
                         key={`cell-${colIdx}-${rowIdx}`}
-                        className="border-b border-r border-slate-200 bg-gray-50 text-center py-2 min-w-[100px]"
+                        className={`border-b border-r border-slate-200 bg-gray-50 text-center min-w-[100px] ${compact ? 'py-0.5' : 'py-2'}`}
                       >
-                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-full px-3 py-1">
+                        <span className={`inline-flex items-center gap-1.5 font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-full ${compact ? 'text-[10px] px-2 py-0.5' : 'text-xs px-3 py-1'}`}>
                           ☕ Break
                         </span>
                       </td>
@@ -411,7 +418,7 @@ function SesionesHorarioView({ sesiones, snapshotBloques }) {
                         className="p-0 border-b border-r border-slate-200 bg-white relative overflow-hidden min-w-[100px]"
                         rowSpan={run ? (run.endSlot - run.startSlot + 1) : 1}
                       >
-                        <div className="min-h-[72px] w-full" />
+                        <div className={`${cellMinH} w-full`} />
                       </td>
                     );
                   }
@@ -433,15 +440,15 @@ function SesionesHorarioView({ sesiones, snapshotBloques }) {
                       rowSpan={rowSpan}
                       style={{ backgroundColor: hexToRgba(cursoColor, 0.20) }}
                     >
-                      <div className="flex flex-col items-center justify-center h-full min-h-[72px] px-2 py-1.5 text-center">
-                        <span className="text-xs font-semibold text-gray-900 leading-tight whitespace-normal break-words">
+                      <div className={`flex flex-col items-center justify-center h-full ${cellMinH} text-center ${compact ? 'px-1.5 py-0.5' : 'px-2 py-1.5'}`}>
+                        <span className={`${compact ? 'text-[11px]' : 'text-xs'} font-semibold text-gray-900 leading-tight whitespace-normal break-words`}>
                           {colBlock.curso}
                         </span>
-                        <span className="text-[10px] text-gray-700 leading-tight mt-0.5 whitespace-normal break-words">
+                        <span className={`${compact ? 'text-[9px]' : 'text-[10px]'} text-gray-700 leading-tight mt-0.5 whitespace-normal break-words`}>
                           {colBlock.docente || 'Sin docente'}
                         </span>
                         {startBlock && endBlock && (
-                          <span className="text-[10px] text-gray-500 leading-tight mt-1 font-mono">
+                          <span className={`${compact ? 'text-[9px]' : 'text-[10px]'} text-gray-500 leading-tight ${compact ? 'mt-0.5' : 'mt-1'} font-mono`}>
                             {formatTime(startBlock.horaInicio)} – {formatTime(endBlock.horaFin)}
                           </span>
                         )}

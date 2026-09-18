@@ -7,11 +7,11 @@ import { db } from '@/shared/api';
  *
  * Props:
  *   sharedGrupo      — ID del grupo seleccionado
- *   snapshotBloques  — array de bloques snapshot (VW_SESION_HORARIO_BLOQUES)
+ *   turnoBloques   — array de bloques del turno (VW_GRUPO_TURNO_BLOQUES)
  *   sesiones         — array de sesiones actuales (VW_SESIONES_GRUPO)
  *   onSesionesChange — callback para recargar sesiones tras crear/eliminar
  */
-export function useSesionesManual({ sharedGrupo, snapshotBloques, sesiones, onSesionesChange }) {
+export function useSesionesManual({ sharedGrupo, turnoBloques, sesiones, onSesionesChange }) {
   const [modoAdd, setModoAdd] = useState(false);
   const [fechaSeleccionada, setFechaSeleccionada] = useState('');
   const [selectedCurso, setSelectedCurso] = useState('');
@@ -41,7 +41,7 @@ export function useSesionesManual({ sharedGrupo, snapshotBloques, sesiones, onSe
 
   // ===== Construir bloques del día seleccionado =====
   const bloquesDelDia = useMemo(() => {
-    if (!fechaSeleccionada || !snapshotBloques || snapshotBloques.length === 0) return [];
+    if (!fechaSeleccionada || !turnoBloques || turnoBloques.length === 0) return [];
 
     // Filtrar sesiones de la fecha seleccionada
     const sesionesDelDia = sesiones.filter(s => {
@@ -50,7 +50,7 @@ export function useSesionesManual({ sharedGrupo, snapshotBloques, sesiones, onSe
       return fStr === fechaSeleccionada;
     });
 
-    // Mapear ID_SESION_BLOQUE → sesión que lo ocupa
+    // Mapear ID_BLOQUE → sesión que lo ocupa
     const bloqueToSesion = new Map();
     for (const s of sesionesDelDia) {
       const ids = normalizeBloquesIds(s.BLOQUES_IDS);
@@ -60,11 +60,11 @@ export function useSesionesManual({ sharedGrupo, snapshotBloques, sesiones, onSe
     }
 
     // Construir lista de bloques con info de ocupación
-    const horaInicioJornada = snapshotBloques[0]?.HORA_INICIO_JORNADA;
+    const horaInicioJornada = turnoBloques[0]?.HORA_INICIO_JORNADA;
     if (!horaInicioJornada) return [];
 
     const startMinutes = timeToMinutes(horaInicioJornada);
-    const sorted = [...snapshotBloques].sort((a, b) => (a.ORDEN || 0) - (b.ORDEN || 0));
+    const sorted = [...turnoBloques].sort((a, b) => (a.ORDEN || 0) - (b.ORDEN || 0));
 
     let currentMin = startMinutes;
     return sorted.map(b => {
@@ -74,12 +74,12 @@ export function useSesionesManual({ sharedGrupo, snapshotBloques, sesiones, onSe
       const horaFin = minutesToTime(endMin);
       currentMin = endMin;
 
-      const idSesionBloque = b.ID_SESION_BLOQUE;
-      const sesionOcupante = bloqueToSesion.get(idSesionBloque);
+      const idBloque = b.ID_BLOQUE;
+      const sesionOcupante = bloqueToSesion.get(idBloque);
       const tipo = (b.TIPO_BLOQUE || 'clase').toLowerCase();
 
       return {
-        idSesionBloque,
+        idBloque,
         orden: b.ORDEN,
         duracion,
         tipo,
@@ -96,7 +96,7 @@ export function useSesionesManual({ sharedGrupo, snapshotBloques, sesiones, onSe
         seleccionable: tipo === 'clase' && !sesionOcupante
       };
     });
-  }, [fechaSeleccionada, snapshotBloques, sesiones]);
+  }, [fechaSeleccionada, turnoBloques, sesiones]);
 
   const handleSelectFecha = useCallback((fecha) => {
     setFechaSeleccionada(fecha);
@@ -104,13 +104,13 @@ export function useSesionesManual({ sharedGrupo, snapshotBloques, sesiones, onSe
     setError(null);
   }, []);
 
-  const handleBloqueToggle = useCallback((idSesionBloque) => {
+  const handleBloqueToggle = useCallback((idBloque) => {
     setSelectedBloques(prev => {
       const next = new Set(prev);
-      if (next.has(idSesionBloque)) {
-        next.delete(idSesionBloque);
+      if (next.has(idBloque)) {
+        next.delete(idBloque);
       } else {
-        next.add(idSesionBloque);
+        next.add(idBloque);
       }
       return next;
     });
@@ -121,10 +121,10 @@ export function useSesionesManual({ sharedGrupo, snapshotBloques, sesiones, onSe
     setSaving(true);
     setError(null);
     try {
-      // Convertir IDs de sesión bloque → ORDENES
+      // Convertir IDs de bloque → ORDENES
       const bloqueMap = new Map();
       for (const b of bloquesDelDia) {
-        bloqueMap.set(b.idSesionBloque, b.orden);
+        bloqueMap.set(b.idBloque, b.orden);
       }
       const ordenes = Array.from(selectedBloques)
         .map(id => bloqueMap.get(id))

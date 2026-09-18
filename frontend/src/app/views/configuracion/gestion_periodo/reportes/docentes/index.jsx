@@ -3,9 +3,10 @@ import { ConfigLayout } from '@/features/layout';
 import ReferenceSelectInput from '@/shared/components/ui/inputs/ReferenceSelectInput';
 import { useTableData } from '@/shared/components/crud/hooks/useTableData';
 import { usePeriodo } from '@/shared/context/PeriodoContext';
-import ExportOptionsModal from '@/features/configuracion/reportes/shared/ExportOptionsModal';
-import { exportDocenteToExcel, exportAllDocentesToExcel } from '@/features/configuracion/reportes/docentes/utils/exportDocenteToExcel';
-import { exportDocenteToPdf, exportAllDocentesToPdf } from '@/features/configuracion/reportes/docentes/utils/exportDocenteToPdf';
+import ExportOptionsModal from '@/features/reportes/shared/ExportOptionsModal';
+import { exportDocenteToExcel, exportAllDocentesToExcel } from '@/features/reportes/docentes/utils/exportDocenteToExcel';
+import { exportDocenteToPdf, exportAllDocentesToPdf } from '@/features/reportes/docentes/utils/exportDocenteToPdf';
+import { exportDocentesToZip } from '@/features/reportes/docentes/utils/exportDocentesZip';
 
 const ITEMS_PER_PAGE = 15;
 
@@ -105,6 +106,8 @@ function ReportesDocentes() {
   const [exportAllProgress, setExportAllProgress]           = useState({ current: 0, total: 0 });
   const [exportingPdf, setExportingPdf]                     = useState(false);
   const [exportPdfProgress, setExportPdfProgress]           = useState(null);
+  const [exportingZip, setExportingZip]                     = useState(false);
+  const [exportZipProgress, setExportZipProgress]           = useState(null);
 
   const filters = useMemo(() => selectedPeriodo ? { ID_PERIODO: selectedPeriodo } : {}, [selectedPeriodo]);
 
@@ -147,7 +150,14 @@ function ReportesDocentes() {
         finally { setExportingIndividual(null); }
       }
     } else if (pending.type === 'all') {
-      if (isPdf) {
+      if (pending.format === 'zip' || opts.porZip) {
+        const zipFormat = pending.format === 'zip' ? 'both' : (isPdf ? 'pdf' : 'excel');
+        setExportingZip(true);
+        setExportZipProgress({ current: 0, total: 0 });
+        try {
+          await exportDocentesToZip(selectedPeriodo, (current, total) => setExportZipProgress({ current, total }), opts, zipFormat);
+        } finally { setExportingZip(false); setExportZipProgress(null); }
+      } else if (isPdf) {
         setExportingPdf(true);
         setExportPdfProgress({ current: 0, total: 0 });
         try {
@@ -190,6 +200,22 @@ function ReportesDocentes() {
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
               >
                 {exportingPdf ? `Exportando ${exportPdfProgress?.current ?? 0}/${exportPdfProgress?.total ?? 0}...` : 'Exportar Todo (PDF)'}
+              </button>
+              <button
+                onClick={() => setExportModalPending({ type: 'all', format: 'zip' })}
+                disabled={exportingZip}
+                className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                {exportingZip ? `Exportando ${exportZipProgress?.current ?? 0}/${exportZipProgress?.total ?? 0}...` : 'Exportar ZIP'}
+              </button>
+              <button
+                onClick={() => { /* TODO: abrir composer de correos para docentes del período */ }}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Enviar correo
               </button>
             </div>
           )}
@@ -340,12 +366,13 @@ function ReportesDocentes() {
         isOpen={!!exportModalPending}
         title={
           exportModalPending?.type === 'all'
-            ? `Exportar todos los docentes (${exportModalPending?.format === 'pdf' ? 'PDF' : 'Excel'})`
-            : `Exportar — ${exportModalPending?.row?.NOMBRE_COMPLETO || 'Docente'} (${exportModalPending?.format === 'pdf' ? 'PDF' : 'Excel'})`
+            ? `Exportar todos los docentes (${(exportModalPending?.format || 'excel').toUpperCase()})`
+            : `Exportar — ${exportModalPending?.row?.NOMBRE_COMPLETO || 'Docente'} (${(exportModalPending?.format || 'excel').toUpperCase()})`
         }
         onConfirm={handleModalConfirm}
         onCancel={() => setExportModalPending(null)}
         mode="docentes"
+        allowZip={exportModalPending?.type === 'all' && exportModalPending?.format !== 'zip'}
       />
     </ConfigLayout>
   );

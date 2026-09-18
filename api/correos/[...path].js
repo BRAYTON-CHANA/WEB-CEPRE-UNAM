@@ -14,6 +14,12 @@ const handlers = {
   'cron-enviar': cronEnviar,
 };
 
+// El envío masivo puede llevar adjuntos personalizados por destinatario
+// (base64 en el JSON), así que se amplía el límite del body parser.
+export const config = {
+  api: { bodyParser: { sizeLimit: '50mb' } },
+};
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');

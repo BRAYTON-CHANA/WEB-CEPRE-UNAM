@@ -80,6 +80,10 @@ export function useEmails() {
   const [sortBy, setSortBy] = useState('CREADO_EN');
   const [sortOrder, setSortOrder] = useState('desc');
 
+  // Envío en curso: ref para bloqueo síncrono anti doble-click + state para UI
+  const sendingRef = useRef(new Set());
+  const [sendingIds, setSendingIds] = useState(new Set());
+
   const displayRecords = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     let filtered = records || [];
@@ -175,13 +179,20 @@ export function useEmails() {
 
   const handleEnviar = async (row) => {
     if (!row?.ID_CORREO) return;
+    // Bloqueo síncrono: si ya hay un envío en curso, ignorar el click
+    if (sendingRef.current.size > 0) return;
     const ok = window.confirm(`¿Enviar el correo "${row.ASUNTO || '(sin asunto)'}" ahora?`);
     if (!ok) return;
+    sendingRef.current = new Set([row.ID_CORREO]);
+    setSendingIds(sendingRef.current);
     try {
       await sendEmailById(row.ID_CORREO);
       refresh();
     } catch (err) {
       alert(`Error al enviar: ${err.message}`);
+    } finally {
+      sendingRef.current = new Set();
+      setSendingIds(sendingRef.current);
     }
   };
 
@@ -242,6 +253,7 @@ export function useEmails() {
     handleViewRecipients,
     handleCloseRecipients: () => setRecipientsEmail(null),
     // Enviar
-    handleEnviar
+    handleEnviar,
+    sendingIds
   };
 }

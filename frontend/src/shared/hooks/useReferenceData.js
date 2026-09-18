@@ -69,6 +69,10 @@ export const useReferenceData = (config) => {
   const [loading, setLoading] = useState(false);
   const hasAttemptedLoad = useRef(false);
   const hasLoggedOptions = useRef(false);
+  // cacheKey con la que se cargaron los records actuales; si difiere del
+  // cacheKey vigente, los records son stale (de otra tabla/config) y no
+  // deben usarse para computar ni cachear opciones.
+  const recordsCacheKey = useRef(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Log inicial de configuración (solo en desarrollo y solo una vez por config única)
@@ -141,6 +145,7 @@ export const useReferenceData = (config) => {
     if (pendingRequests.has(loadConfig.cacheKey)) {
       try {
         const data = await pendingRequests.get(loadConfig.cacheKey);
+        recordsCacheKey.current = loadConfig.cacheKey;
         setRecords(data);
         hasAttemptedLoad.current = true;
         return;
@@ -152,6 +157,7 @@ export const useReferenceData = (config) => {
     // Usar cache si existe (la cacheKey ya incluye los valores de filtros resueltos,
     // así que si la clave es la misma los datos son válidos independientemente de si hay filtros)
     if (cache.has(loadConfig.cacheKey)) {
+      recordsCacheKey.current = loadConfig.cacheKey;
       setRecords(cache.get(loadConfig.cacheKey));
       hasAttemptedLoad.current = true;
       return;
@@ -168,6 +174,7 @@ export const useReferenceData = (config) => {
     try {
       const data = await promise;
       cache.set(loadConfig.cacheKey, data);
+      recordsCacheKey.current = loadConfig.cacheKey;
       // Guard: evitar setRecords si datos idénticos (evita re-renders innecesarios)
       setRecords(prev => {
         try {
@@ -189,6 +196,12 @@ export const useReferenceData = (config) => {
   // Usar cacheKey en vez de filters evita resets por nueva referencia de array con mismos valores
   useEffect(() => {
     hasAttemptedLoad.current = false;
+    // Descartar los records del config anterior: si la vista/tabla cambió,
+    // las filas viejas tienen otros campos y no deben verse ni cachearse.
+    recordsCacheKey.current = null;
+    setRecords([]);
+    setSelfRecord(null);
+    setOriginalRecord(null);
   }, [cacheKey]);
 
   // Resetear hasLoggedOptions cuando cambian los parámetros que afectan las opciones
@@ -383,11 +396,13 @@ export const useReferenceData = (config) => {
     // ← NUEVO: Combinar records con originalRecord y selfRecord si existen
     // originalRecord: valor inicial al abrir edición (persiste)
     // selfRecord: valor actual seleccionado (cambia con selección)
-    const allRecords = [
-      ...records,
-      ...(originalRecord && !records.some(r => String(r[valueField]) === String(originalRecord[valueField])) ? [originalRecord] : []),
-      ...(selfRecord && !records.some(r => String(r[valueField]) === String(selfRecord[valueField])) && (!originalRecord || String(selfRecord[valueField]) !== String(originalRecord[valueField])) ? [selfRecord] : [])
-    ].filter(Boolean);
+    const allRecords = recordsCacheKey.current === cacheKey
+      ? [
+          ...records,
+          ...(originalRecord && !records.some(r => String(r[valueField]) === String(originalRecord[valueField])) ? [originalRecord] : []),
+          ...(selfRecord && !records.some(r => String(r[valueField]) === String(selfRecord[valueField])) && (!originalRecord || String(selfRecord[valueField]) !== String(originalRecord[valueField])) ? [selfRecord] : [])
+        ].filter(Boolean)
+      : [];
     
     //console.log(`[useReferenceData] Transformando opciones: ${records.length} registros + ${originalRecord ? 1 : 0} original + ${selfRecord ? 1 : 0} self = ${allRecords.length} total`);
     

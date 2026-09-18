@@ -95,7 +95,7 @@ const REPORT_MODULE = {
 
 function Asistencias() {
   return (
-    <CepreLayout>
+    <CepreLayout showSidebar>
       <div className="min-h-screen py-14" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
         <div className="max-w-4xl mx-auto px-6">
 

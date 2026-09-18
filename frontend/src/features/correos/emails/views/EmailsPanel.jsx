@@ -29,7 +29,7 @@ function EmailsPanel() {
     pendientesRefreshKey,
     viewEmail, handleView, handleCloseView,
     recipientsEmail, handleViewRecipients, handleCloseRecipients,
-    handleEnviar
+    handleEnviar, sendingIds
   } = useEmails();
 
   return (
@@ -73,7 +73,7 @@ function EmailsPanel() {
               edit: level.actions.edit ? { ...level.actions.edit, onClick: handleOpenEditPendiente } : undefined,
               observaciones: level.actions.observaciones ? { ...level.actions.observaciones, onClick: handleEditComposer } : undefined,
               delete: level.actions.delete ? { ...level.actions.delete, onClick: h.handleDelete } : undefined,
-              enviar: level.actions.enviar ? { ...level.actions.enviar, onClick: handleEnviar } : undefined,
+              enviar: level.actions.enviar ? { ...level.actions.enviar, onClick: handleEnviar, disabled: () => sendingIds.size > 0 } : undefined,
               ver: level.actions.ver ? level.actions.ver.map(action => ({
                 ...action,
                 onClick: action.label === 'Ver destinatarios' ? handleViewRecipients : handleView
@@ -153,6 +153,13 @@ function EmailsPanel() {
 
               <ViewCorreoModal email={viewEmail} onClose={handleCloseView} />
               <RecipientsModal email={recipientsEmail} onClose={handleCloseRecipients} />
+
+              {sendingIds.size > 0 && (
+                <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-[#25346A] text-white px-5 py-3 rounded-xl shadow-lg">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="text-sm font-medium">Enviando correo...</span>
+                </div>
+              )}
             </div>
           );
         }}

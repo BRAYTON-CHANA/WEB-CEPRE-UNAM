@@ -142,6 +142,7 @@ export const getTableLevelConfigs = (correosCrud) => [
         enabled: true,
         icon: 'send',
         label: 'Enviar',
+        disabledLabel: 'Enviando...',
         className: 'text-green-600 hover:bg-green-100',
         showIf: (row) => row.ESTADO === 'pendiente',
         onClick: (row) => correosCrud.handleEnviar?.(row)

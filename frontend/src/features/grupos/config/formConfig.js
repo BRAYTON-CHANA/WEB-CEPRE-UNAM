@@ -72,7 +72,7 @@ export const grupoFormFields = [
     name: 'ID_TURNO',
     type: 'reference-select',
     label: 'Turno',
-    required: false,
+    required: true,
     referenceTable: 'VW_TURNOS',
     referenceField: 'ID_TURNO',
     referenceQuery: '{NOMBRE_TURNO} · {NOMBRE_SEDE}',
@@ -80,7 +80,7 @@ export const grupoFormFields = [
       { field: 'ID_PERIODO', op: '=', value: '{ID_PERIODO}' },
       { field: 'ID_SEDE', op: '=', value: '{ID_SEDE}', emptyAsNull: true }
     ],
-    placeholder: 'Seleccione un turno (opcional)',
+    placeholder: 'Seleccione un turno',
     showRefreshButton: true,
     colSpan: 1
   },
@@ -198,7 +198,7 @@ export const grupoEditFormFields = [
     name: 'ID_TURNO',
     type: 'reference-select',
     label: 'Turno',
-    required: false,
+    required: true,
     referenceTable: 'VW_TURNOS',
     referenceField: 'ID_TURNO',
     referenceQuery: '{NOMBRE_TURNO} · {NOMBRE_SEDE}',
@@ -206,7 +206,7 @@ export const grupoEditFormFields = [
       { field: 'ID_PERIODO', op: '=', value: '{ID_PERIODO}' },
       { field: 'ID_SEDE', op: '=', value: '{ID_SEDE}', emptyAsNull: true }
     ],
-    placeholder: 'Seleccione un turno (opcional)',
+    placeholder: 'Seleccione un turno',
     showRefreshButton: true,
     colSpan: 2
   },
@@ -313,12 +313,18 @@ export const grupoValidation = {
   ID_AREA: {
     required: { value: true, message: 'El área es obligatoria' }
   },
+  ID_TURNO: {
+    required: { value: true, message: 'El turno es obligatorio' }
+  },
   NOMBRE_GRUPO: {
     required: { value: true, message: 'El nombre de grupo es obligatorio' }
   }
 };
 
 export const grupoEditValidation = {
+  ID_TURNO: {
+    required: { value: true, message: 'El turno es obligatorio' }
+  },
   FECHA_INICIO: {
     required: { value: true, message: 'La fecha de inicio es obligatoria' }
   },
