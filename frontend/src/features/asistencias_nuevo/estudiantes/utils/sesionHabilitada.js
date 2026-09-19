@@ -1,7 +1,7 @@
 // Ventana de tolerancia para tomar asistencia: la tarjeta de sesión solo se
 // puede abrir dentro de [HORA_INICIO - tolerancia, HORA_INICIO + tolerancia].
 // La restricción es solo de apertura — el modal ya abierto queda editable.
-export const TOLERANCIA_MINUTOS = 20;
+export const TOLERANCIA_MINUTOS = 240;
 
 export function ventanaSesion(sesion) {
   if (!sesion?.FECHA || !sesion?.HORA_INICIO) return null;
