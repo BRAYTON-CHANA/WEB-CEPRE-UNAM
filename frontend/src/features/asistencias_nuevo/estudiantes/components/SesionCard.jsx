@@ -1,4 +1,5 @@
 import React from 'react';
+import { ventanaSesion, sesionHabilitada } from '../utils/sesionHabilitada';
 
 const DIAS = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -32,13 +33,37 @@ function EstadoBadge({ sesion }) {
   );
 }
 
-export function SesionCard({ sesion, onClick }) {
+function DisponibilidadBadge({ sesion, ahora }) {
+  const v = ventanaSesion(sesion);
+  if (!v) return null;
+  const fmt = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  if (ahora < v.desde) {
+    return (
+      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 whitespace-nowrap">
+        Disponible {fmt(v.desde)}
+      </span>
+    );
+  }
+  return (
+    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 whitespace-nowrap">
+      Fuera de horario
+    </span>
+  );
+}
+
+export function SesionCard({ sesion, onClick, restringirHorario = false, ahora = new Date() }) {
   const fecha = parseFecha(sesion.FECHA);
+  const habilitada = !restringirHorario || sesionHabilitada(sesion, ahora);
 
   return (
     <button
-      onClick={() => onClick?.(sesion)}
-      className="text-left bg-white border border-gray-100 rounded-2xl overflow-hidden flex w-full hover:border-[#25346A] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+      onClick={() => habilitada && onClick?.(sesion)}
+      disabled={!habilitada}
+      className={`text-left bg-white border border-gray-100 rounded-2xl overflow-hidden flex w-full transition-all duration-200 ${
+        habilitada
+          ? 'hover:border-[#25346A] hover:shadow-lg hover:-translate-y-0.5'
+          : 'opacity-60 cursor-not-allowed'
+      }`}
     >
       {/* Bloque de fecha */}
       <div className="w-16 flex-shrink-0 bg-gradient-to-b from-[#25346A] to-[#1a2545] flex flex-col items-center justify-center py-4 text-white">
@@ -59,7 +84,10 @@ export function SesionCard({ sesion, onClick }) {
           <span className="text-sm font-bold text-gray-800 truncate">
             {sesion.NOMBRE_CURSO || 'Sin curso'}
           </span>
-          <EstadoBadge sesion={sesion} />
+          <span className="flex items-center gap-1 flex-shrink-0">
+            {!habilitada && <DisponibilidadBadge sesion={sesion} ahora={ahora} />}
+            <EstadoBadge sesion={sesion} />
+          </span>
         </div>
         <div className="flex flex-col gap-1">
           <span className="inline-flex items-center gap-1 text-xs text-gray-400">

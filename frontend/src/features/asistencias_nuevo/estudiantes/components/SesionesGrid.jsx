@@ -14,7 +14,7 @@ function SkeletonCard() {
   );
 }
 
-export function SesionesGrid({ sesiones, loading, onSeleccionar, emptyMessage = 'Este grupo no tiene sesiones programadas' }) {
+export function SesionesGrid({ sesiones, loading, onSeleccionar, emptyMessage = 'Este grupo no tiene sesiones programadas', restringirHorario = false, ahora = new Date() }) {
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -36,7 +36,13 @@ export function SesionesGrid({ sesiones, loading, onSeleccionar, emptyMessage = 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
       {sesiones.map(s => (
-        <SesionCard key={s.ID_SESION} sesion={s} onClick={onSeleccionar} />
+        <SesionCard
+          key={s.ID_SESION}
+          sesion={s}
+          onClick={onSeleccionar}
+          restringirHorario={restringirHorario}
+          ahora={ahora}
+        />
       ))}
     </div>
   );

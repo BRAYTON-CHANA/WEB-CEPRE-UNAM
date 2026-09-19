@@ -112,7 +112,7 @@ const drawHorarioPage = (doc, grupoNombre, sede, nombrePeriodo, columns, customB
   const usableW = PW - marginL - marginR;
 
   // Anchos de columna — las columnas de datos ocupan todo el ancho útil
-  const blockColW = 28;
+  const blockColW = 34;
   const dataColW = (usableW - blockColW) / Math.max(columns.length, 1);
   const totalW = blockColW + dataColW * columns.length;
   const startX = marginL + (usableW - totalW) / 2;
@@ -120,37 +120,37 @@ const drawHorarioPage = (doc, grupoNombre, sede, nombrePeriodo, columns, customB
   let y = 6;
 
   // ── Cabecera ──────────────────────────────────────────────────────────────
-  const headerH = 7;
+  const headerH = 9;
   filledRect(doc, startX, y, totalW, headerH, C_DARK_BLUE);
-  centeredText(doc, 'CENTRO DE ESTUDIOS PREUNIVERSITARIO - UNAM', startX, y, totalW, headerH, 9, C_WHITE, true);
+  centeredText(doc, 'CENTRO DE ESTUDIOS PREUNIVERSITARIO - UNAM', startX, y, totalW, headerH, 12, C_WHITE, true);
   y += headerH;
 
   filledRect(doc, startX, y, totalW, headerH, C_DARK_BLUE);
-  centeredText(doc, `CICLO DE PREPARACIÓN ${(nombrePeriodo || '').toUpperCase()}`, startX, y, totalW, headerH, 8, C_WHITE, true);
+  centeredText(doc, `CICLO DE PREPARACIÓN ${(nombrePeriodo || '').toUpperCase()}`, startX, y, totalW, headerH, 11, C_WHITE, true);
   y += headerH;
 
   filledRect(doc, startX, y, totalW, headerH, C_BLUE);
-  centeredText(doc, `HORARIO - ${sede ? sede + ' - ' : ''}${grupoNombre || 'Grupo'}`, startX, y, totalW, headerH, 9, C_WHITE, true);
+  centeredText(doc, `HORARIO - ${sede ? sede + ' - ' : ''}${grupoNombre || 'Grupo'}`, startX, y, totalW, headerH, 12, C_WHITE, true);
   y += headerH;
 
   // ── Encabezado días ───────────────────────────────────────────────────────
-  const dayH = 6;
+  const dayH = 8;
   filledRect(doc, startX, y, blockColW, dayH * 2, C_BLUE);
-  centeredText(doc, 'BLOQUE', startX, y, blockColW, dayH * 2, 7, C_WHITE, true);
+  centeredText(doc, 'BLOQUE', startX, y, blockColW, dayH * 2, 9.5, C_WHITE, true);
 
   columns.forEach((col, idx) => {
     const cx = startX + blockColW + idx * dataColW;
     filledRect(doc, cx, y, dataColW, dayH, C_BLUE);
-    centeredText(doc, col.weekdayName, cx, y, dataColW, dayH, 6.5, C_WHITE, true);
+    centeredText(doc, col.weekdayName, cx, y, dataColW, dayH, 9, C_WHITE, true);
     filledRect(doc, cx, y + dayH, dataColW, dayH, C_BLUE);
-    centeredText(doc, col.dates.map(formatDateShort).join(' / '), cx, y + dayH, dataColW, dayH, 5.5, C_WHITE, false);
+    centeredText(doc, col.dates.map(formatDateShort).join(' / '), cx, y + dayH, dataColW, dayH, 7.5, C_WHITE, false);
   });
   y += dayH * 2;
 
   // ── Filas de bloques ──────────────────────────────────────────────────────
   // Calcular alturas dinámicas según contenido
-  const breakH = 6;
-  const classH = 16;
+  const breakH = 8;
+  const classH = 21;
 
   // computeRuns por columna
   const computeRuns = (sig) => {
@@ -191,11 +191,11 @@ const drawHorarioPage = (doc, grupoNombre, sede, nombrePeriodo, columns, customB
 
     if (cb.type === 'break') {
       filledRect(doc, startX, ry, blockColW, rh, C_GRAY_MED);
-      centeredText(doc, `${cb.label}\n${cb.timeRange}`, startX, ry, blockColW, rh, 5, C_GRAY_TEXT, false);
+      centeredText(doc, `${cb.label}\n${cb.timeRange}`, startX, ry, blockColW, rh, 7, C_GRAY_TEXT, false);
     } else {
       ordenClase++;
       filledRect(doc, startX, ry, blockColW, rh, C_GRAY_LIGHT);
-      centeredText(doc, `Bloque ${ordenClase}\n${cb.timeRange}`, startX, ry, blockColW, rh, 5.5, C_BLUE, true);
+      centeredText(doc, `Bloque ${ordenClase}\n${cb.timeRange}`, startX, ry, blockColW, rh, 7.5, C_BLUE, true);
     }
 
     columns.forEach((col, idx) => {
@@ -219,7 +219,7 @@ const drawHorarioPage = (doc, grupoNombre, sede, nombrePeriodo, columns, customB
           if (opts.showDocente !== false) cellParts.push(docente);
           if (opts.showHorario !== false) cellParts.push(timeRange);
           const cellLines = cellParts.filter(Boolean).join('\n');
-          centeredText(doc, cellLines, cx, ry, dataColW, runH, 5, C_DARK_TEXT, false);
+          centeredText(doc, cellLines, cx, ry, dataColW, runH, 7, C_DARK_TEXT, false);
         }
       } else if (sig === '__BREAK__') {
         filledRect(doc, cx, ry, dataColW, rh, C_GRAY_MED);

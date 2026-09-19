@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { db } from '@/shared/api';
+import { useAuthContext } from '@/shared/context/AuthContext';
 import { usePostulantesSesion } from '../hooks/usePostulantesSesion';
 import FormConfirmModal from '@/shared/components/form/components/FormConfirmModal';
 import { Modal } from '@/shared/components/modal';
@@ -144,8 +145,10 @@ function EstadoSelect({ value, onChange }) {
   );
 }
 
-export function ModalAsistenciaSesion({ sesion, onClose, onSuccess }) {
+export function ModalAsistenciaSesion({ sesion, idDocente, onClose, onSuccess }) {
   const { postulantes, loading, error, refetch } = usePostulantesSesion(sesion?.ID_SESION);
+  const { user } = useAuthContext();
+  const idUsuario = user?.ID_USUARIO ?? user?.id_usuario ?? null;
 
   const [pending, setPending] = useState({});
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -188,6 +191,40 @@ export function ModalAsistenciaSesion({ sesion, onClose, onSuccess }) {
         data: { ESTADO_ASISTENCIA: estado },
       }));
       await db.updateBatch('ASISTENCIAS_POSTULANTE', updates, 'ID_ASISTENCIA');
+
+      // Marcar la sesión: docente que asistió + hora real + auditoría.
+      // Si falla no bloquea — la asistencia de estudiantes ya quedó guardada.
+      try {
+        // Docente logueado (prop) o, para admin, el docente de la plaza del curso
+        let idDocenteAsistio = idDocente ?? null;
+        if (!idDocenteAsistio && sesion.ID_GRUPO_CURSO) {
+          const gc = await db.select('GRUPO_CURSO', { ID_GRUPO_CURSO: sesion.ID_GRUPO_CURSO });
+          const idPlaza = gc?.[0]?.ID_PLAZA_DOCENTE;
+          if (idPlaza) {
+            const pl = await db.select('VW_PLAZA_DOCENTE', { ID_PLAZA_DOCENTE: idPlaza });
+            idDocenteAsistio = pl?.[0]?.ID_DOCENTE ?? null;
+          }
+        }
+
+        const sesionPayload = {
+          MARCADO_POR: idUsuario,
+          FECHA_MARCADO: new Date().toISOString(),
+        };
+        if (idDocenteAsistio) {
+          sesionPayload.ID_DOCENTE_ASISTIO = idDocenteAsistio;
+          sesionPayload.ASISTIO = true;
+        }
+        // Hora real de entrada: solo la primera vez (se preserva la original)
+        if (!sesion.HORA_ENTRADA_REAL) {
+          const ahora = new Date();
+          sesionPayload.HORA_ENTRADA_REAL =
+            `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
+        }
+        await db.update('SESIONES_AGRUPADAS', sesion.ID_SESION, sesionPayload, 'ID_SESION');
+      } catch (errSesion) {
+        console.error('[ModalAsistenciaSesion] Error marcando sesión:', errSesion);
+      }
+
       setPending({});
       refetch();
       if (onSuccess) onSuccess();

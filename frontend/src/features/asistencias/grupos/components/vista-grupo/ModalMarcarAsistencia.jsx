@@ -31,14 +31,13 @@ export function ModalMarcarAsistencia({ sesion, onClose, onSuccess, idUsuario = 
             // Datos de asistencia ya guardados (si existen)
             ASISTIO: sesion.ASISTIO,
             ID_DOCENTE_ASISTIO: sesion.ID_DOCENTE_ASISTIO,
-            NOMBRE_SUPLENTE_EXTERNO: sesion.NOMBRE_SUPLENTE_EXTERNO,
-            ES_SUPLENTE: sesion.ES_SUPLENTE,
             HORA_ENTRADA_REAL: sesion.HORA_ENTRADA_REAL,
             HORA_SALIDA_REAL: sesion.HORA_SALIDA_REAL,
-            MOTIVO_FALTA: sesion.MOTIVO_FALTA,
+            EVIDENCIA_PATH: sesion.EVIDENCIA_PATH,
+            EVIDENCIA_FILENAME: sesion.EVIDENCIA_FILENAME,
+            EVIDENCIA_TAMAÑO_BYTES: sesion.EVIDENCIA_TAMAÑO_BYTES,
             OBSERVACIONES: sesion.OBSERVACIONES
           }}
-          idCurso={sesion.ID_CURSO}
           idDocenteProgramado={sesion.ID_DOCENTE_PROGRAMADO}
           idUsuario={idUsuario}
           onSuccess={handleSuccess}

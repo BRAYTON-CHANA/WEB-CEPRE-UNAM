@@ -201,7 +201,7 @@ const drawDocentePage = (doc, nombreDocente, sesiones, lookups, opts = {}) => {
 
   if (clustersData.length === 0) return 0;
 
-  const blockColW = 28;
+  const blockColW = 34;
   const s0 = sesiones[0] || {};
   const periodo = s0.NOMBRE_PERIODO || '';
   const dni     = s0.DOCENTE_DNI    || '';
@@ -219,36 +219,36 @@ const drawDocentePage = (doc, nombreDocente, sesiones, lookups, opts = {}) => {
     const PW = doc.internal.pageSize.getWidth();
     const PH = doc.internal.pageSize.getHeight();
     const usableW = PW - marginL - marginR;
-    const dataColW  = Math.min(32, (usableW - blockColW) / Math.max(maxDataCols, 1));
+    const dataColW  = (usableW - blockColW) / Math.max(maxDataCols, 1);
     const totalW    = blockColW + dataColW * maxDataCols;
     const startX    = marginL + (usableW - totalW) / 2;
 
     let y = 6;
 
     // ── Header general + indicador de hoja ──────────────────────────────────
-    const headerH = 7;
+    const headerH = 9;
     filledRect(doc, startX, y, totalW, headerH, C_BLUE);
-    centeredText(doc, `HORARIO - ${nombreDocente || 'Docente'}`, startX, y, totalW, headerH, 9, C_WHITE, true);
-    doc.setFontSize(6);
+    centeredText(doc, `HORARIO - ${nombreDocente || 'Docente'}`, startX, y, totalW, headerH, 12, C_WHITE, true);
+    doc.setFontSize(7.5);
     doc.setFont('helvetica', 'normal');
     setTextColor(doc, C_WHITE);
     doc.text(`Hoja ${ci + 1} de ${totalHojas}`, marginL + usableW, y + 2, { align: 'right' });
     y += headerH;
 
-    const infoH = 4.5;
+    const infoH = 6;
     filledRect(doc, startX, y, totalW, infoH, C_GRAY_LIGHT, C_BORDER);
     const contactoParts = [email && `Email: ${email}`, telefono && `Tel: ${telefono}`].filter(Boolean);
     const infoParts = [dni && `DNI: ${dni}`, periodo && `Período: ${periodo}`];
     if (contactoParts.length > 0) infoParts.push(contactoParts.join(' | '));
     const infoLine = infoParts.join('   |   ');
-    doc.setFontSize(6); doc.setFont('helvetica', 'normal'); setTextColor(doc, C_GRAY_TEXT);
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); setTextColor(doc, C_GRAY_TEXT);
     doc.text(infoLine, startX + 3, y + infoH * 0.72);
     y += infoH;
 
     // Línea de plazas participantes — negrita sobre fondo blanco con borde inferior
-    const plazaH = 7;
+    const plazaH = 8.5;
     filledRect(doc, marginL, y, usableW, plazaH, C_WHITE, C_BORDER);
-    doc.setFontSize(8);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     setTextColor(doc, C_BLUE);
     const plazaLabel = `${cluster.plazas.length === 1 ? 'PLAZA' : 'PLAZAS'}: ${cluster.plazasLabel}`;
@@ -263,9 +263,9 @@ const drawDocentePage = (doc, nombreDocente, sesiones, lookups, opts = {}) => {
       const turnoStartX = marginL + (usableW - turnoTotalW) / 2;
 
       // Título de turno — texto negrita itálica sobre fondo gris muy claro
-      const turnoH = 5.5;
+      const turnoH = 7;
       filledRect(doc, marginL, y, usableW, turnoH, C_GRAY_LIGHT, C_BORDER);
-      doc.setFontSize(7);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'bolditalic');
       setTextColor(doc, C_DARK_TEXT);
       const turnoLabel = cluster.turnos.length === 1 ? cluster.turnoLabel : `TURNOS: ${cluster.turnoLabel}`;
@@ -273,16 +273,16 @@ const drawDocentePage = (doc, nombreDocente, sesiones, lookups, opts = {}) => {
       y += turnoH + 1;
 
       // Encabezado días
-      const dayH = 5.5;
+      const dayH = 7;
       filledRect(doc, turnoStartX, y, blockColW, dayH * 2, C_BLUE);
-      centeredText(doc, 'BLOQUE', turnoStartX, y, blockColW, dayH * 2, 6.5, C_WHITE, true);
+      centeredText(doc, 'BLOQUE', turnoStartX, y, blockColW, dayH * 2, 8.5, C_WHITE, true);
 
       columns.forEach((col, idx) => {
         const cx = turnoStartX + blockColW + idx * dataColW;
         filledRect(doc, cx, y, dataColW, dayH, C_BLUE);
-        centeredText(doc, col.weekdayName, cx, y, dataColW, dayH, 6, C_WHITE, true);
+        centeredText(doc, col.weekdayName, cx, y, dataColW, dayH, 8, C_WHITE, true);
         filledRect(doc, cx, y + dayH, dataColW, dayH, C_BLUE);
-        centeredText(doc, col.dates.map(formatDateShort).join(' / '), cx, y + dayH, dataColW, dayH, 5, C_WHITE, false);
+        centeredText(doc, col.dates.map(formatDateShort).join(' / '), cx, y + dayH, dataColW, dayH, 6.5, C_WHITE, false);
       });
       y += dayH * 2;
 
@@ -290,8 +290,8 @@ const drawDocentePage = (doc, nombreDocente, sesiones, lookups, opts = {}) => {
       const runsByCol = columns.map(col => computeRuns(col.signature));
       const findRun = (runs, i) => runs.find(r => i >= r.start && i <= r.end);
 
-      const breakH  = 4.5;
-      const classH  = 13;
+      const breakH  = 6;
+      const classH  = 17;
       const rowHeights = allBlocks.map(cb => cb.type === 'break' ? breakH : classH);
 
       const rowYs = [];
@@ -310,11 +310,11 @@ const drawDocentePage = (doc, nombreDocente, sesiones, lookups, opts = {}) => {
 
         if (cb.type === 'break') {
           filledRect(doc, turnoStartX, ry, blockColW, rh, C_GRAY_MED);
-          centeredText(doc, `${cb.label}\n${cb.timeRange}`, turnoStartX, ry, blockColW, rh, 4, C_GRAY_TEXT, false);
+          centeredText(doc, `${cb.label}\n${cb.timeRange}`, turnoStartX, ry, blockColW, rh, 6, C_GRAY_TEXT, false);
         } else {
           ordenClase++;
           filledRect(doc, turnoStartX, ry, blockColW, rh, C_GRAY_LIGHT);
-          centeredText(doc, `Bloque ${ordenClase}\n${cb.timeRange}`, turnoStartX, ry, blockColW, rh, 4, C_BLUE, true);
+          centeredText(doc, `Bloque ${ordenClase}\n${cb.timeRange}`, turnoStartX, ry, blockColW, rh, 6, C_BLUE, true);
         }
 
         columns.forEach((col, idx) => {
@@ -332,12 +332,12 @@ const drawDocentePage = (doc, nombreDocente, sesiones, lookups, opts = {}) => {
               const endB   = allBlocks[run.end];
               const tr = startB.time && endB.endTime ? `${startB.time} - ${endB.endTime}` : '';
               const cellLines = [];
-              cellLines.push({ text: (opts.showCodigo !== false && codigo) ? `${codigo} ${curso}` : curso, size: 4, bold: false });
-              if (sede)  cellLines.push({ text: sede,  size: 5.5, bold: true });
-              if (grupo) cellLines.push({ text: grupo, size: 5.5, bold: true });
-              if (opts.showNombreDocente !== false && nombreCompleto) cellLines.push({ text: nombreCompleto, size: 4, bold: false });
-              if (opts.showDocente !== false && docente) cellLines.push({ text: docente, size: 4, bold: false });
-              if (opts.showHorario !== false && tr) cellLines.push({ text: tr, size: 4, bold: false });
+              cellLines.push({ text: (opts.showCodigo !== false && codigo) ? `${codigo} ${curso}` : curso, size: 6, bold: false });
+              if (sede)  cellLines.push({ text: sede,  size: 7.5, bold: true });
+              if (grupo) cellLines.push({ text: grupo, size: 7.5, bold: true });
+              if (opts.showNombreDocente !== false && nombreCompleto) cellLines.push({ text: nombreCompleto, size: 6, bold: false });
+              if (opts.showDocente !== false && docente) cellLines.push({ text: docente, size: 6, bold: false });
+              if (opts.showHorario !== false && tr) cellLines.push({ text: tr, size: 6, bold: false });
               centeredRichLines(doc, cellLines, cx, ry, dataColW, runH);
             }
           } else if (sig === '__BREAK__') {

@@ -160,7 +160,14 @@ function buildBatchPayload(chunk, idPeriodo) {
   };
 
   for (const row of chunk) {
-    const { paterno, materno } = splitApellidos(row.APELLIDOS);
+    // Formato nuevo: columnas separadas PATERNO/MATERNO tienen prioridad;
+    // fallback: una sola columna APELLIDOS que se divide (paterno = 1ra palabra)
+    const { paterno, materno } = row.APELLIDO_PATERNO?.trim()
+      ? {
+          paterno: row.APELLIDO_PATERNO.trim().toUpperCase(),
+          materno: row.APELLIDO_MATERNO?.trim() ? row.APELLIDO_MATERNO.trim().toUpperCase() : null
+        }
+      : splitApellidos(row.APELLIDOS);
     payload.p_dni.push(row.DNI);
     payload.p_nombres.push(row.NOMBRES ? row.NOMBRES.trim().toUpperCase() : null);
     payload.p_apellido_paterno.push(paterno || null);
@@ -265,6 +272,17 @@ function parseIntOrNull(value) {
   return isNaN(n) ? null : n;
 }
 
+// Normaliza para comparar lookups (sede/carrera/grupo): mayúsculas, sin tildes,
+// espacios colapsados — "Ingeniería  en Sistemas " === "INGENIERIA EN SISTEMAS"
+function normalizeLookup(value) {
+  return (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
 // ============================================
 // Validación contra schema de la base de datos
 // ============================================
@@ -274,6 +292,8 @@ const FIELD_TO_TABLE_COLUMN = {
   // USUARIOS
   'DNI': { table: 'USUARIOS', column: 'DNI' },
   'APELLIDOS': { table: 'USUARIOS', column: 'APELLIDO_PATERNO' }, // se divide, validamos paterno
+  'APELLIDO_PATERNO': { table: 'USUARIOS', column: 'APELLIDO_PATERNO' },
+  'APELLIDO_MATERNO': { table: 'USUARIOS', column: 'APELLIDO_MATERNO' },
   'NOMBRES': { table: 'USUARIOS', column: 'NOMBRES' },
   'SEXO': { table: 'USUARIOS', column: 'SEXO' },
   'FECHA_NACIMIENTO': { table: 'USUARIOS', column: 'FECHA_NACIMIENTO' },
@@ -431,6 +451,10 @@ function normalizeHeader(h) {
   const map = {
     'DNI': 'DNI',
     'APELLIDOS': 'APELLIDOS',
+    'APELLIDO PATERNO': 'APELLIDO_PATERNO',
+    'APELLIDO MATERNO': 'APELLIDO_MATERNO',
+    'APELLIDO_PATERNO': 'APELLIDO_PATERNO',
+    'APELLIDO_MATERNO': 'APELLIDO_MATERNO',
     'NOMBRES': 'NOMBRES',
     'SEXO': 'SEXO',
     'FECHA NACIMIENTO': 'FECHA_NACIMIENTO',
@@ -513,15 +537,20 @@ export function useCsvPreview(idPeriodo) {
   const [result, setResult] = useState(null);
   const [batchSize, setBatchSize] = useState(100);
 
-  const REQUIRED_HEADERS = ['DNI', 'APELLIDOS', 'NOMBRES'];
+  const REQUIRED_HEADERS = ['DNI', 'NOMBRES'];
+  // APELLIDOS se acepta como columna única o como par APELLIDO PATERNO + APELLIDO MATERNO
 
   const validateHeaders = (headers, rawLine = '') => {
-    const missing = REQUIRED_HEADERS.filter(h => !headers.includes(h));
+    const normalized = headers.map(normalizeHeader);
+    const missing = REQUIRED_HEADERS.filter(h => !normalized.includes(h));
+    if (!normalized.includes('APELLIDOS') && !normalized.includes('APELLIDO_PATERNO')) {
+      missing.push('APELLIDOS (o APELLIDO PATERNO + APELLIDO MATERNO)');
+    }
     if (missing.length > 0) {
       const err = new Error(
         `Columnas requeridas faltantes: ${missing.join(', ')}\n` +
         `Headers encontrados (${headers.length}): ${headers.join(', ')}\n` +
-        `Headers esperados: ${REQUIRED_HEADERS.join(', ')}\n` +
+        `Headers esperados: DNI, NOMBRES, APELLIDOS (o APELLIDO PATERNO + APELLIDO MATERNO)\n` +
         `Primera línea CSV: ${rawLine.substring(0, 200)}`
       );
       err.headersFound = headers;
@@ -561,9 +590,9 @@ export function useCsvPreview(idPeriodo) {
     };
 
     // Indexar
-    const sedesMap = new Map(sedes.map(s => [s.NOMBRE_SEDE?.toUpperCase(), s.ID_SEDE]));
-    const carrerasMap = new Map(carreras.map(c => [c.NOMBRE_CARRERA?.toUpperCase(), c.ID_CARRERA]));
-    const gruposMap = new Map(grupos.map(g => [g.CODIGO_GRUPO?.toUpperCase(), g.ID_GRUPO]));
+    const sedesMap = new Map(sedes.map(s => [normalizeLookup(s.NOMBRE_SEDE), s.ID_SEDE]));
+    const carrerasMap = new Map(carreras.map(c => [normalizeLookup(c.NOMBRE_CARRERA), c.ID_CARRERA]));
+    const gruposMap = new Map(grupos.map(g => [normalizeLookup(g.CODIGO_GRUPO), g.ID_GRUPO]));
     const usuariosByDniMap = new Map(usuariosByDni.filter(u => u.DNI).map(u => [u.DNI, u.ID_USUARIO]));
     const postulantesExistentesSet = new Set(postulantesExistentes.map(p => p.ID_USUARIO));
 
@@ -611,7 +640,8 @@ export function useCsvPreview(idPeriodo) {
         previewRow.DNI = dni;
 
         // Validar apellidos y nombres obligatorios
-        if (!row.APELLIDOS?.trim()) fieldErrors.push({ field: 'APELLIDOS', message: 'APELLIDOS es obligatorio' });
+        const tieneApellidos = row.APELLIDOS?.trim() || row.APELLIDO_PATERNO?.trim();
+        if (!tieneApellidos) fieldErrors.push({ field: 'APELLIDOS', message: 'Apellidos es obligatorio (APELLIDOS o APELLIDO PATERNO)' });
         if (!row.NOMBRES?.trim()) fieldErrors.push({ field: 'NOMBRES', message: 'NOMBRES es obligatorio' });
 
         // Si hay errores de validación, guardar y continuar
@@ -642,21 +672,21 @@ export function useCsvPreview(idPeriodo) {
 
         // Buscar sede de vacante por nombre
         if (row.SEDE_VACANTE) {
-          const idSede = sedesMap.get(row.SEDE_VACANTE.trim().toUpperCase());
+          const idSede = sedesMap.get(normalizeLookup(row.SEDE_VACANTE));
           if (!idSede) fieldErrors.push({ field: 'SEDE_VACANTE', message: `Sede de vacante no encontrada: ${row.SEDE_VACANTE}` });
           else previewRow.idSede = idSede;
         }
 
         // Buscar sede de examen por nombre
         if (row.SEDE_EXAMEN) {
-          const idSedeExamen = sedesMap.get(row.SEDE_EXAMEN.trim().toUpperCase());
+          const idSedeExamen = sedesMap.get(normalizeLookup(row.SEDE_EXAMEN));
           if (!idSedeExamen) fieldErrors.push({ field: 'SEDE_EXAMEN', message: `Sede de examen no encontrada: ${row.SEDE_EXAMEN}` });
           else previewRow.idSedeExamen = idSedeExamen;
         }
 
         // Buscar carrera por nombre
         if (row.CARRERA) {
-          const idCarrera = carrerasMap.get(row.CARRERA.trim().toUpperCase());
+          const idCarrera = carrerasMap.get(normalizeLookup(row.CARRERA));
           if (!idCarrera) fieldErrors.push({ field: 'CARRERA', message: `Carrera no encontrada: ${row.CARRERA}` });
           else previewRow.idCarrera = idCarrera;
         }
@@ -664,7 +694,7 @@ export function useCsvPreview(idPeriodo) {
         // Buscar grupo por CODIGO_GRUPO dentro del período.
         // No encontrado → warning (no bloquea): ID_GRUPO es nullable, importa sin grupo.
         if (row.GRUPO?.trim()) {
-          const idGrupo = gruposMap.get(row.GRUPO.trim().toUpperCase());
+          const idGrupo = gruposMap.get(normalizeLookup(row.GRUPO));
           if (!idGrupo) {
             fieldWarnings.push({ field: 'GRUPO', message: `Grupo no encontrado en el período: ${row.GRUPO} (se importa sin grupo)` });
           } else {

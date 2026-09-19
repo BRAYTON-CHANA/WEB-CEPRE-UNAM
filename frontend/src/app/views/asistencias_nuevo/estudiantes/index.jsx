@@ -32,6 +32,15 @@ function AsistenciasNuevoEstudiantes() {
   const [sedeActiva, setSedeActiva] = useState(null);
   const [busqueda, setBusqueda] = useState('');
 
+  // Reloj para re-evaluar la ventana de tolerancia de las tarjetas de sesión
+  // (solo docentes tienen restricción horaria para abrir el modal de asistencia)
+  const [ahora, setAhora] = useState(() => new Date());
+  useEffect(() => {
+    if (!esDocente) return;
+    const t = setInterval(() => setAhora(new Date()), 30000);
+    return () => clearInterval(t);
+  }, [esDocente]);
+
   // Docente: solo los grupos donde dictan sus plazas
   const gruposVisibles = useMemo(() => {
     if (!esDocente) return grupos;
@@ -208,6 +217,8 @@ function AsistenciasNuevoEstudiantes() {
                   sesiones={sesionesFiltradas}
                   loading={loadingSesiones}
                   onSeleccionar={setSesionSeleccionada}
+                  restringirHorario={esDocente}
+                  ahora={ahora}
                 />
               )}
             </div>
@@ -252,6 +263,7 @@ function AsistenciasNuevoEstudiantes() {
       {sesionSeleccionada && (
         <ModalAsistenciaSesion
           sesion={sesionSeleccionada}
+          idDocente={esDocente ? (plazas[0]?.ID_DOCENTE ?? null) : null}
           onClose={() => setSesionSeleccionada(null)}
           onSuccess={refetchSesiones}
         />

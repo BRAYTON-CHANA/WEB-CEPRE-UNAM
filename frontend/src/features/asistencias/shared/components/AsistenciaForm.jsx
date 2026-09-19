@@ -1,50 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '@/shared/api';
-import FunctionSelectInput from '@/shared/components/ui/inputs/FunctionSelectInput';
-import TextInput from '@/shared/components/ui/inputs/TextInput';
-import SelectInput from '@/shared/components/ui/inputs/SelectInput';
 import TextAreaInput from '@/shared/components/ui/inputs/TextAreaInput';
-import { validateAsistenciaCondicional } from '../utils/asistenciaValidation';
-
-const MOTIVOS_FALTA = [
-  { value: '', label: 'Seleccione...' },
-  { value: 'licencia', label: 'Licencia' },
-  { value: 'permiso', label: 'Permiso' },
-  { value: 'enfermedad', label: 'Enfermedad' },
-  { value: 'injustificado', label: 'Injustificado' },
-  { value: 'otro', label: 'Otro' }
-];
+import FileInput from '@/shared/components/ui/inputs/FileInput';
+import { uploadEvidenciaSesion, getEvidenciaSesionUrl } from '../services/asistenciasStorageService';
 
 /**
  * Formulario de Asistencia Docente (Custom)
  * Actualiza SESIONES_AGRUPADAS directamente
  */
-export function AsistenciaForm({ idSesion, sesionData, idCurso, idDocenteProgramado, idUsuario, onSuccess, onCancel }) {
+export function AsistenciaForm({ idSesion, sesionData, idDocenteProgramado, idUsuario, onSuccess, onCancel }) {
   // Función para inicializar formData con datos existentes o valores por defecto
   const getInitialFormData = () => {
     const existing = sesionData || {};
-    
-    // Determinar estado de asistencia basado en datos existentes
-    const asistioDocente = existing.ASISTIO === true && 
-                          existing.ID_DOCENTE_ASISTIO === idDocenteProgramado;
-    const haySuplente = existing.ES_SUPLENTE === true || 
-                       (existing.ASISTIO === true && 
-                        existing.ID_DOCENTE_ASISTIO && 
-                        existing.ID_DOCENTE_ASISTIO !== idDocenteProgramado);
-    const tipoSuplente = existing.NOMBRE_SUPLENTE_EXTERNO ? 'externo' : 
-                        (existing.ID_DOCENTE_ASISTIO && existing.ID_DOCENTE_ASISTIO !== idDocenteProgramado ? 'interno' : '');
-    
     return {
       HORA_ENTRADA_REAL: existing.HORA_ENTRADA_REAL?.slice(0, 5) || '',
       HORA_SALIDA_REAL: existing.HORA_SALIDA_REAL?.slice(0, 5) || '',
-      ASISTIO_DOCENTE: existing.ASISTIO === null || existing.ASISTIO === undefined ? true : asistioDocente,
-      ES_SUPLENTE: haySuplente,
-      TIPO_SUPLENTE: tipoSuplente,
-      ID_DOCENTE_ASISTIO: existing.ID_DOCENTE_ASISTIO && existing.ID_DOCENTE_ASISTIO !== idDocenteProgramado 
-        ? existing.ID_DOCENTE_ASISTIO 
+      ASISTIO_DOCENTE: existing.ASISTIO === null || existing.ASISTIO === undefined ? true : existing.ASISTIO,
+      // Evidencia existente: objeto { name, size, storagePath } para FileInput
+      EVIDENCIA: existing.EVIDENCIA_PATH
+        ? {
+            name: existing.EVIDENCIA_FILENAME || 'evidencia',
+            size: existing.EVIDENCIA_TAMAÑO_BYTES || 0,
+            url: null,
+            storagePath: existing.EVIDENCIA_PATH,
+          }
         : '',
-      NOMBRE_SUPLENTE_EXTERNO: existing.NOMBRE_SUPLENTE_EXTERNO || '',
-      MOTIVO_FALTA: existing.MOTIVO_FALTA || '',
       OBSERVACIONES: existing.OBSERVACIONES || ''
     };
   };
@@ -58,42 +38,8 @@ export function AsistenciaForm({ idSesion, sesionData, idCurso, idDocenteProgram
     setFormData(getInitialFormData());
   }, [sesionData?.ID_SESION]);
 
-  const getHoraActual = () => {
-    const now = new Date();
-    return now.toTimeString().slice(0, 5);
-  };
-
   const handleChange = (name, value) => {
-    setFormData(prev => {
-      const updated = { ...prev, [name]: value };
-      
-      // Lógica condicional
-      if (name === 'ASISTIO_DOCENTE' && value === true) {
-        // Docente programado asistió - resetear suplente
-        updated.ES_SUPLENTE = false;
-        updated.TIPO_SUPLENTE = '';
-        updated.ID_DOCENTE_ASISTIO = '';
-        updated.NOMBRE_SUPLENTE_EXTERNO = '';
-      }
-      if (name === 'ES_SUPLENTE' && value === false) {
-        // No hay suplente
-        updated.TIPO_SUPLENTE = '';
-        updated.ID_DOCENTE_ASISTIO = '';
-        updated.NOMBRE_SUPLENTE_EXTERNO = '';
-      }
-      if (name === 'TIPO_SUPLENTE') {
-        // Cambiar tipo de suplente - resetear valor
-        updated.ID_DOCENTE_ASISTIO = '';
-        updated.NOMBRE_SUPLENTE_EXTERNO = '';
-      }
-      
-      return updated;
-    });
-    
-    // Limpiar error del campo
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: null }));
-    }
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -102,47 +48,36 @@ export function AsistenciaForm({ idSesion, sesionData, idCurso, idDocenteProgram
     setLoading(true);
 
     try {
-      // Determinar estado de asistencia
-      // ASISTIO = true → asistió el docente programado
-      // ASISTIO = false → NO asistió el docente programado (suplente o nadie)
-      let idDocenteAsistio = null;
-      let nombreSuplenteExterno = null;
-      
-      // Por defecto: asistió el docente programado (ASISTIO = true)
-      let asistio = true;
+      const asistio = !!formData.ASISTIO_DOCENTE;
 
-      if (!formData.ASISTIO_DOCENTE) {
-        // El docente programado NO asistió
-        asistio = false;
-        
-        if (formData.ES_SUPLENTE) {
-          // Hay suplente que tomó su lugar
-          if (formData.TIPO_SUPLENTE === 'interno' && formData.ID_DOCENTE_ASISTIO) {
-            idDocenteAsistio = Number(formData.ID_DOCENTE_ASISTIO);
-          } else if (formData.TIPO_SUPLENTE === 'externo' && formData.NOMBRE_SUPLENTE_EXTERNO.trim()) {
-            nombreSuplenteExterno = formData.NOMBRE_SUPLENTE_EXTERNO.trim();
-          }
-        }
-        // Si no hay suplente, queda como ASISTIO = false, sin docente asignado
-      } else {
-        // Asistió el docente programado
-        idDocenteAsistio = idDocenteProgramado;
-      }
-
-      // Construir payload
       const payload = {
         HORA_ENTRADA_REAL: formData.HORA_ENTRADA_REAL || null,
         HORA_SALIDA_REAL: formData.HORA_SALIDA_REAL || null,
         OBSERVACIONES: formData.OBSERVACIONES || null,
         MARCADO_POR: idUsuario,
         FECHA_MARCADO: new Date().toISOString(),
-        // Campos de asistencia
         ASISTIO: asistio,
-        ID_DOCENTE_ASISTIO: idDocenteAsistio,
-        NOMBRE_SUPLENTE_EXTERNO: nombreSuplenteExterno,
-        // Motivo de falta solo si el docente programado no asistió
-        MOTIVO_FALTA: !formData.ASISTIO_DOCENTE ? (formData.MOTIVO_FALTA || null) : null
+        // ASISTIO = true → el docente programado; false → nadie (limpiar suplencia)
+        ID_DOCENTE_ASISTIO: asistio ? idDocenteProgramado : null,
+        NOMBRE_SUPLENTE_EXTERNO: null,
+        MOTIVO_FALTA: null
       };
+
+      // Evidencia: File nuevo → subir; quitado → limpiar columnas; sin tocar → conservar
+      const evid = formData.EVIDENCIA;
+      const nuevoArchivo = Array.isArray(evid) && evid[0] instanceof File ? evid[0] : null;
+      if (nuevoArchivo) {
+        const up = await uploadEvidenciaSesion(idSesion, nuevoArchivo);
+        payload.EVIDENCIA_PATH = up.path;
+        payload.EVIDENCIA_FILENAME = up.filename;
+        payload.EVIDENCIA_CONTENT_TYPE = up.contentType;
+        payload.EVIDENCIA_TAMAÑO_BYTES = up.size;
+      } else if (!nuevoArchivo && !evid?.storagePath && sesionData?.EVIDENCIA_PATH) {
+        payload.EVIDENCIA_PATH = null;
+        payload.EVIDENCIA_FILENAME = null;
+        payload.EVIDENCIA_CONTENT_TYPE = null;
+        payload.EVIDENCIA_TAMAÑO_BYTES = null;
+      }
 
       await db.update('SESIONES_AGRUPADAS', idSesion, payload, 'ID_SESION');
       onSuccess?.();
@@ -232,110 +167,20 @@ export function AsistenciaForm({ idSesion, sesionData, idCurso, idDocenteProgram
             </div>
           </div>
 
-          {/* Si NO asistió: Motivo de falta PRIMERO */}
-          {!formData.ASISTIO_DOCENTE && (
-            <div className="col-span-2">
-              <SelectInput
-                name="MOTIVO_FALTA"
-                label="Motivo de falta"
-                value={formData.MOTIVO_FALTA}
-                onChange={(name, value) => handleChange(name, value)}
-                options={MOTIVOS_FALTA}
-                error={errors.MOTIVO_FALTA}
-              />
-            </div>
-          )}
-
-          {/* Si NO asistió: texto para elegir suplente */}
-          {!formData.ASISTIO_DOCENTE && (
-            <div className="col-span-2 text-right">
-              <p className="text-xs text-gray-500">
-                Elige el docente que tomara su lugar:
-              </p>
-            </div>
-          )}
-
-          {/* Si NO asistió: Switch Suplente */}
-          {!formData.ASISTIO_DOCENTE && (
-            <div className="col-span-2 flex items-center justify-between bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-              <span className="text-sm font-medium text-yellow-800">
-                ¿Hay suplente?
-              </span>
-              <button
-                type="button"
-                onClick={() => handleChange('ES_SUPLENTE', !formData.ES_SUPLENTE)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  formData.ES_SUPLENTE ? 'bg-yellow-500' : 'bg-gray-300'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    formData.ES_SUPLENTE ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-          )}
-
-          {/* Si hay suplente: Tipo (Interno/Externo) */}
-          {formData.ES_SUPLENTE && (
-            <div className="col-span-2 flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="tipo_suplente"
-                  checked={formData.TIPO_SUPLENTE === 'interno'}
-                  onChange={() => handleChange('TIPO_SUPLENTE', 'interno')}
-                  className="w-4 h-4 text-blue-600"
-                />
-                <span className="text-sm">Interno</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="tipo_suplente"
-                  checked={formData.TIPO_SUPLENTE === 'externo'}
-                  onChange={() => handleChange('TIPO_SUPLENTE', 'externo')}
-                  className="w-4 h-4 text-blue-600"
-                />
-                <span className="text-sm">Externo</span>
-              </label>
-            </div>
-          )}
-
-          {/* Suplente Interno: Select de docentes */}
-          {formData.ES_SUPLENTE && formData.TIPO_SUPLENTE === 'interno' && (
-            <div className="col-span-2">
-              <FunctionSelectInput
-                name="ID_DOCENTE_ASISTIO"
-                label="Docente suplente"
-                value={formData.ID_DOCENTE_ASISTIO}
-                onChange={(name, value) => handleChange(name, value)}
-                functionName="fn_docentes_por_curso"
-                functionParams={{ p_id_curso: idCurso }}
-                optionalParams={['p_id_curso']}
-                valueField="id_docente"
-                labelField="{nombre_completo}"
-                descriptionField="{dni}"
-                placeholder="Seleccione docente suplente..."
-                searchable={true}
-              />
-            </div>
-          )}
-
-          {/* Suplente Externo: Campo de texto */}
-          {formData.ES_SUPLENTE && formData.TIPO_SUPLENTE === 'externo' && (
-            <div className="col-span-2">
-              <TextInput
-                name="NOMBRE_SUPLENTE_EXTERNO"
-                label="Nombre del suplente externo"
-                value={formData.NOMBRE_SUPLENTE_EXTERNO}
-                onChange={(name, value) => handleChange(name, value)}
-                placeholder="Ej: Juan Pérez García"
-                error={errors.NOMBRE_SUPLENTE_EXTERNO}
-              />
-            </div>
-          )}
+          {/* Evidencia: foto del aula o justificación */}
+          <div className="col-span-2">
+            <FileInput
+              name="EVIDENCIA"
+              label="Evidencia"
+              value={formData.EVIDENCIA}
+              onChange={(name, value) => handleChange(name, value)}
+              fileTypes={['IMAGES', 'PDF']}
+              maxSize={10 * 1024 * 1024}
+              getDownloadUrl={(fileValue) =>
+                fileValue?.storagePath ? getEvidenciaSesionUrl(fileValue.storagePath) : null
+              }
+            />
+          </div>
 
           {/* Observaciones - siempre visibles */}
           <div className="col-span-2">
