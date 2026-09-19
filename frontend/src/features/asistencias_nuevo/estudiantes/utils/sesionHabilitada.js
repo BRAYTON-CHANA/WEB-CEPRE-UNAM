@@ -16,7 +16,10 @@ export function ventanaSesion(sesion) {
 
 // Sin ventana calculable (falta fecha/hora) → no restringir
 export function sesionHabilitada(sesion, ahora = new Date()) {
-  const v = ventanaSesion(sesion);
-  if (!v) return true;
-  return ahora >= v.desde && ahora <= v.hasta;
+  // Restricción horaria desactivada por ahora — siempre habilitado.
+  // Para reactivarla: borrar el return y descomentar el bloque.
+  return true;
+  // const v = ventanaSesion(sesion);
+  // if (!v) return true;
+  // return ahora >= v.desde && ahora <= v.hasta;
 }
