@@ -17,7 +17,7 @@ function SkeletonCard() {
 export function GruposGrid({ grupos, loading, onSeleccionar, plazasPorGrupo, emptyMessage = 'No hay grupos para mostrar' }) {
   if (loading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
         {Array.from({ length: 10 }).map((_, i) => (
           <SkeletonCard key={i} />
         ))}
@@ -34,7 +34,7 @@ export function GruposGrid({ grupos, loading, onSeleccionar, plazasPorGrupo, emp
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+    <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
       {grupos.map(g => (
         <GrupoCard key={g.ID_GRUPO} grupo={g} plazas={plazasPorGrupo?.get(g.ID_GRUPO)} onClick={onSeleccionar} />
       ))}

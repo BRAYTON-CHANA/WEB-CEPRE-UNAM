@@ -80,11 +80,11 @@ export function SesionCard({ sesion, onClick, restringirHorario = false, ahora =
 
       {/* Info de la sesión */}
       <div className="p-4 flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2 mb-1.5">
-          <span className="text-sm font-bold text-gray-800 truncate">
+        <div className="flex items-start justify-between gap-2 mb-1.5 flex-wrap">
+          <span className="text-sm font-bold text-gray-800 truncate min-w-0">
             {sesion.NOMBRE_CURSO || 'Sin curso'}
           </span>
-          <span className="flex items-center gap-1 flex-shrink-0">
+          <span className="flex items-center gap-1 flex-shrink-0 flex-wrap justify-end">
             {!habilitada && <DisponibilidadBadge sesion={sesion} ahora={ahora} />}
             <EstadoBadge sesion={sesion} />
           </span>

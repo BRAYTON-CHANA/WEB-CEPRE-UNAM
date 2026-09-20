@@ -107,8 +107,8 @@ export function AsistenciaForm({ idSesion, sesionData, idDocenteProgramado, idUs
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Grid de 2 columnas */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Grid de 2 columnas — 1 col en móvil */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Hora Entrada - input nativo */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700">
@@ -119,7 +119,7 @@ export function AsistenciaForm({ idSesion, sesionData, idDocenteProgramado, idUs
               name="HORA_ENTRADA_REAL"
               value={formData.HORA_ENTRADA_REAL}
               onChange={(e) => handleChange('HORA_ENTRADA_REAL', e.target.value)}
-              className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-base sm:text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               style={{
                 colorScheme: 'light',
               }}
@@ -136,7 +136,7 @@ export function AsistenciaForm({ idSesion, sesionData, idDocenteProgramado, idUs
               name="HORA_SALIDA_REAL"
               value={formData.HORA_SALIDA_REAL}
               onChange={(e) => handleChange('HORA_SALIDA_REAL', e.target.value)}
-              className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-base sm:text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               style={{
                 colorScheme: 'light',
               }}

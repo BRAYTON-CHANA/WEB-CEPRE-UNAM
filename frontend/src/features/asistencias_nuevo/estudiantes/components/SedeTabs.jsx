@@ -2,7 +2,7 @@ import React from 'react';
 
 export function SedeTabs({ sedes, sedeActiva, onChange, totalPorSede }) {
   return (
-    <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1.5 shadow-sm overflow-x-auto">
+    <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1.5 shadow-sm overflow-x-auto w-full">
       {sedes.map(sede => (
         <button
           key={sede.ID_SEDE}

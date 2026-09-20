@@ -16,7 +16,7 @@ export function ModalMarcarAsistencia({ sesion, onClose, onSuccess, idUsuario = 
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="bg-white shadow-2xl w-full h-full sm:h-auto sm:rounded-2xl sm:max-w-4xl sm:mx-4 sm:max-h-[90vh] overflow-hidden overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         <AsistenciaForm

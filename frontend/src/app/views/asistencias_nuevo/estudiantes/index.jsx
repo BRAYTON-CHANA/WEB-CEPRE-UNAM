@@ -131,38 +131,38 @@ function AsistenciasNuevoEstudiantes() {
 
   return (
     <CepreLayout showSidebar>
-      <div className="min-h-screen py-10" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
-        <div className="max-w-screen-2xl mx-auto px-6">
+      <div className="min-h-screen py-5 sm:py-10" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6">
 
           {/* Header */}
-          <div className="mb-8 flex items-end justify-between gap-4 flex-wrap">
+          <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 sm:gap-4">
             <div>
               <span className="text-xs font-semibold text-[#25346A] uppercase tracking-widest">Estudiantes</span>
-              <h1 className="text-4xl font-black text-gray-900 tracking-tight">Asistencia de Estudiantes</h1>
-              <p className="text-gray-400 mt-1 text-sm">
+              <h1 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight">Asistencia de Estudiantes</h1>
+              <p className="text-gray-400 mt-1 text-xs sm:text-sm">
                 {mostrandoSesiones
                   ? 'Sesiones programadas del grupo'
                   : 'Selecciona un grupo para tomar asistencia'}
               </p>
             </div>
 
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap w-full sm:w-auto">
               {/* Buscador (solo en vista de grupos) */}
               {mostrandoGrupos && (
-                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2.5 shadow-sm">
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2.5 shadow-sm flex-1 sm:flex-none">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <input
                     type="text"
                     value={busqueda}
                     onChange={e => setBusqueda(e.target.value)}
                     placeholder="Buscar por nombre o código"
-                    className="text-sm font-medium text-gray-800 bg-transparent focus:outline-none w-52 placeholder:text-gray-400"
+                    className="text-base sm:text-sm font-medium text-gray-800 bg-transparent focus:outline-none flex-1 sm:w-52 min-w-0 placeholder:text-gray-400"
                   />
                 </div>
               )}
 
               {/* Selector de período */}
-              <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2.5 shadow-sm">
+              <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2.5 shadow-sm w-full sm:w-auto justify-between sm:justify-start">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">Período</label>
                 {loadingPeriodos ? (
@@ -175,7 +175,7 @@ function AsistenciasNuevoEstudiantes() {
                       setSedeActiva(null);
                       setGrupoSeleccionado(null);
                     }}
-                    className="text-sm font-medium text-gray-800 bg-transparent focus:outline-none cursor-pointer"
+                    className="text-base sm:text-sm font-medium text-gray-800 bg-transparent focus:outline-none cursor-pointer flex-1 sm:flex-none"
                   >
                     {periodos.map(p => (
                       <option key={p.ID_PERIODO} value={p.ID_PERIODO}>{p.NOMBRE_PERIODO}</option>
@@ -189,7 +189,7 @@ function AsistenciasNuevoEstudiantes() {
           {/* Nivel 3: sesiones del grupo seleccionado */}
           {mostrandoSesiones ? (
             <div>
-              <div className="mb-5 flex items-center gap-3">
+              <div className="mb-5 flex items-center gap-3 flex-wrap min-w-0">
                 <button
                   onClick={() => setGrupoSeleccionado(null)}
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#25346A] hover:text-[#1a2545] bg-white border border-gray-200 rounded-xl px-4 py-2 shadow-sm transition-colors"
