@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '@/shared/api';
 import TextAreaInput from '@/shared/components/ui/inputs/TextAreaInput';
-import FileInput from '@/shared/components/ui/inputs/FileInput';
-import { uploadEvidenciaSesion, getEvidenciaSesionUrl } from '../services/asistenciasStorageService';
 
 /**
  * Formulario de Asistencia Docente (Custom)
@@ -16,15 +14,6 @@ export function AsistenciaForm({ idSesion, sesionData, idDocenteProgramado, idUs
       HORA_ENTRADA_REAL: existing.HORA_ENTRADA_REAL?.slice(0, 5) || '',
       HORA_SALIDA_REAL: existing.HORA_SALIDA_REAL?.slice(0, 5) || '',
       ASISTIO_DOCENTE: existing.ASISTIO === null || existing.ASISTIO === undefined ? true : existing.ASISTIO,
-      // Evidencia existente: objeto { name, size, storagePath } para FileInput
-      EVIDENCIA: existing.EVIDENCIA_PATH
-        ? {
-            name: existing.EVIDENCIA_FILENAME || 'evidencia',
-            size: existing.EVIDENCIA_TAMAÑO_BYTES || 0,
-            url: null,
-            storagePath: existing.EVIDENCIA_PATH,
-          }
-        : '',
       OBSERVACIONES: existing.OBSERVACIONES || ''
     };
   };
@@ -60,24 +49,13 @@ export function AsistenciaForm({ idSesion, sesionData, idDocenteProgramado, idUs
         // ASISTIO = true → el docente programado; false → nadie (limpiar suplencia)
         ID_DOCENTE_ASISTIO: asistio ? idDocenteProgramado : null,
         NOMBRE_SUPLENTE_EXTERNO: null,
-        MOTIVO_FALTA: null
+        MOTIVO_FALTA: null,
+        // Evidencia deshabilitada por ahora — siempre null
+        EVIDENCIA_PATH: null,
+        EVIDENCIA_FILENAME: null,
+        EVIDENCIA_CONTENT_TYPE: null,
+        EVIDENCIA_TAMAÑO_BYTES: null
       };
-
-      // Evidencia: File nuevo → subir; quitado → limpiar columnas; sin tocar → conservar
-      const evid = formData.EVIDENCIA;
-      const nuevoArchivo = Array.isArray(evid) && evid[0] instanceof File ? evid[0] : null;
-      if (nuevoArchivo) {
-        const up = await uploadEvidenciaSesion(idSesion, nuevoArchivo);
-        payload.EVIDENCIA_PATH = up.path;
-        payload.EVIDENCIA_FILENAME = up.filename;
-        payload.EVIDENCIA_CONTENT_TYPE = up.contentType;
-        payload.EVIDENCIA_TAMAÑO_BYTES = up.size;
-      } else if (!nuevoArchivo && !evid?.storagePath && sesionData?.EVIDENCIA_PATH) {
-        payload.EVIDENCIA_PATH = null;
-        payload.EVIDENCIA_FILENAME = null;
-        payload.EVIDENCIA_CONTENT_TYPE = null;
-        payload.EVIDENCIA_TAMAÑO_BYTES = null;
-      }
 
       await db.update('SESIONES_AGRUPADAS', idSesion, payload, 'ID_SESION');
       onSuccess?.();
@@ -165,21 +143,6 @@ export function AsistenciaForm({ idSesion, sesionData, idDocenteProgramado, idUs
                 />
               </button>
             </div>
-          </div>
-
-          {/* Evidencia: foto del aula o justificación */}
-          <div className="col-span-2">
-            <FileInput
-              name="EVIDENCIA"
-              label="Evidencia"
-              value={formData.EVIDENCIA}
-              onChange={(name, value) => handleChange(name, value)}
-              fileTypes={['IMAGES', 'PDF']}
-              maxSize={10 * 1024 * 1024}
-              getDownloadUrl={(fileValue) =>
-                fileValue?.storagePath ? getEvidenciaSesionUrl(fileValue.storagePath) : null
-              }
-            />
           </div>
 
           {/* Observaciones - siempre visibles */}

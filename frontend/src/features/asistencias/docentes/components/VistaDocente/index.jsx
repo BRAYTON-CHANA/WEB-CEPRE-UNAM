@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { usePlazasDocente } from '../../hooks/usePlazasDocente';
 import { useSesionesDocente } from '../../hooks/useSesionesDocente';
+import { useVaciarAsistencia } from '../../../shared/hooks/useVaciarAsistencia';
 import { PlazasTabs } from './PlazasTabs';
 import { GruposGrid } from './GruposGrid';
 import { TablaSesiones } from './TablaSesiones';
@@ -39,6 +40,21 @@ export function VistaDocente({ docente, idPeriodo, idSede, onVolver, idUsuario =
 
   const handleMarcar = useCallback((s) => setSesionModal(s), []);
   const handleMarcarEstudiantes = useCallback((s) => setSesionEstudiantes(s), []);
+
+  const { vaciarAsistencia, loading: vaciando } = useVaciarAsistencia();
+
+  const handleVaciar = useCallback(async (s) => {
+    const ok = window.confirm(
+      '¿Vaciar la asistencia de esta sesión?\n\nSe limpiará el marcado del docente (entrada, salida, observaciones, evidencia) y la asistencia de los estudiantes. No se elimina ningún registro.'
+    );
+    if (!ok) return;
+    try {
+      await vaciarAsistencia(s.ID_SESION);
+      refetch();
+    } catch (err) {
+      alert(`No se pudo vaciar la asistencia: ${err.message}`);
+    }
+  }, [vaciarAsistencia, refetch]);
 
   return (
     <>
@@ -109,6 +125,8 @@ export function VistaDocente({ docente, idPeriodo, idSede, onVolver, idUsuario =
                   sesiones={sesionesDelGrupo} 
                   onMarcar={handleMarcar}
                   onMarcarEstudiantes={handleMarcarEstudiantes}
+                  onVaciar={handleVaciar}
+                  vaciando={vaciando}
                   nombreCurso={plazaSeleccionada?.NOMBRE_CURSO}
                 />
               </div>

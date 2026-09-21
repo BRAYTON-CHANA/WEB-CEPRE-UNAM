@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatFecha, formatHora } from '../../utils';
+import { formatFecha, formatHora, formatFechaHora } from '../../utils';
 import { AsistenciaBadge } from './AsistenciaBadge';
 import { SuplenteBadge } from './SuplenteBadge';
 
@@ -34,7 +34,7 @@ export function TablaSesiones({ sesiones, onMarcar, onMarcarEstudiantes }) {
     );
   }
 
-  const headers = ['#', 'Fecha', 'Horario', 'Docente programado', '¿Asistió?', 'Docente asistió', 'Entrada', 'Salida', 'Observaciones', 'Acciones'];
+  const headers = ['#', 'Fecha', 'Horario', 'Docente programado', '¿Asistió?', 'Docente asistió', 'Entrada', 'Salida', 'Marcado', 'Observaciones', 'Acciones'];
 
   return (
     <div className="w-full overflow-x-auto">
@@ -90,6 +90,9 @@ export function TablaSesiones({ sesiones, onMarcar, onMarcarEstudiantes }) {
               </td>
               <td className="px-4 py-3.5 whitespace-nowrap">
                 <span className="font-mono text-gray-500 text-sm">{formatHora(s.HORA_SALIDA_REAL)}</span>
+              </td>
+              <td className="px-4 py-3.5 whitespace-nowrap">
+                <span className="font-mono text-gray-500 text-sm">{formatFechaHora(s.FECHA_MARCADO)}</span>
               </td>
               <td className="px-4 py-3.5 max-w-[180px]">
                 <span className="text-gray-400 text-sm truncate block" title={s.OBSERVACIONES ?? ''}>
