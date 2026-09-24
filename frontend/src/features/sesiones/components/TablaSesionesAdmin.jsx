@@ -1,0 +1,142 @@
+import React from 'react';
+import { formatFecha, formatHora, formatFechaHora } from '../../asistencias/grupos/utils';
+
+function EstadoBadge({ asistio }) {
+  if (asistio === null || asistio === undefined) {
+    return (
+      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium border bg-amber-50 text-amber-700 border-amber-200">
+        Pendiente
+      </span>
+    );
+  }
+  return asistio ? (
+    <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium border bg-emerald-50 text-emerald-700 border-emerald-200">
+      Asistió
+    </span>
+  ) : (
+    <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium border bg-red-50 text-red-700 border-red-200">
+      Faltó
+    </span>
+  );
+}
+
+export function TablaSesionesAdmin({ sesiones, onMarcar, onMarcarEstudiantes, onVaciar, vaciando }) {
+  if (!sesiones.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center mb-3">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+        <p className="text-gray-400 text-sm font-medium">Sin sesiones que coincidan con los filtros</p>
+      </div>
+    );
+  }
+
+  const headers = ['Fecha', 'Horario', 'Sede', 'Grupo', 'Curso', 'Docente programado', 'Estado', 'Marcado', 'Observaciones', 'Acciones'];
+
+  return (
+    <div className="w-full overflow-x-auto">
+      <table className="w-full text-sm border-collapse">
+        <thead>
+          <tr className="border-b-2 border-gray-100">
+            {headers.map(h => (
+              <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap bg-white">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {sesiones.map((s) => (
+            <tr key={s.ID_SESION} className="border-b border-gray-50 hover:bg-slate-50 transition-colors">
+              <td className="px-4 py-3.5 whitespace-nowrap">
+                <span className="font-medium text-gray-800 text-sm">{formatFecha(s.FECHA)}</span>
+              </td>
+              <td className="px-4 py-3.5 whitespace-nowrap">
+                <span className="font-mono text-gray-600 text-sm tracking-tight">
+                  {formatHora(s.HORA_INICIO)}<span className="text-gray-300 mx-1">–</span>{formatHora(s.HORA_FIN)}
+                </span>
+              </td>
+              <td className="px-4 py-3.5 whitespace-nowrap">
+                <span className="text-gray-600 text-sm">{s.NOMBRE_SEDE ?? '—'}</span>
+              </td>
+              <td className="px-4 py-3.5 whitespace-nowrap">
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                  {s.CODIGO_GRUPO ?? s.NOMBRE_GRUPO ?? '—'}
+                </span>
+              </td>
+              <td className="px-4 py-3.5">
+                <div className="text-sm font-medium text-gray-800">{s.NOMBRE_CURSO}</div>
+                <div className="text-xs text-gray-400">{s.CODIGO_CURSO}</div>
+              </td>
+              <td className="px-4 py-3.5 whitespace-nowrap">
+                <span className="text-gray-700 text-sm">
+                  {s.DOCENTE_PROGRAMADO_NOMBRE ?? <span className="text-gray-300 italic">Sin asignar</span>}
+                </span>
+              </td>
+              <td className="px-4 py-3.5 whitespace-nowrap">
+                <EstadoBadge asistio={s.ASISTIO} />
+              </td>
+              <td className="px-4 py-3.5 whitespace-nowrap">
+                <span className="font-mono text-gray-500 text-sm">{formatFechaHora(s.FECHA_MARCADO)}</span>
+              </td>
+              <td className="px-4 py-3.5 max-w-[180px]">
+                <span className="text-gray-400 text-sm truncate block" title={s.OBSERVACIONES ?? ''}>
+                  {s.OBSERVACIONES ?? '—'}
+                </span>
+              </td>
+              <td className="px-4 py-3.5 whitespace-nowrap">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => onMarcar(s)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100 hover:border-blue-200 transition-all"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Marcar docente
+                  </button>
+                  <button
+                    onClick={() => onMarcarEstudiantes(s)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 hover:border-emerald-200 transition-all"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                      <circle cx="9" cy="7" r="4"/>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    Marcar estudiantes
+                  </button>
+                  <button
+                    onClick={() => onVaciar(s)}
+                    disabled={vaciando || !(s.FECHA_MARCADO || s.ASISTIO != null || s.HORA_ENTRADA_REAL)}
+                    title={s.FECHA_MARCADO || s.ASISTIO != null || s.HORA_ENTRADA_REAL
+                      ? 'Vaciar asistencia de esta sesión'
+                      : 'No hay asistencia marcada para vaciar'}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 hover:border-red-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-50"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18"/>
+                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                      <line x1="10" y1="11" x2="10" y2="17"/>
+                      <line x1="14" y1="11" x2="14" y2="17"/>
+                    </svg>
+                    Vaciar
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

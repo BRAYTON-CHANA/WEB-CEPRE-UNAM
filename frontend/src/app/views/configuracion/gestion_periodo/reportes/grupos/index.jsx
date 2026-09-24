@@ -6,6 +6,7 @@ import { useTableData } from '@/shared/components/crud/hooks/useTableData';
 import { usePeriodo } from '@/shared/context/PeriodoContext';
 import { exportSesionesToExcel, exportAllSesionesToExcel } from '@/features/reportes/grupos/utils/exportSesionesToExcel';
 import { exportSesionesToPdf, exportAllSesionesToPdf } from '@/features/reportes/grupos/utils/exportSesionesToPdf';
+import { exportRelacionDocentes } from '@/features/reportes/grupos/utils/exportRelacionDocentes';
 import ExportOptionsModal from '@/features/reportes/shared/ExportOptionsModal';
 import { levelConfigs } from '@/features/reportes/grupos/config';
 
@@ -16,6 +17,7 @@ function ReportesGrupos() {
   const [exportingIndividual, setExportingIndividual] = useState(null);
   const [exportingAllPdf, setExportingAllPdf] = useState(false);
   const [exportingIndividualPdf, setExportingIndividualPdf] = useState(null);
+  const [exportingRelacion, setExportingRelacion] = useState(false);
   const [exportModalPending, setExportModalPending] = useState(null);
 
   const filters = useMemo(() => {
@@ -38,6 +40,13 @@ function ReportesGrupos() {
   const handleExportAllExcel = () => {
     if (!records || records.length === 0) return;
     setExportModalPending({ type: 'all' });
+  };
+
+  const handleExportRelacion = async () => {
+    if (!selectedPeriodo) return;
+    setExportingRelacion(true);
+    try { await exportRelacionDocentes(selectedPeriodo); }
+    finally { setExportingRelacion(false); }
   };
 
   const handleModalConfirm = async (opts) => {
@@ -142,6 +151,17 @@ function ReportesGrupos() {
                   <><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>Generando PDF...</>
                 ) : (
                   <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>Exportar Todo PDF</>
+                )}
+              </button>
+              <button
+                onClick={handleExportRelacion}
+                disabled={exportingAll || exportingAllPdf || exportingRelacion}
+                className="px-4 py-2 bg-gradient-to-r from-teal-600 to-teal-500 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {exportingRelacion ? (
+                  <><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>Exportando...</>
+                ) : (
+                  <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87M16 3.13a4 4 0 010 7.75M12 7a4 4 0 100 8 4 4 0 000-8z" /></svg>Relación Docentes</>
                 )}
               </button>
             </div>

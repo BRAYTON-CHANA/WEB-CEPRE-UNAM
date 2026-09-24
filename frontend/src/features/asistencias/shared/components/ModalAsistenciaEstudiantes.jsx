@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { db } from '@/shared/api';
+import { useAuthContext } from '@/shared/context/AuthContext';
 import { useAsistenciasPostulante } from '../hooks/useAsistenciasPostulante';
 import { EstadoAsistenciaSelect } from './EstadoAsistenciaSelect';
 import FormConfirmModal from '@/shared/components/form/components/FormConfirmModal';
@@ -18,7 +19,9 @@ function formatHora(horaStr) {
   return `${h}:${m}`;
 }
 
-export function ModalAsistenciaEstudiantes({ sesion, onClose, onSuccess }) {
+export function ModalAsistenciaEstudiantes({ sesion, onClose, onSuccess, regularizar = false }) {
+  const { user } = useAuthContext();
+  const idUsuario = user?.ID_USUARIO ?? user?.id_usuario ?? null;
   const { postulantes, loading, error, refetch } = useAsistenciasPostulante(sesion?.ID_SESION);
 
   const [pending, setPending] = useState({});
@@ -67,6 +70,26 @@ export function ModalAsistenciaEstudiantes({ sesion, onClose, onSuccess }) {
         data: { ESTADO_ASISTENCIA: estado },
       }));
       await db.updateBatch('ASISTENCIAS_POSTULANTE', updates, 'ID_ASISTENCIA');
+
+      // Marcar la sesión: docente programado + auditoría + estado.
+      // ASISTIO y horas reales se manejan desde "Marcar docente".
+      // Si falla no bloquea — la asistencia de estudiantes ya quedó guardada.
+      try {
+        await db.update('SESIONES_AGRUPADAS', sesion.ID_SESION, {
+          ID_DOCENTE_ASISTIO: sesion.ID_DOCENTE_PROGRAMADO ?? sesion.ID_DOCENTE_ASISTIO ?? null,
+          MARCADO_POR: idUsuario,
+          FECHA_MARCADO: new Date().toISOString(),
+          ESTADO: 'realizado',
+          // Regularización (módulo Sesiones admin): marca todo de una vez
+          ...(regularizar ? {
+            ASISTIO: true,
+            HORA_ENTRADA_REAL: sesion.HORA_ENTRADA_REAL ?? sesion.HORA_INICIO ?? null,
+          } : {}),
+        }, 'ID_SESION');
+      } catch (errSesion) {
+        console.error('[ModalAsistenciaEstudiantes] Error marcando sesión:', errSesion);
+      }
+
       setPending({});
       refetch();
       if (onSuccess) onSuccess();

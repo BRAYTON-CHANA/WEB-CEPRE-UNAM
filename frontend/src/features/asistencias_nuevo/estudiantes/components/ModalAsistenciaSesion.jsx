@@ -208,20 +208,14 @@ export function ModalAsistenciaSesion({ sesion, idDocente, onClose, onSuccess })
           }
         }
 
+        // Solo docente que asistió + auditoría + estado.
+        // ASISTIO y horas reales se manejan desde "Marcar docente" (asistencias viejo).
         const sesionPayload = {
+          ID_DOCENTE_ASISTIO: idDocenteAsistio,
           MARCADO_POR: idUsuario,
           FECHA_MARCADO: new Date().toISOString(),
+          ESTADO: 'realizado',
         };
-        if (idDocenteAsistio) {
-          sesionPayload.ID_DOCENTE_ASISTIO = idDocenteAsistio;
-          sesionPayload.ASISTIO = true;
-        }
-        // Hora real de entrada: solo la primera vez (se preserva la original)
-        if (!sesion.HORA_ENTRADA_REAL) {
-          const ahora = new Date();
-          sesionPayload.HORA_ENTRADA_REAL =
-            `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
-        }
         await db.update('SESIONES_AGRUPADAS', sesion.ID_SESION, sesionPayload, 'ID_SESION');
       } catch (errSesion) {
         console.error('[ModalAsistenciaSesion] Error marcando sesión:', errSesion);

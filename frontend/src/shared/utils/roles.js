@@ -20,12 +20,14 @@ export const getRoleFlags = (user, activeRole) => {
   const esAuxiliar = typeof role === 'string' && role.startsWith('auxiliar');
   const esDocente = role === 'docente';
   const esPostulante = role === 'postulante';
+  const esAdmin = role === 'admin';
 
   return {
     role,
     esAuxiliar,
     esDocente,
     esPostulante,
+    esAdmin,
     puedeVerConfiguracion: !(esAuxiliar || esDocente || esPostulante),
     puedeVerAsistenciasViejo: !esDocente && !esPostulante,
     puedeVerAsistenciasNuevo: !esAuxiliar && !esPostulante,

@@ -42,6 +42,7 @@ export function useVaciarAsistencia() {
         MARCADO_POR: null,
         FECHA_MARCADO: null,
         FOTO_EVIDENCIA_PATH: null,
+        ESTADO: 'programado',
       };
       const result = await db.update('SESIONES_AGRUPADAS', idSesion, payload, 'ID_SESION');
 

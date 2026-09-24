@@ -50,6 +50,8 @@ export function AsistenciaForm({ idSesion, sesionData, idDocenteProgramado, idUs
         ID_DOCENTE_ASISTIO: asistio ? idDocenteProgramado : null,
         NOMBRE_SUPLENTE_EXTERNO: null,
         MOTIVO_FALTA: null,
+        // Si asistió, la sesión queda realizada; si faltó, se conserva el estado
+        ...(asistio ? { ESTADO: 'realizado' } : {}),
         // Evidencia deshabilitada por ahora — siempre null
         EVIDENCIA_PATH: null,
         EVIDENCIA_FILENAME: null,

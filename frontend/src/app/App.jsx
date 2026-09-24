@@ -53,6 +53,7 @@ import AsistenciasEstudiantes from '@/app/views/asistencias/estudiantes';
 import AsistenciasNuevo from '@/app/views/asistencias_nuevo';
 import HorarioDocente from '@/app/views/horario';
 import AsistenciasNuevoEstudiantes from '@/app/views/asistencias_nuevo/estudiantes';
+import Sesiones from '@/app/views/sesiones';
 import AsistenciasReportes from '@/app/views/asistencias/reportes';
 import AsistenciasReportesDocentes from '@/app/views/asistencias/reportes/docentes';
 import AsistenciasReportesEstudiantes from '@/app/views/asistencias/reportes/estudiantes';
@@ -85,12 +86,13 @@ function App() {
   // Restricción por rol activo: módulos ocultos tampoco accesibles por URL
   if (isAuthenticated) {
     const path = location.pathname;
-    const { esDocente, puedeVerConfiguracion, puedeVerAsistenciasViejo, puedeVerAsistenciasNuevo } = getRoleFlags(user, activeRole);
+    const { esDocente, esAdmin, puedeVerConfiguracion, puedeVerAsistenciasViejo, puedeVerAsistenciasNuevo } = getRoleFlags(user, activeRole);
     const esRutaVieja = path === '/asistencias' || path.startsWith('/asistencias/');
     const bloqueado =
       (path.startsWith('/configuracion') && !puedeVerConfiguracion) ||
       (path.startsWith('/asistencias_nuevo') && !puedeVerAsistenciasNuevo) ||
       (path === '/horario' && !esDocente) ||
+      (path === '/sesiones' && !esAdmin) ||
       (esRutaVieja && !puedeVerAsistenciasViejo);
     if (bloqueado) return <Navigate to="/" replace />;
   }
@@ -120,6 +122,7 @@ function App() {
       <Route path="/horario" element={<HorarioDocente />} />
       <Route path="/asistencias_nuevo" element={<AsistenciasNuevo />} />
       <Route path="/asistencias_nuevo/estudiantes" element={<AsistenciasNuevoEstudiantes />} />
+      <Route path="/sesiones" element={<Sesiones />} />
       <Route path="/asistencias/reportes" element={<AsistenciasReportes />} />
       <Route path="/asistencias/reportes/docentes" element={<AsistenciasReportesDocentes />} />
       <Route path="/asistencias/reportes/estudiantes" element={<AsistenciasReportesEstudiantes />} />
