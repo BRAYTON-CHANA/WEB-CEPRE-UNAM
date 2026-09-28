@@ -43,8 +43,8 @@ export function AsistenciaForm({ idSesion, sesionData, idDocenteProgramado, idUs
         HORA_ENTRADA_REAL: formData.HORA_ENTRADA_REAL || null,
         HORA_SALIDA_REAL: formData.HORA_SALIDA_REAL || null,
         OBSERVACIONES: formData.OBSERVACIONES || null,
-        MARCADO_POR: idUsuario,
-        FECHA_MARCADO: new Date().toISOString(),
+        ID_AUXILIAR_MARCADO: idUsuario,
+        FECHA_MARCADO_AUXILIAR: new Date().toISOString(),
         ASISTIO: asistio,
         // ASISTIO = true → el docente programado; false → nadie (limpiar suplencia)
         ID_DOCENTE_ASISTIO: asistio ? idDocenteProgramado : null,

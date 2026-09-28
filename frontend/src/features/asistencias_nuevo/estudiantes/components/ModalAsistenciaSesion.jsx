@@ -212,6 +212,7 @@ export function ModalAsistenciaSesion({ sesion, idDocente, onClose, onSuccess })
         // ASISTIO y horas reales se manejan desde "Marcar docente" (asistencias viejo).
         const sesionPayload = {
           ID_DOCENTE_ASISTIO: idDocenteAsistio,
+          // Auditoría de quién marcó la asistencia de estudiantes
           MARCADO_POR: idUsuario,
           FECHA_MARCADO: new Date().toISOString(),
           ESTADO: 'realizado',

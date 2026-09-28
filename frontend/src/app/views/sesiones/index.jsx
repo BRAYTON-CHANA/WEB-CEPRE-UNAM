@@ -15,7 +15,7 @@ const norm = (v) =>
   (v ?? '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim();
 
 const ESTADOS = [
-  { key: 'todos', label: 'Todos los estados' },
+  { key: 'todos', label: 'Todas' },
   { key: 'pendiente', label: 'Pendientes' },
   { key: 'asistio', label: 'Asistió' },
   { key: 'falto', label: 'Faltó' },
@@ -167,9 +167,9 @@ export default function Sesiones() {
               {/* Filtros */}
               <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                  {/* Estado */}
+                  {/* Asistencia docente */}
                   <div>
-                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Estado</label>
+                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Asistencia docente</label>
                     <select
                       value={filtroEstado}
                       onChange={e => setFiltroEstado(e.target.value)}

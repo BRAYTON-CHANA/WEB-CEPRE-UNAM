@@ -1,20 +1,8 @@
 import { jsPDF } from 'jspdf';
 import { db } from '@/shared/api';
 import { fetchTurnosConBloques } from '../../shared/turnosData';
-
-const parseDate = (fechaStr) => {
-  const [day, month, year] = fechaStr.split('/').map(Number);
-  return new Date(year, month - 1, day);
-};
-
-const WEEKDAY_NAMES = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
-const MONTH_NAMES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
-
-const formatDateShort = (date) => {
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = MONTH_NAMES[date.getMonth()];
-  return `${day}-${month}`;
-};
+import { buildGrupoColumns, fetchGruposExportData, formatDateShort } from './gruposExportData';
+import { sortBySedeArea } from './sedeArea';
 
 // Colores en RGB
 const C_DARK_BLUE  = [30, 58, 138];   // #1E3A8A
@@ -50,50 +38,6 @@ const centeredText = (doc, text, x, y, w, h, fontSize, rgb, bold = false) => {
   lines.forEach((line, i) => {
     doc.text(line, x + w / 2, startY + i * lineH, { align: 'center' });
   });
-};
-
-// ─── Preparar datos de un grupo ──────────────────────────────────────────────
-
-const prepareGrupoData = (sesiones, customBlocks, agruparDias) => {
-  const sesionesPorFecha = new Map();
-  for (const s of sesiones) {
-    let fechaStr = s.FECHA;
-    if (typeof fechaStr === 'string' && fechaStr.includes('T')) fechaStr = fechaStr.split('T')[0];
-    if (!sesionesPorFecha.has(fechaStr)) sesionesPorFecha.set(fechaStr, []);
-    sesionesPorFecha.get(fechaStr).push(s);
-  }
-
-  const dateInfos = [];
-  for (const [fechaStr, sesionesDelDia] of sesionesPorFecha.entries()) {
-    const date = parseDate(fechaStr.includes('/') ? fechaStr : fechaStr.split('-').reverse().join('/'));
-    const weekday = date.getDay();
-    const signature = customBlocks.map(cb => {
-      if (cb.type === 'break') return '__BREAK__';
-      const sesion = sesionesDelDia.find(s => s.ORDEN === cb.orden);
-      if (sesion) return `${sesion.CODIGO_AREA || ''}|${sesion.NOMBRE_CURSO || ''}|${sesion.DOCENTE_NOMBRE_COMPLETO || ''}|${sesion.DOCENTE_DISPLAY || 'Sin docente'}`;
-      return null;
-    });
-    const sigKey = signature.map(s => s === null ? '_' : s).join('||');
-    dateInfos.push({ date, weekday, signature, sigKey });
-  }
-
-  const grouped = new Map();
-  for (const info of dateInfos) {
-    const groupKey = agruparDias ? `${info.weekday}__${info.sigKey}` : info.sigKey;
-    if (!grouped.has(groupKey)) grouped.set(groupKey, { signature: info.signature, dates: [], weekday: info.weekday });
-    grouped.get(groupKey).dates.push(info.date);
-  }
-
-  const columns = [];
-  for (const g of grouped.values()) {
-    g.dates.sort((a, b) => a - b);
-    columns.push({ weekday: g.weekday, dates: g.dates, signature: g.signature });
-  }
-  columns.sort((a, b) => a.dates[0] - b.dates[0]);
-  columns.forEach((col, i) => {
-    col.weekdayName = agruparDias ? WEEKDAY_NAMES[col.weekday] : `DÍA ${i + 1}`;
-  });
-  return columns;
 };
 
 // ─── Dibujar una página de horario en el doc ─────────────────────────────────
@@ -191,11 +135,11 @@ const drawHorarioPage = (doc, grupoNombre, sede, nombrePeriodo, columns, customB
 
     if (cb.type === 'break') {
       filledRect(doc, startX, ry, blockColW, rh, C_GRAY_MED);
-      centeredText(doc, `${cb.label}\n${cb.timeRange}`, startX, ry, blockColW, rh, 7, C_GRAY_TEXT, false);
+      centeredText(doc, `${cb.label}\n${cb.timeRange}`, startX, ry, blockColW, rh, 8, C_GRAY_TEXT, false);
     } else {
       ordenClase++;
       filledRect(doc, startX, ry, blockColW, rh, C_GRAY_LIGHT);
-      centeredText(doc, `Bloque ${ordenClase}\n${cb.timeRange}`, startX, ry, blockColW, rh, 7.5, C_BLUE, true);
+      centeredText(doc, `Bloque ${ordenClase}\n${cb.timeRange}`, startX, ry, blockColW, rh, 8.5, C_BLUE, true);
     }
 
     columns.forEach((col, idx) => {
@@ -219,7 +163,7 @@ const drawHorarioPage = (doc, grupoNombre, sede, nombrePeriodo, columns, customB
           if (opts.showDocente !== false) cellParts.push(docente);
           if (opts.showHorario !== false) cellParts.push(timeRange);
           const cellLines = cellParts.filter(Boolean).join('\n');
-          centeredText(doc, cellLines, cx, ry, dataColW, runH, 7, C_DARK_TEXT, false);
+          centeredText(doc, cellLines, cx, ry, dataColW, runH, 8, C_DARK_TEXT, false);
         }
       } else if (sig === '__BREAK__') {
         filledRect(doc, cx, ry, dataColW, rh, C_GRAY_MED);
@@ -228,6 +172,14 @@ const drawHorarioPage = (doc, grupoNombre, sede, nombrePeriodo, columns, customB
       }
     });
   }
+};
+
+// Doc de una página listo para guardar o empaquetar en ZIP.
+export const buildGrupoPdfDoc = (nombreGrupo, sede, nombrePeriodo, columns, customBlocks, opts = {}) => {
+  const orientation = getOrientation(columns);
+  const doc = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
+  drawHorarioPage(doc, nombreGrupo, sede, nombrePeriodo, columns, customBlocks, true, orientation, opts);
+  return doc;
 };
 
 // ─── Fetch datos de un grupo ─────────────────────────────────────────────────
@@ -261,16 +213,14 @@ export const exportSesionesToPdf = async (idGrupo, grupoNombre, opts = {}) => {
       return;
     }
     const { sesiones, customBlocks, nombrePeriodo } = data;
-    const columns = prepareGrupoData(sesiones, customBlocks, opts.agruparDias === true);
+    const columns = buildGrupoColumns(sesiones, customBlocks, opts.agruparDias === true);
     if (columns.length === 0) {
       alert('No hay datos para exportar');
       return;
     }
 
-    const orientation = getOrientation(columns);
-    const doc = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
     const sede = sesiones[0]?.NOMBRE_SEDE || 'Virtual';
-    drawHorarioPage(doc, grupoNombre, sede, nombrePeriodo, columns, customBlocks, true, orientation, opts);
+    const doc = buildGrupoPdfDoc(grupoNombre, sede, nombrePeriodo, columns, customBlocks, opts);
 
     const fileName = `Horario_${grupoNombre || 'Grupo'}_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(fileName);
@@ -287,32 +237,15 @@ export const exportAllSesionesToPdf = async (grupos, opts = {}) => {
       return;
     }
 
-    const grupoIds = grupos.map(g => g.ID_GRUPO).filter(Boolean);
-    if (grupoIds.length === 0) return;
+    // Orden sede → área → código de grupo → páginas continuas ordenadas
+    const ordered = sortBySedeArea(grupos.filter(g => g.ID_GRUPO != null));
+    if (ordered.length === 0) return;
 
-    // ── 1. Sesiones por grupo (OPTIMIZADO: 1 query con IN) ───────────────
-    const sesionesPorGrupo = new Map();
-    if (grupoIds.length > 0) {
-      const placeholders = grupoIds.map((_, i) => `$${i + 1}`).join(',');
-      const allSesiones = await db.rawSelect(
-        `SELECT * FROM "VW_SESIONES_AGRUPADAS_DESGLOSE" WHERE "ID_GRUPO" IN (${placeholders})`,
-        ...grupoIds
-      );
-      for (const s of allSesiones) {
-        const gid = s.ID_GRUPO;
-        if (!sesionesPorGrupo.has(gid)) sesionesPorGrupo.set(gid, []);
-        sesionesPorGrupo.get(gid).push(s);
-      }
-    }
-
-    // ── 2. Turnos + bloques en 1 query JOIN ────────────────────────────────
-    // Los records de VW_GRUPOS ya traen ID_TURNO — sin query extra a GRUPOS
-    const turnoIds = [...new Set(grupos.map(g => g.ID_TURNO).filter(v => v != null))];
-    const customBlocksByTurno = await fetchTurnosConBloques(turnoIds);
+    const { sesionesPorGrupo, customBlocksByTurno } = await fetchGruposExportData(ordered);
 
     // ── Primera pasada: preparar cada página con su orientación ─────────
     const renderItems = [];
-    for (const grupo of grupos) {
+    for (const grupo of ordered) {
       const idGrupo = grupo.ID_GRUPO;
       if (!idGrupo) continue;
       const nombreGrupo = grupo.NOMBRE_GRUPO || grupo.CODIGO_GRUPO || `Grupo_${idGrupo}`;
@@ -322,7 +255,7 @@ export const exportAllSesionesToPdf = async (grupos, opts = {}) => {
       const customBlocks = customBlocksByTurno.get(grupo.ID_TURNO)?.bloques;
       if (!customBlocks) continue;
 
-      const columns = prepareGrupoData(sesiones, customBlocks, opts.agruparDias === true);
+      const columns = buildGrupoColumns(sesiones, customBlocks, opts.agruparDias === true);
       if (columns.length === 0) continue;
 
       const nombrePeriodo = sesiones[0]?.NOMBRE_PERIODO || '';

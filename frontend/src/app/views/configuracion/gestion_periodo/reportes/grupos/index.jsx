@@ -7,6 +7,8 @@ import { usePeriodo } from '@/shared/context/PeriodoContext';
 import { exportSesionesToExcel, exportAllSesionesToExcel } from '@/features/reportes/grupos/utils/exportSesionesToExcel';
 import { exportSesionesToPdf, exportAllSesionesToPdf } from '@/features/reportes/grupos/utils/exportSesionesToPdf';
 import { exportRelacionDocentes } from '@/features/reportes/grupos/utils/exportRelacionDocentes';
+import { exportListaPostulantes } from '@/features/reportes/grupos/utils/exportListaPostulantes';
+import { exportGruposToZip } from '@/features/reportes/grupos/utils/exportGruposZip';
 import ExportOptionsModal from '@/features/reportes/shared/ExportOptionsModal';
 import { levelConfigs } from '@/features/reportes/grupos/config';
 
@@ -18,6 +20,9 @@ function ReportesGrupos() {
   const [exportingAllPdf, setExportingAllPdf] = useState(false);
   const [exportingIndividualPdf, setExportingIndividualPdf] = useState(null);
   const [exportingRelacion, setExportingRelacion] = useState(false);
+  const [exportingLista, setExportingLista] = useState(false);
+  const [exportingZip, setExportingZip] = useState(false);
+  const [exportZipProgress, setExportZipProgress] = useState(null);
   const [exportModalPending, setExportModalPending] = useState(null);
 
   const filters = useMemo(() => {
@@ -49,6 +54,13 @@ function ReportesGrupos() {
     finally { setExportingRelacion(false); }
   };
 
+  const handleExportListaPostulantes = async () => {
+    if (!selectedPeriodo) return;
+    setExportingLista(true);
+    try { await exportListaPostulantes(selectedPeriodo, records); }
+    finally { setExportingLista(false); }
+  };
+
   const handleModalConfirm = async (opts) => {
     const pending = exportModalPending;
     setExportModalPending(null);
@@ -68,7 +80,14 @@ function ReportesGrupos() {
         finally { setExportingIndividual(null); }
       }
     } else if (pending.type === 'all') {
-      if (isPdf) {
+      if (opts.unSoloArchivo === false) {
+        setExportingZip(true);
+        setExportZipProgress({ current: 0, total: records.length });
+        try {
+          await exportGruposToZip(records, opts, isPdf ? 'pdf' : 'excel',
+            (current, total) => setExportZipProgress({ current, total }));
+        } finally { setExportingZip(false); setExportZipProgress(null); }
+      } else if (isPdf) {
         setExportingAllPdf(true);
         try { await exportAllSesionesToPdf(records, opts); }
         finally { setExportingAllPdf(false); }
@@ -113,6 +132,7 @@ function ReportesGrupos() {
       <ExportOptionsModal
         isOpen={!!exportModalPending}
         mode="grupos"
+        allowZip={exportModalPending?.type === 'all'}
         title={
           exportModalPending?.format === 'pdf'
             ? (exportModalPending?.type === 'all' ? 'Opciones — Exportar Todo PDF' : 'Opciones — Exportar PDF')
@@ -162,6 +182,17 @@ function ReportesGrupos() {
                   <><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>Exportando...</>
                 ) : (
                   <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87M16 3.13a4 4 0 010 7.75M12 7a4 4 0 100 8 4 4 0 000-8z" /></svg>Relación Docentes</>
+                )}
+              </button>
+              <button
+                onClick={handleExportListaPostulantes}
+                disabled={exportingAll || exportingAllPdf || exportingRelacion || exportingLista}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-500 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {exportingLista ? (
+                  <><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>Exportando...</>
+                ) : (
+                  <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>Lista Postulantes</>
                 )}
               </button>
             </div>
@@ -266,6 +297,20 @@ function ReportesGrupos() {
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-600 mx-auto mb-4"></div>
               <h3 className="text-lg font-semibold text-gray-900 mb-1">Generando PDF todos los grupos...</h3>
               <p className="text-gray-500 text-sm">Por favor espere...</p>
+            </div>
+          </div>
+        )}
+
+        {exportingZip && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 text-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-violet-600 mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Generando ZIP...</h3>
+              <p className="text-gray-500 text-sm">
+                {exportZipProgress
+                  ? `Procesando ${exportZipProgress.current} de ${exportZipProgress.total} grupos`
+                  : 'Por favor espere...'}
+              </p>
             </div>
           </div>
         )}

@@ -7,6 +7,7 @@ const DEFAULT_OPTIONS = {
   showNombreDocente: true,
   agruparDias: false,
   porZip: false,
+  unSoloArchivo: true,
 };
 
 export { DEFAULT_OPTIONS };
@@ -19,7 +20,7 @@ export default function ExportOptionsModal({ isOpen, onConfirm, onCancel, title 
     if (initialOptions) {
       setOptions({ ...DEFAULT_OPTIONS, ...initialOptions });
     } else {
-      setOptions(prev => ({ ...prev, agruparDias: DEFAULT_OPTIONS.agruparDias, porZip: DEFAULT_OPTIONS.porZip }));
+      setOptions(prev => ({ ...prev, agruparDias: DEFAULT_OPTIONS.agruparDias, porZip: DEFAULT_OPTIONS.porZip, unSoloArchivo: DEFAULT_OPTIONS.unSoloArchivo }));
     }
   }, [isOpen]);
 
@@ -34,6 +35,7 @@ export default function ExportOptionsModal({ isOpen, onConfirm, onCancel, title 
     ...(mode === 'plazas' || mode === 'docentes' || mode === 'grupos' ? [{ key: 'showNombreDocente', label: 'Nombre docente', desc: 'Mostrar nombre completo del docente en celdas' }] : []),
     ...(mode === 'grupos' || mode === 'plazas' || mode === 'docentes' ? [{ key: 'agruparDias', label: 'Agrupar por día de la semana', desc: 'Activo: columnas SÁBADO/DOMINGO. Inactivo: DÍA 1, DÍA 2...' }] : []),
     ...(mode === 'docentes' && allowZip ? [{ key: 'porZip', label: 'Exportar como ZIP', desc: 'Una carpeta por docente con sus horarios' }] : []),
+    ...(mode === 'grupos' && allowZip ? [{ key: 'unSoloArchivo', label: 'Un solo archivo', desc: 'Activo: un solo PDF/Excel. Inactivo: ZIP con carpetas por sede/área' }] : []),
   ];
 
   return (

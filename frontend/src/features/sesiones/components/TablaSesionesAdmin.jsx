@@ -37,7 +37,7 @@ export function TablaSesionesAdmin({ sesiones, onMarcar, onMarcarEstudiantes, on
     );
   }
 
-  const headers = ['Fecha', 'Horario', 'Sede', 'Grupo', 'Curso', 'Docente programado', 'Estado', 'Marcado', 'Observaciones', 'Acciones'];
+  const headers = ['Fecha', 'Horario', 'Sede', 'Grupo', 'Curso', 'Docente programado', 'Asistencia docente', 'Marcado', 'Observaciones', 'Acciones'];
 
   return (
     <div className="w-full overflow-x-auto">
@@ -83,7 +83,23 @@ export function TablaSesionesAdmin({ sesiones, onMarcar, onMarcarEstudiantes, on
                 <EstadoBadge asistio={s.ASISTIO} />
               </td>
               <td className="px-4 py-3.5 whitespace-nowrap">
-                <span className="font-mono text-gray-500 text-sm">{formatFechaHora(s.FECHA_MARCADO)}</span>
+                <span className="font-mono text-gray-500 text-sm">{formatFechaHora(s.FECHA_MARCADO || s.FECHA_MARCADO_AUXILIAR)}</span>
+                {s.AUXILIAR_MARCADO_NOMBRE && (
+                  <div
+                    className="text-xs text-gray-400 mt-0.5"
+                    title={`Asistencia del docente marcada por ${s.AUXILIAR_MARCADO_NOMBRE}${s.FECHA_MARCADO_AUXILIAR ? ` el ${formatFechaHora(s.FECHA_MARCADO_AUXILIAR)}` : ''}`}
+                  >
+                    aux: {s.AUXILIAR_MARCADO_NOMBRE}
+                  </div>
+                )}
+                {s.MARCADO_POR_NOMBRE && (
+                  <div
+                    className="text-xs text-gray-400 mt-0.5"
+                    title={`Asistencia de estudiantes marcada por ${s.MARCADO_POR_NOMBRE}`}
+                  >
+                    por: {s.MARCADO_POR_NOMBRE}
+                  </div>
+                )}
               </td>
               <td className="px-4 py-3.5 max-w-[180px]">
                 <span className="text-gray-400 text-sm truncate block" title={s.OBSERVACIONES ?? ''}>

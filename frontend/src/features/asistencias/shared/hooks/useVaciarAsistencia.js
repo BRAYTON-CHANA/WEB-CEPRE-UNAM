@@ -40,7 +40,9 @@ export function useVaciarAsistencia() {
         NOMBRE_SUPLENTE_EXTERNO: null,
         MOTIVO_FALTA: null,
         MARCADO_POR: null,
+        ID_AUXILIAR_MARCADO: null,
         FECHA_MARCADO: null,
+        FECHA_MARCADO_AUXILIAR: null,
         FOTO_EVIDENCIA_PATH: null,
         ESTADO: 'programado',
       };
